@@ -2,6 +2,7 @@ import { useChat } from "@ai-sdk/react";
 import { useUserMessages } from "./message-provider";
 import { useEffect } from "react";
 import { UIMessage } from "ai";
+import { LoaderCircleIcon } from "lucide-react";
 
 // useChatの共通化関数
 function useMyChat(apiPath: string) {
@@ -20,8 +21,8 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 }
 
 export const MessageAi = () => {
-  const { userMessages } = useUserMessages();
-  const { messages, append } = useMyChat("api/horenso");
+  const { userMessages, setAiState } = useUserMessages();
+  const { messages, status, append } = useMyChat("api/chat");
 
   // ユーザーメッセージの送信
   useEffect(() => {
@@ -30,6 +31,11 @@ export const MessageAi = () => {
 
     append({ role: "user", content: currentUserMessage });
   }, [userMessages]);
+
+  // 待機状況
+  useEffect(() => {
+    setAiState(status);
+  }, [status]);
 
   const currentAiCommentMessage = getLatestAssistantMessage(messages);
 
@@ -41,6 +47,12 @@ export const MessageAi = () => {
             <span className="text-zinc-800">
               {currentAiCommentMessage.content}
             </span>
+          </div>
+        )}
+        {status === "submitted" && (
+          <div className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg mb-2 mx-8">
+            <LoaderCircleIcon className="animate-spin h-6 w-6 text-gray-400" />
+            <span className="text-gray-400">回答 確認中...</span>
           </div>
         )}
       </div>

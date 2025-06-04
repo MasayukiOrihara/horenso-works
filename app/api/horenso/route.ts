@@ -1,4 +1,5 @@
 import { LangSmithClient } from "@/lib/clients";
+import { embeddings, OpenAi } from "@/lib/models";
 import { HorensoFlags, HorensoStates } from "@/lib/type";
 import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { PromptTemplate } from "@langchain/core/prompts";
@@ -7,24 +8,8 @@ import {
   messagesStateReducer,
   StateGraph,
 } from "@langchain/langgraph";
-import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { Message as VercelChatMessage, LangChainAdapter } from "ai";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
-
-// モデルのセット（OPENAI固定）
-const OpenAi = new ChatOpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  model: "gpt-4o",
-  temperature: 0.3,
-  cache: true,
-  tags: ["Horenso-works"],
-});
-
-// 埋め込みモデル
-const embeddings = new OpenAIEmbeddings({
-  apiKey: process.env.OPENAI_API_KEY,
-  modelName: "text-embedding-3-large",
-});
 
 // フラグ管理
 const transitionStates = {

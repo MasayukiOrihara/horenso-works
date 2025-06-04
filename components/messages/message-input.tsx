@@ -6,7 +6,7 @@ import { SendHorizontalIcon } from "lucide-react";
 
 export const MessageInput = () => {
   const [text, setText] = useState("");
-  const { addUserMessage } = useUserMessages();
+  const { addUserMessage, aiState } = useUserMessages();
 
   return (
     <form
@@ -26,11 +26,13 @@ export const MessageInput = () => {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="[ENTER で 送信...]"
+          disabled={aiState === "submitted"}
         />
         {/* ボタン */}
         <Button
           type="submit"
           className="w-24 bg-blue-400 text-white p-2 rounded hover:bg-blue-900 hover:cursor-pointer hover:text-white/40 self-end"
+          disabled={aiState === "submitted"}
         >
           <SendHorizontalIcon />
         </Button>
