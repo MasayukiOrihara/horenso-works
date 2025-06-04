@@ -1,17 +1,30 @@
-import { Button } from "./ui/button";
+"use client";
+
+import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
 
 export const Navi: React.FC = () => {
+  const [learnOn, setLearnOn] = useState(false);
+  const [memoryOn, setMemoryOn] = useState(false);
+
   return (
-    <div className="sticky top-0 z-10 px-12 py-4 flex items-center justify-between">
-      <Button variant="link" className="bg-white/40 hover:bg-white/80 rounded">
-        ＜ 前の問題
-      </Button>
-      <Button variant="outline" className="rounded">
-        トップ画面に戻る
-      </Button>
-      <Button variant="link" className="bg-white/40 hover:bg-white/80 rounded">
-        次の問題 ＞
-      </Button>
+    <div className="sticky mx-12 my-4 flex flex-col items-end">
+      <div className="flex flex-row mb-2">
+        <p className="text-xs mr-1">マナビ</p>
+        <Switch
+          checked={learnOn}
+          onCheckedChange={setLearnOn}
+          className="data-[state=checked]:bg-blue-500"
+        />
+      </div>
+      <div className="flex flex-row mb-2">
+        <p className="text-xs mr-1">キオク</p>
+        <Switch
+          checked={memoryOn}
+          onCheckedChange={setMemoryOn}
+          className="data-[state=checked]:bg-blue-500"
+        />
+      </div>
     </div>
   );
 };

@@ -6,7 +6,7 @@ import { Navi } from "@/components/navi-header";
 
 export default function Home() {
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-screen flex flex-col bg-zinc-100">
       <Header />
       <div className="flex flex-1">
         <SideMenu />
