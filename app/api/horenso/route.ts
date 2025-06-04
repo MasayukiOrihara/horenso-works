@@ -1,5 +1,5 @@
-import { LangSmithClient } from "@/lib/clients";
-import { embeddings, OpenAi } from "@/lib/models";
+import * as MESSAGES from "@/lib/messages";
+import { embeddings, haiku3_5, strParser } from "@/lib/models";
 import { HorensoFlags, HorensoStates } from "@/lib/type";
 import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { PromptTemplate } from "@langchain/core/prompts";
@@ -8,16 +8,12 @@ import {
   messagesStateReducer,
   StateGraph,
 } from "@langchain/langgraph";
-import { Message as VercelChatMessage, LangChainAdapter } from "ai";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 
-// フラグ管理
 const transitionStates = {
-  isStarted: false,
-  isTarget: false,
-  isReason: false,
-  checkTarget: false,
-  checkReason: false,
+  isInitialRun: false,
+  isAnswerCorrect: false,
+  hasQuestion: true,
 };
 const reasonFlags = {
   deadline: false,
@@ -25,47 +21,26 @@ const reasonFlags = {
   quality: false,
 };
 
-/** 初めの状態変更ノード */
-async function setState({ messages }: typeof StateAnnotation.State) {
-  console.log("setState:");
+// step数
+let step = 0;
 
-  // 現在の状態
+async function setupInitial() {
+  console.log("📝 初期設定ノード");
+
+  // 前回ターンの状態を反映
+  console.log("isInitialRun: " + transitionStates.isInitialRun);
+  console.log("isAnswerCorrect: " + transitionStates.isAnswerCorrect);
+  console.log("hasQuestion: " + transitionStates.hasQuestion);
   return {
     transition: { ...transitionStates },
   };
 }
 
-/** 報連相ワークは始まっているかの状態確認ノード */
-async function isProcessStarted({
+async function checkUserAnswer({
   messages,
   transition,
 }: typeof StateAnnotation.State) {
-  console.log("isProcessStarted: " + transition.isStarted);
-
-  transitionStates.isStarted = true;
-}
-
-/** 開発の仕事を想像させるノード */
-async function explainEngineeringTopics({
-  messages,
-}: typeof StateAnnotation.State) {
-  console.log("explainEngineeringTopics");
-
-  // AIに開発についての話をさせる
-  return {
-    messages: [
-      ...messages,
-      new AIMessage("開発の仕事について語ってください。\n"),
-    ],
-  };
-}
-
-/** 1つ目の問題「誰のため」は正解したかの状態確認ノード */
-async function checkTargetMatch({
-  messages,
-  transition,
-}: typeof StateAnnotation.State) {
-  console.log("checkTargetMatch: " + transition.checkTarget);
+  console.log("👀 ユーザー回答チェックノード");
 
   const userMessage = messages[messages.length - 1];
   const userAnswer =
@@ -73,243 +48,157 @@ async function checkTargetMatch({
       ? userMessage.content
       : userMessage.content.map((c: any) => c.text ?? "").join("");
 
-  const targetAnswer = ["リーダー", "上司"];
-  const targetMetadata = [
-    { id: "1", quwstion_id: "1", question: "報連相は誰のためか" },
-    { id: "2", quwstion_id: "1", question: "報連相は誰のためか" },
-  ];
+  switch (step) {
+    case 0:
+      console.log("質問1: 報連相は誰のため？");
 
-  const vectorStore = await MemoryVectorStore.fromTexts(
-    targetAnswer,
-    targetMetadata,
-    embeddings
-  );
-  const result = await vectorStore.similaritySearchWithScore(userAnswer, 1);
-  const [bestMatch, score] = result[0];
-  console.log("score: " + score + ", match: " + bestMatch.pageContent);
+      const targetAnswer1 = ["リーダー", "上司"];
+      const targetMetadata1 = [
+        { id: "1", quwstion_id: "1", question: "報連相は誰のためか" },
+        { id: "2", quwstion_id: "1", question: "報連相は誰のためか" },
+      ];
 
-  // 正解パターン
-  if (score >= 0.8) {
-    transitionStates.checkTarget = true;
-    return {
-      transition: { ...transitionStates },
-    };
-  }
-}
+      const vectorStore1 = await MemoryVectorStore.fromTexts(
+        targetAnswer1,
+        targetMetadata1,
+        embeddings
+      );
 
-/** 1つ目の問題「誰のため」を聞くノード */
-async function questionTarget({ messages }: typeof StateAnnotation.State) {
-  console.log("questionTarget");
+      const result1 = await vectorStore1.similaritySearchWithScore(
+        userAnswer,
+        1
+      );
+      const [bestMatch, score] = result1[0];
+      console.log("score: " + score + ", match: " + bestMatch.pageContent);
 
-  // 問題を出してもらう
-  messages[messages.length - 1].content +=
-    "上記について話したのち、生徒に下記の質問をしてください。\n開発の仕事を想定し、報連相は誰のためのものか";
-  return {
-    messages: [...messages],
-  };
-}
-
-/** 1つ目の問題「誰のため」ヒントノード */
-async function giveTargetHint({ messages }: typeof StateAnnotation.State) {
-  console.log("giveTargetHint");
-
-  // 答えに対してヒントを与える
-  return {
-    messages: [
-      ...messages,
-      new AIMessage(
-        "答えを外したのであなたはユーザーを諫め、[ヒント]をあげてください。\n"
-      ),
-    ],
-  };
-}
-
-/** 1つ目の問題「誰のため」をクリアしたか状態確認ノード */
-async function isTargetCleared({
-  messages,
-  transition,
-}: typeof StateAnnotation.State) {
-  console.log("isTargetCleared: " + transition.isTarget);
-
-  transitionStates.isTarget = true;
-}
-
-/** 1つ目の問題「誰のため」を正解したことをほめるノード */
-async function praiseTargetCleared({ messages }: typeof StateAnnotation.State) {
-  console.log("praiseTargetCleared");
-
-  return {
-    messages: [
-      ...messages,
-      new AIMessage("問題に正解したのであなたはユーザーを褒めてください。\n"),
-    ],
-  };
-}
-
-/** 2つ目の問題「なぜリーダーのためなのか」は正解したかの状態確認ノード */
-async function checkReasonMatch({
-  messages,
-  transition,
-  hit,
-}: typeof StateAnnotation.State) {
-  console.log("checkReasonMatch: " + transition.checkReason);
-
-  const userMessage = messages[messages.length - 1];
-  const userAnswer =
-    typeof userMessage.content === "string"
-      ? userMessage.content
-      : userMessage.content.map((c: any) => c.text ?? "").join("");
-
-  const targetAnswer = [
-    "納期や期限を守る",
-    "機能に過不足がない",
-    "品質が良く不具合がない",
-  ];
-  const targetMetadata = [
-    { id: "1", quwstion_id: "2", question: "報連相はなぜリーダーのためなのか" },
-    { id: "2", quwstion_id: "2", question: "報連相はなぜリーダーのためなのか" },
-    { id: "3", quwstion_id: "2", question: "報連相はなぜリーダーのためなのか" },
-  ];
-
-  const vectorStore = await MemoryVectorStore.fromTexts(
-    targetAnswer,
-    targetMetadata,
-    embeddings
-  );
-  const result = await vectorStore.similaritySearchWithScore(userAnswer, 3);
-
-  // 上位３件を確認
-  for (const [bestMatch, score] of result) {
-    console.log("score: " + score + ", match: " + bestMatch.pageContent);
-
-    // スコアが閾値以上の場合3つのそれぞれのフラグを上げる
-    if (score >= 0.6) {
-      if (bestMatch.pageContent === targetAnswer[0]) {
-        reasonFlags.deadline = true;
+      // 正解パターン
+      if (score >= 0.8) {
+        step = 1;
+        transitionStates.isAnswerCorrect = true;
       }
-      if (bestMatch.pageContent === targetAnswer[1]) {
-        reasonFlags.function = true;
-      }
-      if (bestMatch.pageContent === targetAnswer[2]) {
-        reasonFlags.quality = true;
-      }
-      hit = true;
-    }
-  }
-  console.log("納期: " + reasonFlags.deadline);
-  console.log("機能: " + reasonFlags.function);
-  console.log("品質: " + reasonFlags.quality);
+      break;
+    case 1:
+      console.log("質問2: なぜリーダーのため？");
+      transitionStates.hasQuestion = false;
 
-  // 全正解
-  if (Object.values(reasonFlags).every(Boolean)) {
-    transitionStates.checkReason = true;
-    return {
-      transition: { ...transitionStates },
-    };
+      const targetAnswer2 = [
+        "納期や期限を守る",
+        "機能に過不足がない",
+        "品質が良く不具合がない",
+      ];
+      const targetMetadata2 = [
+        {
+          id: "1",
+          quwstion_id: "2",
+          question: "報連相はなぜリーダーのためなのか",
+        },
+        {
+          id: "2",
+          quwstion_id: "2",
+          question: "報連相はなぜリーダーのためなのか",
+        },
+        {
+          id: "3",
+          quwstion_id: "2",
+          question: "報連相はなぜリーダーのためなのか",
+        },
+      ];
+
+      const vectorStore2 = await MemoryVectorStore.fromTexts(
+        targetAnswer2,
+        targetMetadata2,
+        embeddings
+      );
+      const result2 = await vectorStore2.similaritySearchWithScore(
+        userAnswer,
+        3
+      );
+
+      // 上位３件を確認
+      for (const [bestMatch, score] of result2) {
+        console.log("score: " + score + ", match: " + bestMatch.pageContent);
+
+        // スコアが閾値以上の場合3つのそれぞれのフラグを上げる
+        if (score >= 0.6) {
+          if (bestMatch.pageContent === targetAnswer2[0]) {
+            reasonFlags.deadline = true;
+          }
+          if (bestMatch.pageContent === targetAnswer2[1]) {
+            reasonFlags.function = true;
+          }
+          if (bestMatch.pageContent === targetAnswer2[2]) {
+            reasonFlags.quality = true;
+          }
+        }
+      }
+      console.log("納期: " + reasonFlags.deadline);
+      console.log("機能: " + reasonFlags.function);
+      console.log("品質: " + reasonFlags.quality);
+
+      // 全正解
+      if (Object.values(reasonFlags).every(Boolean)) {
+        transitionStates.isAnswerCorrect = true;
+      }
+      break;
   }
 
   return {
-    hit,
+    transition: { ...transitionStates },
   };
 }
 
-/** 2つ目の問題「なぜリーダーのためなのか」を聞くノード */
-async function questionReason({ messages }: typeof StateAnnotation.State) {
-  console.log("questionReason");
+async function generateHint({ contexts }: typeof StateAnnotation.State) {
+  console.log("🛎 ヒント生成ノード");
 
-  // 問題を出してもらう
-  messages[messages.length - 1].content +=
-    "上記を実施したのち、[報連相はリーダーのため]ということを前提に下記の質問をしてください。\n[報連相はなぜリーダーのためのものなのか]";
+  contexts = MESSAGES.HINTO_GIVING;
+
+  return { contexts };
+}
+
+async function askQuestion({ contexts }: typeof StateAnnotation.State) {
+  console.log("❓ 問題出題ノード");
+  transitionStates.isInitialRun = true;
+
+  switch (step) {
+    case 0:
+      contexts = MESSAGES.QUESTION_WHO_ASKING;
+      break;
+    case 1:
+      contexts = MESSAGES.QUESTION_WHY_ASKING;
+      break;
+  }
+
   return {
-    messages: [...messages],
+    contexts,
+    transition: { ...transitionStates },
   };
 }
 
-/** 2つ目の問題「なぜリーダーのためなのか」ヒントノード */
-async function giveReasonHint({ messages }: typeof StateAnnotation.State) {
-  console.log("giveReasonHint");
+async function ExplainAnswer({ contexts }: typeof StateAnnotation.State) {
+  console.log("📢 解答解説ノード");
 
-  // 答えに対してヒントを与える
-  return {
-    messages: [
-      ...messages,
-      new AIMessage(
-        "ユーザーは答えを外したのであなたはユーザーを諫め、[ヒント]をあげてください。\n"
-      ),
-    ],
-  };
+  contexts = MESSAGES.SUCCESS_MESSAGE;
+
+  return { contexts };
 }
 
-/** 2つ目の問題「なぜリーダーのためなのか」をクリアしたか状態確認ノード */
-async function isReasonCleared({
+async function saveFinishState({
   messages,
+  contexts,
   transition,
 }: typeof StateAnnotation.State) {
-  console.log("isReasonCleared:" + transition.isReason);
+  console.log("💾 状態保存ノード");
 
-  transitionStates.isReason = true;
-}
+  // 正解し終わった場合すべてを初期化
+  if (transition.hasQuestion) {
+    console.log("質問終了");
+    transitionStates.isAnswerCorrect = false;
+    transitionStates.isInitialRun = false;
+    transitionStates.hasQuestion = true;
+  }
 
-/** 2つ目の問題「なぜリーダーのためなのか」を正解したことをほめるノード */
-async function praiseReasonCleared({ messages }: typeof StateAnnotation.State) {
-  console.log("praiseReasonCleared");
-
-  const userMessage = messages[messages.length - 1];
-  const userAnswer =
-    typeof userMessage.content === "string"
-      ? userMessage.content
-      : userMessage.content.map((c: any) => c.text ?? "").join("");
-
-  return {
-    messages: [
-      ...messages,
-      new AIMessage(
-        `あなたはユーザーに「${userAnswer}」が正解だったことを報告してください。\n`
-      ),
-    ],
-  };
-}
-
-/** 2つ目の問題「なぜリーダーのためなのか」を全問正解したことをほめるノード */
-async function praiseReasonAllCleared({
-  messages,
-}: typeof StateAnnotation.State) {
-  console.log("praiseReasonAllCleared");
-
-  return {
-    messages: [
-      ...messages,
-      new AIMessage(`問題に正解したのであなたはユーザーを褒めてください。\n`),
-    ],
-  };
-}
-
-/** なぜ報連相が必要になるのかを解説するノード */
-async function explainNewsletter({ messages }: typeof StateAnnotation.State) {
-  console.log("explainNewsletter");
-
-  messages[messages.length - 1].content +=
-    "今までの会話の流れを受けてなぜ報連相が必要なのか解説してください。また解説の後ユーザーにこの講習を終えての所感を聞いてください。\n";
-  return {
-    messages: [...messages],
-  };
-}
-
-/** 終了前のノード */
-async function exit({ messages }: typeof StateAnnotation.State) {
-  console.log("exit");
-}
-
-/** 結果を保存して終了ノード */
-async function isProcessEnd({ messages }: typeof StateAnnotation.State) {
-  console.log("isProccessEnd");
-
-  return {
-    messages: [
-      ...messages,
-      new AIMessage("報連相の講習が終了したことを伝えてください。\n"),
-    ],
-  };
+  // contextsを出力
+  return { messages: [...messages, new AIMessage(contexts)] };
 }
 
 /**
@@ -321,14 +210,16 @@ const StateAnnotation = Annotation.Root({
     reducer: messagesStateReducer,
     default: () => [],
   }),
+  contexts: Annotation<string>({
+    value: (state: string = "", action: string) => state + action,
+    default: () => "",
+  }),
   transition: Annotation<HorensoStates>({
     value: (
       state: HorensoStates = {
-        isStarted: false,
-        isTarget: false,
-        isReason: false,
-        checkTarget: false,
-        checkReason: false,
+        isInitialRun: false,
+        isAnswerCorrect: false,
+        hasQuestion: true,
       },
       action: Partial<HorensoStates>
     ) => ({
@@ -349,110 +240,48 @@ const StateAnnotation = Annotation.Root({
       ...action,
     }),
   }),
-  hit: Annotation<boolean>({
-    value: (state: boolean = false, action: boolean) => action,
-  }),
 });
 
 const graph = new StateGraph(StateAnnotation)
-  .addNode("set", setState)
-  .addNode("is1", isProcessStarted)
-  .addNode("is2", isTargetCleared)
-  .addNode("is3", isReasonCleared)
-  .addNode("is4", isProcessEnd)
-  .addNode("check1", checkTargetMatch)
-  .addNode("check2", checkReasonMatch)
-  .addNode("exit", exit)
-  .addNode("praise1", praiseTargetCleared)
-  .addNode("praise2", praiseReasonCleared)
-  .addNode("praise3", praiseReasonAllCleared)
-  .addNode("explainStart", explainEngineeringTopics)
-  .addNode("explainEnd", explainNewsletter)
-  .addNode("question1", questionTarget)
-  .addNode("question2", questionReason)
-  .addNode("hint1", giveTargetHint)
-  .addNode("hint2", giveReasonHint)
-
-  .addEdge("__start__", "set")
-  .addConditionalEdges("set", (state) => {
-    if (state.transition.isReason) return "is4";
-    if (state.transition.isTarget) return "is2";
-    return "is1";
-  })
-  .addConditionalEdges("is1", (state) =>
-    state.transition.isStarted ? "check1" : "explainStart"
+  .addNode("setup", setupInitial)
+  .addNode("check", checkUserAnswer)
+  .addNode("hint", generateHint)
+  .addNode("ask", askQuestion)
+  .addNode("explain", ExplainAnswer)
+  .addNode("save", saveFinishState)
+  .addEdge("__start__", "setup")
+  .addEdge("setup", "check")
+  .addConditionalEdges("check", (state) =>
+    state.transition.isAnswerCorrect ? "explain" : "hint"
   )
-  .addEdge("explainStart", "question1")
-  .addEdge("question1", "exit")
-  .addConditionalEdges("check1", (state) =>
-    state.transition.checkTarget ? "is2" : "hint1"
+  .addEdge("hint", "ask")
+  .addConditionalEdges("explain", (state) =>
+    state.transition.isAnswerCorrect ? "ask" : "save"
   )
-  .addEdge("hint1", "question1")
-  .addConditionalEdges("is2", (state) =>
-    state.transition.isTarget ? "check2" : "praise1"
-  )
-  .addEdge("praise1", "question2")
-  .addConditionalEdges("check2", (state) => {
-    if (state.transition.checkReason) return "is3";
-    if (state.hit) return "praise2";
-    return "hint2";
-  })
-  .addEdge("hint2", "question2")
-  .addEdge("praise2", "question2")
-  .addEdge("question2", "exit")
-  .addEdge("is3", "praise3")
-  .addEdge("praise3", "explainEnd")
-  .addEdge("explainEnd", "exit")
-  .addEdge("is4", "exit")
-  .addEdge("exit", "__end__")
+  .addEdge("ask", "save")
+  .addEdge("save", "__end__")
   .compile();
 
-/**
- * 報連相ワークAI
- *
- * @param req
- * @returns
- */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const messages = body.messages ?? [];
+    const userMessage = messages[messages.length - 1].content;
 
-    // 過去の履歴
-    const formatMessage = (message: VercelChatMessage) => {
-      return `${message.role}: ${message.content}`;
-    };
-    const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
-    // 直近のメッセージを取得
-    const userMessage = messages.at(-1).content;
-    if (!userMessage) {
-      return new Response(JSON.stringify({ error: "No message provided" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    console.log("🏁 報連相ワーク 開始");
 
     // langgraph
     const result = await graph.invoke({
       messages: [new HumanMessage(userMessage)],
     });
+    const text = result.messages[1].content;
+    console.log("langgraph: " + text);
 
-    console.log("langgraph: " + result.messages[1].content);
+    console.log("🈡 報連相ワーク 終了");
 
-    // プロンプト読み込み
-    const template = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
-    const prompt = PromptTemplate.fromTemplate(
-      template.manifest.kwargs.template
-    );
-
-    // ストリーミング応答を取得
-    const stream = await prompt.pipe(OpenAi).stream({
-      chat_history: formattedPreviousMessages,
-      user_message: userMessage,
-      ai_message: result.messages[1].content,
+    return new Response(JSON.stringify({ text: text, contenue: true }), {
+      headers: { "Content-Type": "application/json" },
     });
-
-    return LangChainAdapter.toDataStreamResponse(stream);
   } catch (error) {
     console.log(error);
     if (error instanceof Error) {

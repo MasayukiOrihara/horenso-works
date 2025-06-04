@@ -1,7 +1,15 @@
 import { LangSmithClient } from "@/lib/clients";
+import {
+  DEVELOPMENT_WORK_EXPLANATION,
+  FINISH_MESSAGE,
+  QUESTION_WHO_ASKING,
+} from "@/lib/messages";
 import { OpenAi } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { Message as VercelChatMessage, LangChainAdapter } from "ai";
+
+let horensoContenue = false;
+let oldHorensoContenue = false;
 
 /**
  * 報連相ワークAI
@@ -20,12 +28,41 @@ export async function POST(req: Request) {
     const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
-    // langgraph
-    // // const result = await graph.invoke({
-    // //   messages: [new HumanMessage(userMessage)],
-    // // });
 
-    // console.log("langgraph: " + result.messages[1].content);
+    // 始動時の状態判定
+    let aiMessage = "";
+    horensoContenue = true;
+    if (horensoContenue && !oldHorensoContenue) {
+      oldHorensoContenue = true;
+
+      aiMessage = DEVELOPMENT_WORK_EXPLANATION + QUESTION_WHO_ASKING;
+    } else {
+      // 報連相ワークAPI呼び出し
+      const host = req.headers.get("host");
+      const protocol = host?.includes("localhost") ? "http" : "https";
+      const baseUrl = `${protocol}://${host}`;
+
+      const res = await fetch(baseUrl + "/api/horenso", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+        },
+        body: JSON.stringify({ messages }),
+      });
+      const apiBody = await res.json();
+      aiMessage = apiBody.text;
+
+      // 終了時の状態判定
+      console.log("chat.tsx: " + apiBody.text);
+      console.log("api側: " + apiBody.contenue);
+      if (apiBody.contenue != horensoContenue) {
+        horensoContenue = false;
+      }
+      console.log("chat側: " + horensoContenue);
+      aiMessage = FINISH_MESSAGE;
+    }
 
     // プロンプト読み込み
     const template = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
@@ -37,7 +74,7 @@ export async function POST(req: Request) {
     const stream = await prompt.pipe(OpenAi).stream({
       chat_history: formattedPreviousMessages,
       user_message: userMessage,
-      ai_message: "",
+      ai_message: aiMessage,
     });
 
     return LangChainAdapter.toDataStreamResponse(stream);
