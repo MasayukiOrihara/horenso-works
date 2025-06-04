@@ -21,35 +21,28 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 
 export const MessageAi = () => {
   const { userMessages } = useUserMessages();
-
-  const { messages: commentMessages, append: commentAppend } =
-    useMyChat("api/comment");
+  const { messages, append } = useMyChat("api/horenso");
 
   // ユーザーメッセージの送信
   useEffect(() => {
     if (userMessages.length === 0) return;
     const currentUserMessage = userMessages[userMessages.length - 1];
 
-    commentAppend({ role: "user", content: currentUserMessage });
+    append({ role: "user", content: currentUserMessage });
   }, [userMessages]);
 
-  const currentAiCommentMessage = getLatestAssistantMessage(commentMessages);
+  const currentAiCommentMessage = getLatestAssistantMessage(messages);
 
   return (
     <div className="w-full my-2 bg-white">
-      <div className="w-full border-4 border-black border-double rounded p-2 text-blue-300">
+      <div className="w-full min-h-24 border-4 border-black border-double rounded p-2 text-blue-300">
         {currentAiCommentMessage && (
-          <div
-            className="my-2 py-2 px-6 bg-zinc-800/60 rounded"
-            key={currentAiCommentMessage.id}
-          >
-            <span className="text-white">
+          <div className="p-1" key={currentAiCommentMessage.id}>
+            <span className="text-zinc-800">
               {currentAiCommentMessage.content}
             </span>
           </div>
         )}
-        サンプルテキスト <br />
-        サンプルテキスト
       </div>
     </div>
   );
