@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import { useUserMessages } from "./message-provider";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { UIMessage } from "ai";
 import { LoaderCircleIcon } from "lucide-react";
 
@@ -20,9 +20,10 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
   return assistantMessages[assistantMessages.length - 1];
 }
 
-export const MessageAi = () => {
+export const MessageAi = ({ started }: { started: boolean }) => {
   const { userMessages, setAiState } = useUserMessages();
   const { messages, status, append } = useMyChat("api/chat");
+  const hasRun = useRef(false);
 
   // ユーザーメッセージの送信
   useEffect(() => {
@@ -31,6 +32,14 @@ export const MessageAi = () => {
 
     append({ role: "user", content: currentUserMessage });
   }, [userMessages]);
+
+  // スタートボタン
+  useEffect(() => {
+    if (started && !hasRun.current) {
+      hasRun.current = true;
+      append({ role: "user", content: "研修よろしくお願いします。" });
+    }
+  }, [started]);
 
   // 待機状況
   useEffect(() => {

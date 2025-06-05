@@ -13,7 +13,11 @@ export type HorensoFlags = {
 };
 
 export type HorensoStates = {
-  isInitialRun: boolean;
   isAnswerCorrect: boolean;
   hasQuestion: boolean;
+};
+
+export type StartButtonProps = {
+  started: boolean;
+  setStarted: (val: boolean) => void;
 };

@@ -36,6 +36,7 @@ export async function POST(req: Request) {
       oldHorensoContenue = true;
 
       aiMessage = DEVELOPMENT_WORK_EXPLANATION + QUESTION_WHO_ASKING;
+      console.log("始めの会話");
     } else {
       // 報連相ワークAPI呼び出し
       const host = req.headers.get("host");
@@ -55,13 +56,12 @@ export async function POST(req: Request) {
       aiMessage = apiBody.text;
 
       // 終了時の状態判定
-      console.log("chat.tsx: " + apiBody.text);
-      console.log("api側: " + apiBody.contenue);
+      console.log("終了判定 api側: " + apiBody.contenue);
+      console.log("終了判定 chat側: " + horensoContenue);
       if (apiBody.contenue != horensoContenue) {
         horensoContenue = false;
+        aiMessage = aiMessage + "\n\n" + FINISH_MESSAGE;
       }
-      console.log("chat側: " + horensoContenue);
-      aiMessage = FINISH_MESSAGE;
     }
 
     // プロンプト読み込み
@@ -76,6 +76,8 @@ export async function POST(req: Request) {
       user_message: userMessage,
       ai_message: aiMessage,
     });
+
+    console.log("chat ai_message: " + aiMessage);
 
     return LangChainAdapter.toDataStreamResponse(stream);
   } catch (error) {

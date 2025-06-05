@@ -11,7 +11,6 @@ import {
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 
 const transitionStates = {
-  isInitialRun: false,
   isAnswerCorrect: false,
   hasQuestion: true,
 };
@@ -28,7 +27,6 @@ async function setupInitial() {
   console.log("📝 初期設定ノード");
 
   // 前回ターンの状態を反映
-  console.log("isInitialRun: " + transitionStates.isInitialRun);
   console.log("isAnswerCorrect: " + transitionStates.isAnswerCorrect);
   console.log("hasQuestion: " + transitionStates.hasQuestion);
   return {
@@ -157,7 +155,6 @@ async function generateHint({ contexts }: typeof StateAnnotation.State) {
 
 async function askQuestion({ contexts }: typeof StateAnnotation.State) {
   console.log("❓ 問題出題ノード");
-  transitionStates.isInitialRun = true;
 
   switch (step) {
     case 0:
@@ -190,10 +187,10 @@ async function saveFinishState({
   console.log("💾 状態保存ノード");
 
   // 正解し終わった場合すべてを初期化
-  if (transition.hasQuestion) {
+  if (!transition.hasQuestion && Object.values(reasonFlags).every(Boolean)) {
     console.log("質問終了");
+    contexts += "--終了--";
     transitionStates.isAnswerCorrect = false;
-    transitionStates.isInitialRun = false;
     transitionStates.hasQuestion = true;
   }
 
@@ -217,7 +214,6 @@ const StateAnnotation = Annotation.Root({
   transition: Annotation<HorensoStates>({
     value: (
       state: HorensoStates = {
-        isInitialRun: false,
         isAnswerCorrect: false,
         hasQuestion: true,
       },
@@ -256,7 +252,7 @@ const graph = new StateGraph(StateAnnotation)
   )
   .addEdge("hint", "ask")
   .addConditionalEdges("explain", (state) =>
-    state.transition.isAnswerCorrect ? "ask" : "save"
+    state.transition.hasQuestion ? "ask" : "save"
   )
   .addEdge("ask", "save")
   .addEdge("save", "__end__")
@@ -268,18 +264,31 @@ export async function POST(req: Request) {
     const messages = body.messages ?? [];
     const userMessage = messages[messages.length - 1].content;
 
-    console.log("🏁 報連相ワーク 開始");
+    console.log("🏁 報連相ワーク ターン開始");
 
     // langgraph
     const result = await graph.invoke({
       messages: [new HumanMessage(userMessage)],
     });
     const text = result.messages[1].content;
-    console.log("langgraph: " + text);
 
-    console.log("🈡 報連相ワーク 終了");
+    const aiText =
+      typeof result.messages[1].content === "string"
+        ? result.messages[1].content
+        : result.messages[1].content.map((c: any) => c.text ?? "").join("");
 
-    return new Response(JSON.stringify({ text: text, contenue: true }), {
+    console.log("langgraph: " + aiText);
+
+    console.log("🈡 報連相ワーク ターン終了");
+
+    const end = () => {
+      if (aiText.includes("終了")) {
+        return false;
+      }
+      return true;
+    };
+
+    return new Response(JSON.stringify({ text: text, contenue: end() }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
