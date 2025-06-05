@@ -1,14 +1,15 @@
 import * as MESSAGES from "@/lib/messages";
-import { embeddings, haiku3_5, strParser } from "@/lib/models";
+import { embeddings } from "@/lib/models";
 import { HorensoFlags, HorensoStates } from "@/lib/type";
 import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
-import { PromptTemplate } from "@langchain/core/prompts";
 import {
   Annotation,
   messagesStateReducer,
   StateGraph,
 } from "@langchain/langgraph";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
+import { Document } from "langchain/document";
+import { Content } from "next/font/google";
 
 const transitionStates = {
   isAnswerCorrect: false,
@@ -18,6 +19,71 @@ const reasonFlags = {
   deadline: false,
   function: false,
   quality: false,
+};
+
+// 質問ドキュメント1
+const whoDocuments: Document[] = [
+  {
+    pageContent: "リーダー",
+    metadata: {
+      id: "1",
+      question_id: "1",
+      question: "報連相は誰のためか",
+      isMatched: false,
+    },
+  },
+  {
+    pageContent: "上司",
+    metadata: {
+      id: "2",
+      question_id: "1",
+      question: "報連相は誰のためか",
+      isMatched: false,
+    },
+  },
+];
+
+// 質問ドキュメント2
+const whyDocuments: Document[] = [
+  {
+    pageContent: "納期や期限を守る",
+    metadata: {
+      id: "1",
+      question_id: "2",
+      question: "報連相はなぜリーダーのためなのか",
+      isMatched: false,
+    },
+  },
+  {
+    pageContent: "機能に過不足がない",
+    metadata: {
+      id: "2",
+      question_id: "2",
+      question: "報連相はなぜリーダーのためなのか",
+      isMatched: false,
+    },
+  },
+  {
+    pageContent: "品質が良く不具合がない",
+    metadata: {
+      id: "3",
+      question_id: "2",
+      question: "報連相はなぜリーダーのためなのか",
+      isMatched: false,
+    },
+  },
+];
+
+// 全問正解判定用
+const ids = ["1", "2", "3"];
+const allMatchedDynamic = () => {
+  const result = ids
+    .map(
+      (id) =>
+        whyDocuments.find((doc) => doc.metadata.id === id)?.metadata.isMatched
+    )
+    .every(Boolean);
+  return result;
 };
 
 // step数
@@ -50,15 +116,8 @@ async function checkUserAnswer({
     case 0:
       console.log("質問1: 報連相は誰のため？");
 
-      const targetAnswer1 = ["リーダー", "上司"];
-      const targetMetadata1 = [
-        { id: "1", quwstion_id: "1", question: "報連相は誰のためか" },
-        { id: "2", quwstion_id: "1", question: "報連相は誰のためか" },
-      ];
-
-      const vectorStore1 = await MemoryVectorStore.fromTexts(
-        targetAnswer1,
-        targetMetadata1,
+      const vectorStore1 = await MemoryVectorStore.fromDocuments(
+        whoDocuments,
         embeddings
       );
 
@@ -79,32 +138,8 @@ async function checkUserAnswer({
       console.log("質問2: なぜリーダーのため？");
       transitionStates.hasQuestion = false;
 
-      const targetAnswer2 = [
-        "納期や期限を守る",
-        "機能に過不足がない",
-        "品質が良く不具合がない",
-      ];
-      const targetMetadata2 = [
-        {
-          id: "1",
-          quwstion_id: "2",
-          question: "報連相はなぜリーダーのためなのか",
-        },
-        {
-          id: "2",
-          quwstion_id: "2",
-          question: "報連相はなぜリーダーのためなのか",
-        },
-        {
-          id: "3",
-          quwstion_id: "2",
-          question: "報連相はなぜリーダーのためなのか",
-        },
-      ];
-
-      const vectorStore2 = await MemoryVectorStore.fromTexts(
-        targetAnswer2,
-        targetMetadata2,
+      const vectorStore2 = await MemoryVectorStore.fromDocuments(
+        whyDocuments,
         embeddings
       );
       const result2 = await vectorStore2.similaritySearchWithScore(
@@ -118,23 +153,21 @@ async function checkUserAnswer({
 
         // スコアが閾値以上の場合3つのそれぞれのフラグを上げる
         if (score >= 0.6) {
-          if (bestMatch.pageContent === targetAnswer2[0]) {
-            reasonFlags.deadline = true;
-          }
-          if (bestMatch.pageContent === targetAnswer2[1]) {
-            reasonFlags.function = true;
-          }
-          if (bestMatch.pageContent === targetAnswer2[2]) {
-            reasonFlags.quality = true;
+          for (const content of whyDocuments) {
+            if (bestMatch.pageContent === content.pageContent) {
+              content.metadata.isMatched = true;
+            }
+            console.log(content);
           }
         }
       }
-      console.log("納期: " + reasonFlags.deadline);
-      console.log("機能: " + reasonFlags.function);
-      console.log("品質: " + reasonFlags.quality);
+
+      // 全問正解判定用
+
+      console.log(allMatchedDynamic());
 
       // 全正解
-      if (Object.values(reasonFlags).every(Boolean)) {
+      if (allMatchedDynamic()) {
         transitionStates.isAnswerCorrect = true;
       }
       break;
@@ -185,9 +218,10 @@ async function saveFinishState({
   transition,
 }: typeof StateAnnotation.State) {
   console.log("💾 状態保存ノード");
+  transitionStates.isAnswerCorrect = false;
 
   // 正解し終わった場合すべてを初期化
-  if (!transition.hasQuestion && Object.values(reasonFlags).every(Boolean)) {
+  if (!transition.hasQuestion && allMatchedDynamic()) {
     console.log("質問終了");
     contexts += "--終了--";
     transitionStates.isAnswerCorrect = false;
@@ -195,7 +229,10 @@ async function saveFinishState({
   }
 
   // contextsを出力
-  return { messages: [...messages, new AIMessage(contexts)] };
+  return {
+    messages: [...messages, new AIMessage(contexts)],
+    transition: { ...transitionStates },
+  };
 }
 
 /**
