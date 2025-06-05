@@ -7,9 +7,18 @@ import {
 import { OpenAi } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { Message as VercelChatMessage, LangChainAdapter } from "ai";
+import fs from "fs";
+import path from "path";
 
+// 外部フラグ
 let horensoContenue = false;
 let oldHorensoContenue = false;
+
+// テキスト保存先
+const timestamp = new Date().toISOString();
+const named = timestamp.slice(0, 10);
+const fileName = `memory-${named}.txt`;
+const filePath = path.join(process.cwd(), "memory", fileName);
 
 /**
  * 報連相ワークAI
@@ -28,6 +37,26 @@ export async function POST(req: Request) {
     const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
+
+    // これまでの会話を記憶
+    console.log(body);
+    console.log(body.headers);
+    const onMemory = body.headers.memoryOn === "true" ? true : false;
+    if (onMemory) {
+      console.log("会話を記憶中...");
+
+      // テキストの整形
+      const formatted = messages.slice(-2).map(formatMessage);
+      const cleaned = formatted.map((str: string) =>
+        str.replace(/[\r\n]+/g, "")
+      );
+      const result =
+        cleaned.join("\n") + "\n - " + timestamp.slice(0, 16) + "\n";
+
+      // ファイル書き出し
+      fs.appendFileSync(filePath, result, "utf-8");
+      console.log(`✅ 会話内容を ${fileName} に保存しました。`);
+    }
 
     // 始動時の状態判定
     let aiMessage = "";
@@ -56,8 +85,8 @@ export async function POST(req: Request) {
       aiMessage = apiBody.text;
 
       // 終了時の状態判定
-      console.log("終了判定 api側: " + apiBody.contenue);
-      console.log("終了判定 chat側: " + horensoContenue);
+      console.log("継続判定 api側: " + apiBody.contenue);
+      console.log("継続判定 chat側: " + horensoContenue);
       if (apiBody.contenue != horensoContenue) {
         horensoContenue = false;
         aiMessage = aiMessage + "\n\n" + FINISH_MESSAGE;

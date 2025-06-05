@@ -10,6 +10,8 @@ import { useState } from "react";
 
 export default function Home() {
   const [started, setStarted] = useState(false);
+  const [memoryOn, setMemoryOn] = useState(false);
+  const [learnOn, setLearnOn] = useState(false);
 
   return (
     <div className="h-screen flex flex-col bg-zinc-100">
@@ -18,8 +20,13 @@ export default function Home() {
         <SideMenu />
         <StartButton started={started} setStarted={setStarted} />
         <main className="flex-1 flex flex-col">
-          <Navi />
-          <SubPage started={started} />
+          <Navi
+            memoryOn={memoryOn}
+            setMemoryOn={setMemoryOn}
+            learnOn={learnOn}
+            setLearnOn={setLearnOn}
+          />
+          <SubPage started={started} memoryOn={memoryOn} learnOn={learnOn} />
           <Footer />
         </main>
       </div>

@@ -20,7 +20,15 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
   return assistantMessages[assistantMessages.length - 1];
 }
 
-export const MessageAi = ({ started }: { started: boolean }) => {
+export const MessageAi = ({
+  started,
+  memoryOn,
+  learnOn,
+}: {
+  started: boolean;
+  memoryOn: boolean;
+  learnOn: boolean;
+}) => {
   const { userMessages, setAiState } = useUserMessages();
   const { messages, status, append } = useMyChat("api/chat");
   const hasRun = useRef(false);
@@ -30,7 +38,10 @@ export const MessageAi = ({ started }: { started: boolean }) => {
     if (userMessages.length === 0) return;
     const currentUserMessage = userMessages[userMessages.length - 1];
 
-    append({ role: "user", content: currentUserMessage });
+    append(
+      { role: "user", content: currentUserMessage },
+      { headers: { memoryOn: memoryOn.toString() } }
+    );
   }, [userMessages]);
 
   // スタートボタン
