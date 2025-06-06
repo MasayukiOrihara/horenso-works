@@ -10,7 +10,7 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { Message as VercelChatMessage, LangChainAdapter } from "ai";
 import fs from "fs";
 import path from "path";
-import { put } from "@vercel/blob";
+import { put, head } from "@vercel/blob";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -69,7 +69,22 @@ export async function POST(req: Request) {
         console.log(`✅ 会話内容を ${memoryFileName} に保存しました。`);
       } else if (host?.includes("vercel")) {
         // vercel版
-        const blob = await put(memoryFileName, result, {
+        let existingContent = "";
+        try {
+          // 既存ファイルの存在確認
+          const blobInfo = await head(memoryFileName);
+          if (blobInfo) {
+            // 既存ファイルを読み込み
+            const response = await fetch(blobInfo.url);
+            existingContent = await response.text();
+          }
+        } catch (error) {
+          // ファイルが存在しない場合は空文字列のまま
+          console.log("File does not exist, creating new file");
+        }
+        // 既存内容 + 新しい内容
+        const updatedContent = existingContent + result;
+        const blob = await put(memoryFileName, updatedContent, {
           access: "public",
           contentType: "text/plain",
           allowOverwrite: true, // 上書きを許可
@@ -107,7 +122,22 @@ export async function POST(req: Request) {
           console.log(`✅ 指摘内容を ${learnFileName} に保存しました。`);
         } else if (host?.includes("vercel")) {
           // vercel版
-          const blob = await put(learnFileName, result, {
+          let existingContent = "";
+          try {
+            // 既存ファイルの存在確認
+            const blobInfo = await head(learnFileName);
+            if (blobInfo) {
+              // 既存ファイルを読み込み
+              const response = await fetch(blobInfo.url);
+              existingContent = await response.text();
+            }
+          } catch (error) {
+            // ファイルが存在しない場合は空文字列のまま
+            console.log("File does not exist, creating new file");
+          }
+          // 既存内容 + 新しい内容
+          const updatedContent = existingContent + result;
+          const blob = await put(learnFileName, updatedContent, {
             access: "public",
             contentType: "text/plain",
             allowOverwrite: true, // 上書きを許可
