@@ -63,6 +63,8 @@ export async function POST(req: Request) {
       const result =
         cleaned.join("\n") + "\n - " + timestamp.slice(0, 16) + "\n";
 
+      console.log("書き出す内容: " + result);
+
       // ファイル書き出し(ローカル)
       if (host?.includes("localhost")) {
         fs.appendFileSync(memoryFilePath, result, "utf-8");
