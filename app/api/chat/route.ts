@@ -1,10 +1,11 @@
 import { LangSmithClient } from "@/lib/clients";
+import { FakeListChatModel } from "@langchain/core/utils/testing";
 import {
   DEVELOPMENT_WORK_EXPLANATION,
   FINISH_MESSAGE,
   QUESTION_WHO_ASKING,
 } from "@/lib/messages";
-import { OpenAi } from "@/lib/models";
+import { haiku3_5, OpenAi, strParser } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { Message as VercelChatMessage, LangChainAdapter } from "ai";
 import fs from "fs";
@@ -17,8 +18,13 @@ let oldHorensoContenue = false;
 // テキスト保存先
 const timestamp = new Date().toISOString();
 const named = timestamp.slice(0, 10);
-const fileName = `memory-${named}.txt`;
-const filePath = path.join(process.cwd(), "memory", fileName);
+const memoryFileName = `memory-${named}.txt`;
+const learnFileName = `learn-${named}.txt`;
+const memoryFilePath = path.join(process.cwd(), "memory", memoryFileName);
+const learnFilePath = path.join(process.cwd(), "learn", learnFileName);
+
+// 一時的な追加プロンプト
+let tempPrompt = "";
 
 /**
  * 報連相ワークAI
@@ -38,7 +44,7 @@ export async function POST(req: Request) {
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
 
-    /* これまでの会話を記憶(前回ターンで返ってきたai返答と今回ターンのuser解答を追記) */
+    /** これまでの会話を記憶(前回ターンで返ってきたai返答と今回ターンのuser解答を追記) */
     const onMemory = req.headers.get("memoryOn") === "true";
     console.log("chat側記憶設定: " + onMemory);
     if (onMemory) {
@@ -53,8 +59,42 @@ export async function POST(req: Request) {
         cleaned.join("\n") + "\n - " + timestamp.slice(0, 16) + "\n";
 
       // ファイル書き出し
-      fs.appendFileSync(filePath, result, "utf-8");
-      console.log(`✅ 会話内容を ${fileName} に保存しました。`);
+      fs.appendFileSync(memoryFilePath, result, "utf-8");
+      console.log(`✅ 会話内容を ${memoryFileName} に保存しました。`);
+    }
+
+    /** 講師の指摘から学ぶ */
+    const onLearn = req.headers.get("learnOn") === "true";
+    console.log("chat側学習設定: " + onLearn);
+    if (onLearn) {
+      console.log("会話を指摘可能...");
+
+      const learnTemplate = `あなたはアシスタントの出力に対するユーザーの反応を分類するシステムです。\n次のユーザー発言が「AIの説明や表現に対する指摘・フィードバック（例：間違いの指摘、不自然な言い回しの指摘、改善提案など）」に該当する場合は YES、そうでなければ NO を返してください。\n\nユーザー発言：\n{user_input}\n\n出力は YES または NO のいずれかにしてください。理由や他の情報は出力しないでください。`;
+      const learnPrompt = PromptTemplate.fromTemplate(learnTemplate);
+      const isInstructionalResponse = await learnPrompt
+        .pipe(haiku3_5)
+        .pipe(strParser)
+        .invoke({
+          user_input: userMessage,
+        });
+      console.log("指摘かどうか: " + isInstructionalResponse);
+
+      if (isInstructionalResponse.includes("YES")) {
+        // プロンプトに追加
+        tempPrompt += userMessage + "\n";
+
+        // 指摘をファイルに書き出し
+        fs.appendFileSync(learnFilePath, " - " + userMessage + "\n", "utf-8");
+        console.log(`✅ 指摘内容を ${learnFileName} に保存しました。`);
+
+        // 会話を抜ける
+        const fakeModel = new FakeListChatModel({
+          responses: ["指摘を受け付けました。"],
+        });
+        const fakePrompt = PromptTemplate.fromTemplate("");
+        const fakeStream = await fakePrompt.pipe(fakeModel).stream({});
+        return LangChainAdapter.toDataStreamResponse(fakeStream);
+      }
     }
 
     // 始動時の状態判定
@@ -93,10 +133,9 @@ export async function POST(req: Request) {
     }
 
     // プロンプト読み込み
-    const template = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
-    const prompt = PromptTemplate.fromTemplate(
-      template.manifest.kwargs.template
-    );
+    const load = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
+    const template = tempPrompt + load.manifest.kwargs.template;
+    const prompt = PromptTemplate.fromTemplate(template);
 
     // ストリーミング応答を取得
     const stream = await prompt.pipe(OpenAi).stream({

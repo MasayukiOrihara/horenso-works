@@ -25,6 +25,6 @@ export const embeddings = new OpenAIEmbeddings({
 export const haiku3_5 = new ChatAnthropic({
   model: ANTHROPIC_MODEL_3_5,
   apiKey: process.env.ANTHROPIC_API_KEY!,
-  maxTokens: 5,
+  maxTokens: 1,
   temperature: 0,
 });
