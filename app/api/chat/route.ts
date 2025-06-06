@@ -38,10 +38,9 @@ export async function POST(req: Request) {
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
 
-    // これまでの会話を記憶
-    console.log(body);
-    console.log(body.headers);
-    const onMemory = body.headers.memoryOn === "true" ? true : false;
+    /* これまでの会話を記憶(前回ターンで返ってきたai返答と今回ターンのuser解答を追記) */
+    const onMemory = req.headers.get("memoryOn") === "true";
+    console.log("chat側記憶設定: " + onMemory);
     if (onMemory) {
       console.log("会話を記憶中...");
 

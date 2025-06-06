@@ -5,9 +5,13 @@ import { UIMessage } from "ai";
 import { LoaderCircleIcon } from "lucide-react";
 
 // useChatの共通化関数
-function useMyChat(apiPath: string) {
+function useMyChat(apiPath: string, memoryOn: boolean, learnOn: boolean) {
   return useChat({
     api: apiPath,
+    headers: {
+      memoryOn: memoryOn.toString(),
+      learnOn: learnOn.toString(),
+    },
     onError: (error) => {
       console.log(error);
     },
@@ -30,7 +34,7 @@ export const MessageAi = ({
   learnOn: boolean;
 }) => {
   const { userMessages, setAiState } = useUserMessages();
-  const { messages, status, append } = useMyChat("api/chat");
+  const { messages, status, append } = useMyChat("api/chat", memoryOn, learnOn);
   const hasRun = useRef(false);
 
   // ユーザーメッセージの送信
@@ -38,10 +42,7 @@ export const MessageAi = ({
     if (userMessages.length === 0) return;
     const currentUserMessage = userMessages[userMessages.length - 1];
 
-    append(
-      { role: "user", content: currentUserMessage },
-      { headers: { memoryOn: memoryOn.toString() } }
-    );
+    append({ role: "user", content: currentUserMessage });
   }, [userMessages]);
 
   // スタートボタン
