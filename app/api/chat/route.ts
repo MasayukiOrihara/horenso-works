@@ -79,6 +79,7 @@ export async function POST(req: Request) {
             // 既存ファイルを読み込み
             const response = await fetch(blobInfo.url);
             existingContent = await response.text();
+            console.log("元々の内容: " + existingContent);
           }
         } catch (error) {
           // ファイルが存在しない場合は空文字列のまま
