@@ -53,7 +53,9 @@ export function messageToText(message: BaseMessage[], index: number) {
   const result =
     typeof message[index].content === "string"
       ? message[index].content
-      : message[index].content.map((c: any) => c.text ?? "").join("");
+      : message[index].content
+          .map((c: { type?: string; text?: string }) => c.text ?? "")
+          .join("");
 
   return result;
 }

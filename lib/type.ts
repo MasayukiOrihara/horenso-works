@@ -2,19 +2,6 @@ import { BaseMessage } from "@langchain/core/messages";
 import { Document } from "langchain/document";
 
 /** フラグ管理用 */
-export type HorensoOldStates = {
-  isStarted: boolean;
-  isTarget: boolean;
-  isReason: boolean;
-  checkTarget: boolean;
-  checkReason: boolean;
-};
-export type HorensoFlags = {
-  deadline: boolean;
-  function: boolean;
-  quality: boolean;
-};
-
 export type HorensoStates = {
   isAnswerCorrect: boolean; // 質問に正解したか
   hasQuestion: boolean; // 次の質問はあるか
