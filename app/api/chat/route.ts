@@ -72,6 +72,7 @@ export async function POST(req: Request) {
         const blob = await put(memoryFileName, result, {
           access: "public",
           contentType: "text/plain",
+          allowOverwrite: true, // 上書きを許可
         });
         console.log(`✅ 会話内容を ${blob.url} に保存しました。`);
       } else {
@@ -98,10 +99,23 @@ export async function POST(req: Request) {
       if (isInstructionalResponse.includes("YES")) {
         // プロンプトに追加
         tempPrompt += userMessage + "\n";
+        const result = " - " + userMessage + "\n";
 
         // 指摘をファイルに書き出し
-        fs.appendFileSync(learnFilePath, " - " + userMessage + "\n", "utf-8");
-        console.log(`✅ 指摘内容を ${learnFileName} に保存しました。`);
+        if (host?.includes("localhost")) {
+          fs.appendFileSync(learnFilePath, result, "utf-8");
+          console.log(`✅ 指摘内容を ${learnFileName} に保存しました。`);
+        } else if (host?.includes("vercel")) {
+          // vercel版
+          const blob = await put(learnFileName, result, {
+            access: "public",
+            contentType: "text/plain",
+            allowOverwrite: true, // 上書きを許可
+          });
+          console.log(`✅ 会話内容を ${blob.url} に保存しました。`);
+        } else {
+          console.log("⚠ 記憶の保存ができませんでした。");
+        }
 
         // 会話を抜ける
         const fakeModel = new FakeListChatModel({
