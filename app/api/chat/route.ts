@@ -80,7 +80,7 @@ export async function POST(req: Request) {
           }
         } catch (error) {
           // ファイルが存在しない場合は空文字列のまま
-          console.log("File does not exist, creating new file");
+          console.log("File does not exist, creating new file: " + error);
         }
         // 既存内容 + 新しい内容
         const updatedContent = existingContent + result;
@@ -133,7 +133,7 @@ export async function POST(req: Request) {
             }
           } catch (error) {
             // ファイルが存在しない場合は空文字列のまま
-            console.log("File does not exist, creating new file");
+            console.log("File does not exist, creating new file: " + error);
           }
           // 既存内容 + 新しい内容
           const updatedContent = existingContent + result;
