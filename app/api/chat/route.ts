@@ -10,6 +10,7 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { Message as VercelChatMessage, LangChainAdapter } from "ai";
 import fs from "fs";
 import path from "path";
+import { put } from "@vercel/blob";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -36,6 +37,10 @@ export async function POST(req: Request) {
     const body = await req.json();
     const messages = body.messages ?? [];
 
+    const host = req.headers.get("host");
+    const protocol = host?.includes("localhost") ? "http" : "https";
+    const baseUrl = `${protocol}://${host}`;
+
     // 過去の履歴
     const formatMessage = (message: VercelChatMessage) => {
       return `${message.role}: ${message.content}`;
@@ -58,9 +63,20 @@ export async function POST(req: Request) {
       const result =
         cleaned.join("\n") + "\n - " + timestamp.slice(0, 16) + "\n";
 
-      // ファイル書き出し
-      fs.appendFileSync(memoryFilePath, result, "utf-8");
-      console.log(`✅ 会話内容を ${memoryFileName} に保存しました。`);
+      // ファイル書き出し(ローカル)
+      if (host?.includes("localhost")) {
+        fs.appendFileSync(memoryFilePath, result, "utf-8");
+        console.log(`✅ 会話内容を ${memoryFileName} に保存しました。`);
+      } else if (host?.includes("vercel")) {
+        // vercel版
+        const blob = await put(memoryFileName, result, {
+          access: "public",
+          contentType: "text/plain",
+        });
+        console.log(`✅ 会話内容を ${blob.url} に保存しました。`);
+      } else {
+        console.log("⚠ 記憶の保存ができませんでした。");
+      }
     }
 
     /** 講師の指摘から学ぶ */
@@ -107,10 +123,6 @@ export async function POST(req: Request) {
       console.log("始めの会話");
     } else {
       // 報連相ワークAPI呼び出し
-      const host = req.headers.get("host");
-      const protocol = host?.includes("localhost") ? "http" : "https";
-      const baseUrl = `${protocol}://${host}`;
-
       const res = await fetch(baseUrl + "/api/horenso", {
         method: "POST",
         credentials: "include",
