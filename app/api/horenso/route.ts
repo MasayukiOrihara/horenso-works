@@ -9,7 +9,7 @@ import {
   StateAnnotation,
 } from "./utils";
 import * as DOCUMENTS from "./documents";
-import { haiku3_5_sentence, listParser, strParser } from "@/lib/models";
+import { haiku3, haiku3_5_sentence, listParser, strParser } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 
 // 初期状態準備
@@ -52,11 +52,10 @@ async function checkUserAnswer({
       console.log("質問1: 報連相は誰のため？");
 
       // 答えの分離
-      const whoTemplate =
-        "文章: {input}\nこの文章から人物または役職名を1つ抜き出してください。以下を人物として扱います：\n- 固有名詞（田中、山田など）\n- 一人称（自分、私、僕など）  \n- 役職名（部長、リーダー、課長、社長など）\n入力が単語の場合はそのまま出力し、複数ある場合は主要なものを1つ選んでください。該当するものがない場合は「NO」と出力してください。出力は抽出した語のみです。";
+      const whoTemplate = MESSAGES.QUESTION_WHO_CHECK;
       const whoPrompt = PromptTemplate.fromTemplate(whoTemplate);
       const whoUserAnswer = await whoPrompt
-        .pipe(haiku3_5_sentence)
+        .pipe(haiku3)
         .pipe(strParser)
         .invoke({
           input: userMessage,
@@ -82,8 +81,7 @@ async function checkUserAnswer({
       console.log("質問2: なぜリーダーのため？");
 
       // 答えの分離
-      const whyTemplate =
-        "文章: {input}\n\nこの文章を主張ごとに区切って抜き出してください。\n各主張は簡潔にまとめて、「,」で区切って出力してください。\n抜き出せなかった場合は「NO」とだけ出力してください。\n\n{format_instructions}";
+      const whyTemplate = MESSAGES.QUESTION_WHY_CHECK;
       const whyPrompt = PromptTemplate.fromTemplate(whyTemplate);
       const whyUserAnswer = await whyPrompt
         .pipe(haiku3_5_sentence)
@@ -138,7 +136,7 @@ async function generateHint({
 
       // 部分正解
       for (const item of changed) {
-        contexts += `${item.pageContent} は3つの正解のうちの1つだったことをユーザーに伝えてください\n`;
+        contexts += item.pageContent + MESSAGES.MATCH_OF_PIECE;
       }
 
       isPartialMatch = whyUseDocuments.map((doc) => ({

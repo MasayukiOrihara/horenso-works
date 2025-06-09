@@ -1,10 +1,6 @@
 import { LangSmithClient } from "@/lib/clients";
 import { FakeListChatModel } from "@langchain/core/utils/testing";
-import {
-  DEVELOPMENT_WORK_EXPLANATION,
-  FINISH_MESSAGE,
-  QUESTION_WHO_ASKING,
-} from "@/lib/messages";
+import * as MESSAGES from "@/lib/messages";
 import { haiku3_5, OpenAi, strParser } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { Message as VercelChatMessage, LangChainAdapter } from "ai";
@@ -104,7 +100,7 @@ export async function POST(req: Request) {
     if (onLearn) {
       console.log("会話を指摘可能...");
 
-      const learnTemplate = `あなたはアシスタントの出力に対するユーザーの反応を分類するシステムです。\n次のユーザー発言が「AIの説明や表現に対する指摘・フィードバック（例：間違いの指摘、不自然な言い回しの指摘、改善提案など）」に該当する場合は YES、そうでなければ NO を返してください。\n\nユーザー発言：\n{user_input}\n\n出力は YES または NO のいずれかにしてください。理由や他の情報は出力しないでください。`;
+      const learnTemplate = MESSAGES.LEARN_CHECK;
       const learnPrompt = PromptTemplate.fromTemplate(learnTemplate);
       const isInstructionalResponse = await learnPrompt
         .pipe(haiku3_5)
@@ -152,7 +148,7 @@ export async function POST(req: Request) {
 
         // 会話を抜ける
         const fakeModel = new FakeListChatModel({
-          responses: ["指摘を受け付けました。"],
+          responses: [MESSAGES.POINT_OUT_LOG],
         });
         const fakePrompt = PromptTemplate.fromTemplate("");
         const fakeStream = await fakePrompt.pipe(fakeModel).stream({});
@@ -166,7 +162,8 @@ export async function POST(req: Request) {
     if (horensoContenue && !oldHorensoContenue) {
       oldHorensoContenue = true;
 
-      aiMessage = DEVELOPMENT_WORK_EXPLANATION + QUESTION_WHO_ASKING;
+      aiMessage =
+        MESSAGES.DEVELOPMENT_WORK_EXPLANATION + MESSAGES.QUESTION_WHO_ASKING;
       console.log("始めの会話");
     } else {
       // 報連相ワークAPI呼び出し
@@ -187,7 +184,7 @@ export async function POST(req: Request) {
       console.log("継続判定 chat側: " + horensoContenue);
       if (apiBody.contenue != horensoContenue) {
         horensoContenue = false;
-        aiMessage = aiMessage + "\n\n" + FINISH_MESSAGE;
+        aiMessage = aiMessage + "\n\n" + MESSAGES.FINISH_MESSAGE;
       }
     }
 

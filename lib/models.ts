@@ -46,6 +46,6 @@ export const haiku3_5_sentence = new ChatAnthropic({
 export const haiku3 = new ChatAnthropic({
   model: ANTHROPIC_MODEL_3,
   apiKey: process.env.ANTHROPIC_API_KEY!,
-  maxTokens: 512,
-  temperature: 0.5,
+  maxTokens: 64,
+  temperature: 0,
 });
