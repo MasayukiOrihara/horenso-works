@@ -20,9 +20,6 @@ const learnFileName = `learn-default.txt`;
 const memoryFilePath = path.join(process.cwd(), "memory", memoryFileName);
 const learnFilePath = path.join(process.cwd(), "learn", learnFileName);
 
-// 一時的な追加プロンプト
-let tempPrompt = "";
-
 /**
  * 報連相ワークAI
  * @param req
@@ -111,8 +108,6 @@ export async function POST(req: Request) {
       console.log("指摘かどうか: " + isInstructionalResponse);
 
       if (isInstructionalResponse.includes("YES")) {
-        // プロンプトに追加
-        tempPrompt += userMessage + "\n";
         const result = " - " + userMessage + "\n";
 
         // 指摘をファイルに書き出し
@@ -187,6 +182,14 @@ export async function POST(req: Request) {
         aiMessage = aiMessage + "\n\n" + MESSAGES.FINISH_MESSAGE;
       }
     }
+
+    // 追加プロンプトの読み込み
+    let tempPrompt = "";
+    fetch(baseUrl + "/api/text-reader")
+      .then((response) => response.json())
+      .then((data) => {
+        tempPrompt = data.text;
+      });
 
     // プロンプト読み込み
     const load = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
