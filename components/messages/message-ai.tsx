@@ -1,5 +1,5 @@
 import { useChat } from "@ai-sdk/react";
-import { useUserMessages } from "./message-provider";
+import { useMessages } from "./message-provider";
 import { useEffect, useRef } from "react";
 import { UIMessage } from "ai";
 import { LoaderCircleIcon } from "lucide-react";
@@ -21,6 +21,7 @@ function useMyChat(apiPath: string, memoryOn: boolean, learnOn: boolean) {
 // 最後のメッセージを取り出す共通化関数
 function getLatestAssistantMessage(messages: UIMessage[]) {
   const assistantMessages = messages.filter((m) => m.role === "assistant");
+
   return assistantMessages[assistantMessages.length - 1];
 }
 
@@ -33,7 +34,7 @@ export const MessageAi = ({
   memoryOn: boolean;
   learnOn: boolean;
 }) => {
-  const { userMessages, setAiState } = useUserMessages();
+  const { userMessages, addAiMessage, setAiState } = useMessages();
   const { messages, status, append } = useMyChat("api/chat", memoryOn, learnOn);
   const hasRun = useRef(false);
 
@@ -59,6 +60,12 @@ export const MessageAi = ({
   }, [status]);
 
   const currentAiCommentMessage = getLatestAssistantMessage(messages);
+
+  useEffect(() => {
+    if (currentAiCommentMessage && !(status === "streaming")) {
+      addAiMessage(currentAiCommentMessage.content);
+    }
+  }, [currentAiCommentMessage]);
 
   return (
     <div className="w-full my-2 bg-white">

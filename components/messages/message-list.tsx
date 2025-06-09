@@ -1,7 +1,7 @@
-import { useUserMessages } from "./message-provider";
+import { useMessages } from "./message-provider";
 
 export const MessageList = () => {
-  const { userMessages } = useUserMessages();
+  const { userMessages } = useMessages();
 
   return (
     <div className="mb-2">

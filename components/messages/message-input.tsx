@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useUserMessages } from "./message-provider";
+import { useMessages } from "./message-provider";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { SendHorizontalIcon } from "lucide-react";
 
 export const MessageInput = () => {
   const [text, setText] = useState("");
-  const { addUserMessage, aiState } = useUserMessages();
+  const { addUserMessage, aiState } = useMessages();
 
   return (
     <form

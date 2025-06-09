@@ -16,7 +16,7 @@ let oldHorensoContenue = false;
 const timestamp = new Date().toISOString();
 const named = timestamp.slice(0, 10);
 const memoryFileName = `memory-${named}.txt`;
-const learnFileName = `learn-${named}.txt`;
+const learnFileName = `learn-default.txt`;
 const memoryFilePath = path.join(process.cwd(), "memory", memoryFileName);
 const learnFilePath = path.join(process.cwd(), "learn", learnFileName);
 
