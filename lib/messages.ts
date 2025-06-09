@@ -1,8 +1,8 @@
 /* prompt message */
 export const DEVELOPMENT_WORK_EXPLANATION =
-  "開発の仕事について語ってください。\n";
+  "開発の仕事について語ってください。ただし、報連相が誰のためかという話題には触れないでください。\n";
 export const QUESTION_WHO_ASKING =
-  "上記について話したのち、生徒に下記の質問をしてください。\n開発の仕事を想定し、報連相は誰のためのものか";
+  "上記について話したのち、生徒に下記の質問をしてください。\n---\nソフトウェア開発の仕事を想定した場合、報連相は誰のためのものか唯一誰か一人を上げてください。";
 export const HINTO_GIVING =
   "答えを外したのであなたはユーザーを諫め、[ヒント]をあげてください。\n";
 export const SUCCESS_MESSAGE =
