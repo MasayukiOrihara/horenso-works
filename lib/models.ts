@@ -2,6 +2,7 @@ import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 
+const ANTHROPIC_MODEL_3 = "claude-3-haiku-20240307";
 const ANTHROPIC_MODEL_3_5 = "claude-3-5-haiku-20241022";
 
 export const strParser = new StringOutputParser();
@@ -27,4 +28,12 @@ export const haiku3_5 = new ChatAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
   maxTokens: 1,
   temperature: 0,
+});
+
+// anthropic(haiku-3)(langchain経由)
+export const haiku3 = new ChatAnthropic({
+  model: ANTHROPIC_MODEL_3,
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+  maxTokens: 100,
+  temperature: 0.5,
 });

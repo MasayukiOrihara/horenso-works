@@ -24,7 +24,7 @@ export type MemorizingProps = {
 
 /** 正解判定で使う型 */
 export type MatchAnswerArgs = {
-  messages: BaseMessage[]; // 一連の会話(messages)
+  userAnswer: string; // 比較対象になる答え
   documents: Document[]; // 質問ドキュメント
   topK: number; // 上位からの比較個数
   threshold: number; // スコアの閾値

@@ -8,7 +8,7 @@ export const HINTO_GIVING =
 export const SUCCESS_MESSAGE =
   "問題に正解したのであなたはユーザーを褒めてください。\n";
 export const QUESTION_WHY_ASKING =
-  "上記を実施したのち、[報連相はリーダーのため]ということを前提に下記の質問をしてください。\n[報連相はなぜリーダーのためのものなのか]";
+  "上記を実施したのち、「報連相はリーダーのため」ということを前提に下記の質問をしてください。\n---\n報連相はなぜリーダーのためのものなのか。答えを3つ上げてください。";
 export const SUCCESS_MESSAE_LITTLE =
   "あなたはユーザーに「${userAnswer}」が正解だったことを報告してください。\n";
 export const HORENSO_EXPLANATION =

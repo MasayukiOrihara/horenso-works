@@ -7,14 +7,13 @@ import { HorensoStates, MatchAnswerArgs } from "@/lib/type";
 
 /** 答えを判定して正解かどうかを返す関数 */
 export async function matchAnswer({
-  messages,
+  userAnswer,
   documents,
   topK,
   threshold,
   allTrue = false,
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
-  const userAnswer = messageToText(messages, messages.length - 1);
 
   // ベクトルストア準備
   const vectorStore = await MemoryVectorStore.fromDocuments(

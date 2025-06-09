@@ -4,6 +4,8 @@ import { StateGraph } from "@langchain/langgraph";
 import * as MESSAGES from "@/lib/messages";
 import { matchAnswer, messageToText, StateAnnotation } from "./utils";
 import * as DOCUMENTS from "./documents";
+import { haiku3, strParser } from "@/lib/models";
+import { PromptTemplate } from "@langchain/core/prompts";
 
 // 初期状態準備
 const transitionStates = { ...DOCUMENTS.defaultTransitionStates };
@@ -34,12 +36,25 @@ async function checkUserAnswer({
 }: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
 
+  const userMessage = messageToText(messages, messages.length - 1);
+
   switch (transition.step) {
     case 0:
       console.log("質問1: 報連相は誰のため？");
 
+      // 答えの分離
+      const template =
+        "{input}\nこの文章から「自分」などの一人称も含め、人物を1人抜き出してください。単語の場合はそのまま出力し、複数人いる場合は主題の人物を1人抜き出してください。出力は抜き出した人物のみでお願いします。抜き出せなかった場合は「NO」とだけ出力してください。";
+      const prompt = PromptTemplate.fromTemplate(template);
+      const userAnswer = await prompt.pipe(haiku3).pipe(strParser).invoke({
+        input: userMessage,
+      });
+
+      console.log("質問1の答え: " + userAnswer);
+
+      // 正解チェック
       const isWhoCorrect = await matchAnswer({
-        messages: messages,
+        userAnswer: userAnswer,
         documents: whoUseDocuments,
         topK: 1,
         threshold: 0.8,
@@ -54,8 +69,9 @@ async function checkUserAnswer({
     case 1:
       console.log("質問2: なぜリーダーのため？");
 
+      // 正解チェック
       const isWhyCorrect = await matchAnswer({
-        messages: messages,
+        userAnswer: userMessage,
         documents: whyUseDocuments,
         topK: 3,
         threshold: 0.6,

@@ -26,7 +26,7 @@ export const whoDocuments: Document[] = [
 // 質問ドキュメント2
 export const whyDocuments: Document[] = [
   {
-    pageContent: "納期や期限を守る",
+    pageContent: "納期や期限を守るために早めの情報共有が必要",
     metadata: {
       id: "1",
       question_id: "2",
@@ -35,7 +35,8 @@ export const whyDocuments: Document[] = [
     },
   },
   {
-    pageContent: "機能に過不足がない",
+    pageContent:
+      "機能の過不足がないように仕様のズレを防ぎ、適切な機能範囲を守る",
     metadata: {
       id: "2",
       question_id: "2",
@@ -44,7 +45,7 @@ export const whyDocuments: Document[] = [
     },
   },
   {
-    pageContent: "品質が良く不具合がない",
+    pageContent: "品質を保証しバグを未然に防ぐ",
     metadata: {
       id: "3",
       question_id: "2",
