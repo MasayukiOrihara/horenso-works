@@ -1,4 +1,3 @@
-import { BaseMessage } from "@langchain/core/messages";
 import { Document } from "langchain/document";
 
 /** フラグ管理用 */

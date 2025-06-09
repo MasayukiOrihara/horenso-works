@@ -1,6 +1,7 @@
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { BaseMessage } from "@langchain/core/messages";
 import { Annotation, messagesStateReducer } from "@langchain/langgraph";
+import { Document } from "langchain/document";
 
 import { embeddings } from "@/lib/models";
 import { HorensoStates, MatchAnswerArgs } from "@/lib/type";
@@ -39,6 +40,7 @@ export async function matchAnswer({
       }
     }
   }
+  console.log("---");
 
   // 問題正解判定
   if (allTrue) {
@@ -83,3 +85,15 @@ export const StateAnnotation = Annotation.Root({
     }),
   }),
 });
+
+export function findMatchStatusChanges(before: Document[], after: Document[]) {
+  return after.filter((afterItem) => {
+    const beforeItem = before.find(
+      (b) => b.metadata.id === afterItem.metadata.id
+    );
+    return (
+      beforeItem &&
+      beforeItem.metadata.isMatched !== afterItem.metadata.isMatched
+    );
+  });
+}

@@ -2,9 +2,14 @@ import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { StateGraph } from "@langchain/langgraph";
 
 import * as MESSAGES from "@/lib/messages";
-import { matchAnswer, messageToText, StateAnnotation } from "./utils";
+import {
+  findMatchStatusChanges,
+  matchAnswer,
+  messageToText,
+  StateAnnotation,
+} from "./utils";
 import * as DOCUMENTS from "./documents";
-import { haiku3, strParser } from "@/lib/models";
+import { haiku3_5_sentence, listParser, strParser } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 
 // 初期状態準備
@@ -14,6 +19,10 @@ const whoUseDocuments = DOCUMENTS.whoDocuments.map((doc) => ({
   metadata: { ...doc.metadata },
 }));
 const whyUseDocuments = DOCUMENTS.whyDocuments.map((doc) => ({
+  pageContent: doc.pageContent,
+  metadata: { ...doc.metadata },
+}));
+let isPartialMatch = DOCUMENTS.whyDocuments.map((doc) => ({
   pageContent: doc.pageContent,
   metadata: { ...doc.metadata },
 }));
@@ -43,18 +52,21 @@ async function checkUserAnswer({
       console.log("質問1: 報連相は誰のため？");
 
       // 答えの分離
-      const template =
-        "{input}\nこの文章から「自分」などの一人称も含め、人物を1人抜き出してください。単語の場合はそのまま出力し、複数人いる場合は主題の人物を1人抜き出してください。出力は抜き出した人物のみでお願いします。抜き出せなかった場合は「NO」とだけ出力してください。";
-      const prompt = PromptTemplate.fromTemplate(template);
-      const userAnswer = await prompt.pipe(haiku3).pipe(strParser).invoke({
-        input: userMessage,
-      });
+      const whoTemplate =
+        "文章: {input}\nこの文章から人物または役職名を1つ抜き出してください。以下を人物として扱います：\n- 固有名詞（田中、山田など）\n- 一人称（自分、私、僕など）  \n- 役職名（部長、リーダー、課長、社長など）\n入力が単語の場合はそのまま出力し、複数ある場合は主要なものを1つ選んでください。該当するものがない場合は「NO」と出力してください。出力は抽出した語のみです。";
+      const whoPrompt = PromptTemplate.fromTemplate(whoTemplate);
+      const whoUserAnswer = await whoPrompt
+        .pipe(haiku3_5_sentence)
+        .pipe(strParser)
+        .invoke({
+          input: userMessage,
+        });
 
-      console.log("質問1の答え: " + userAnswer);
+      console.log("質問1の答え: " + whoUserAnswer);
 
       // 正解チェック
       const isWhoCorrect = await matchAnswer({
-        userAnswer: userAnswer,
+        userAnswer: whoUserAnswer,
         documents: whoUseDocuments,
         topK: 1,
         threshold: 0.8,
@@ -69,17 +81,35 @@ async function checkUserAnswer({
     case 1:
       console.log("質問2: なぜリーダーのため？");
 
+      // 答えの分離
+      const whyTemplate =
+        "文章: {input}\n\nこの文章を主張ごとに区切って抜き出してください。\n各主張は簡潔にまとめて、「,」で区切って出力してください。\n抜き出せなかった場合は「NO」とだけ出力してください。\n\n{format_instructions}";
+      const whyPrompt = PromptTemplate.fromTemplate(whyTemplate);
+      const whyUserAnswer = await whyPrompt
+        .pipe(haiku3_5_sentence)
+        .pipe(listParser)
+        .invoke({
+          input: userMessage,
+          format_instructions: listParser.getFormatInstructions(),
+        });
+      console.log("なぜの答え: \n" + whyUserAnswer);
+
       // 正解チェック
-      const isWhyCorrect = await matchAnswer({
-        userAnswer: userMessage,
-        documents: whyUseDocuments,
-        topK: 3,
-        threshold: 0.6,
-        allTrue: true,
-      });
+      let tempIsWhyCorrect = false;
+      for (const answer of whyUserAnswer) {
+        const isWhyCorrect = await matchAnswer({
+          userAnswer: answer,
+          documents: whyUseDocuments,
+          topK: 3,
+          threshold: 0.65,
+          allTrue: true,
+        });
+
+        tempIsWhyCorrect = isWhyCorrect;
+      }
 
       // 全正解
-      if (isWhyCorrect) {
+      if (tempIsWhyCorrect) {
         transition.hasQuestion = false;
         transition.isAnswerCorrect = true;
       }
@@ -88,10 +118,35 @@ async function checkUserAnswer({
   return { transition };
 }
 
-async function generateHint({ contexts }: typeof StateAnnotation.State) {
+async function generateHint({
+  transition,
+  contexts,
+}: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
 
-  contexts = MESSAGES.HINTO_GIVING;
+  switch (transition.step) {
+    case 0:
+      console.log("ヒント1: 報連相は誰のため？");
+
+      contexts = MESSAGES.HINTO_GIVING;
+      break;
+    case 1:
+      console.log("ヒント2: なぜリーダーのため？");
+
+      const changed = findMatchStatusChanges(isPartialMatch, whyUseDocuments);
+      console.log("差分: " + JSON.stringify(changed, null, 2));
+
+      // 部分正解
+      for (const item of changed) {
+        contexts += `${item.pageContent} は3つの正解のうちの1つだったことをユーザーに伝えてください\n`;
+      }
+
+      isPartialMatch = whyUseDocuments.map((doc) => ({
+        pageContent: doc.pageContent,
+        metadata: { ...doc.metadata },
+      }));
+      break;
+  }
 
   return { contexts };
 }
