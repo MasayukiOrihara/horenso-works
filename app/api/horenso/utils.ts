@@ -6,8 +6,8 @@ import { Document } from "langchain/document";
 import { embeddings } from "@/lib/models";
 import { HorensoStates, MatchAnswerArgs } from "@/lib/type";
 
-/** 答えを判定して正解かどうかを返す関数 */
-export async function matchAnswer({
+/** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
+export async function matchAnswerOpenAi({
   userAnswer,
   documents,
   topK,
@@ -16,11 +16,15 @@ export async function matchAnswer({
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
 
+  console.log("---\n OpenAI Embeddingsでの回答チェック");
+
   // ベクトルストア準備
   const vectorStore = await MemoryVectorStore.fromDocuments(
     documents,
     embeddings
   );
+  console.log("ベクトルストアの準備が完了しました。");
+
   // ベクトルストア内のドキュメントとユーザーの答えを比較
   const similarityResults = await vectorStore.similaritySearchWithScore(
     userAnswer,
@@ -40,6 +44,52 @@ export async function matchAnswer({
       }
     }
   }
+  console.log("---");
+
+  // 問題正解判定
+  if (allTrue) {
+    isAnswerCorrect = documents.every((doc) => doc.metadata.isMatched);
+  }
+  return isAnswerCorrect;
+}
+
+// HuggingFaceのAPIを使用して類似度を計算する関数
+export async function matchAnswerHuggingFaceAPI(
+  userAnswer: string,
+  documents: Document[],
+  threshold: number,
+  allTrue = false
+) {
+  let isAnswerCorrect = false;
+
+  console.log("---\n HuggingFace APIでの回答チェック");
+  const getScore = await fetch(
+    "https://api-inference.huggingface.co/models/sentence-transformers/all-mpnet-base-v2",
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify({
+        inputs: {
+          source_sentence: userAnswer,
+          sentences: documents.map((doc) => doc.pageContent),
+        },
+      }),
+    }
+  );
+  const response = await getScore.json();
+
+  // スコアが閾値以上のドキュメントをマッチさせる
+  response.forEach((score: number, i: number) => {
+    console.log(`${documents[i].pageContent} : ${score}`);
+    if (score >= threshold) {
+      documents[i].metadata.isMatched = true;
+      isAnswerCorrect = true;
+    }
+  });
+
   console.log("---");
 
   // 問題正解判定

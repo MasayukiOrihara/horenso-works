@@ -4,12 +4,19 @@ import { StateGraph } from "@langchain/langgraph";
 import * as MESSAGES from "@/lib/messages";
 import {
   findMatchStatusChanges,
-  matchAnswer,
+  matchAnswerHuggingFaceAPI,
+  matchAnswerOpenAi,
   messageToText,
   StateAnnotation,
 } from "./utils";
 import * as DOCUMENTS from "./documents";
-import { haiku3, haiku3_5_sentence, listParser, strParser } from "@/lib/models";
+import {
+  haiku3,
+  haiku3_5,
+  haiku3_5_sentence,
+  listParser,
+  strParser,
+} from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 
 // 初期状態準備
@@ -52,27 +59,45 @@ async function checkUserAnswer({
       console.log("質問1: 報連相は誰のため？");
 
       // 答えの分離
-      const whoTemplate = MESSAGES.QUESTION_WHO_CHECK;
+      // const whoTemplate = MESSAGES.QUESTION_WHO_CHECK;
+      const whoTemplate =
+        "以下の入力に含まれる単語のうち、重要なキーワードを5個以内でリストアップしてください。新たな言葉は追加しないでください。\n： {input}\n\n{format_instructions}";
       const whoPrompt = PromptTemplate.fromTemplate(whoTemplate);
       const whoUserAnswer = await whoPrompt
-        .pipe(haiku3)
-        .pipe(strParser)
+        .pipe(haiku3_5_sentence)
+        .pipe(listParser)
         .invoke({
           input: userMessage,
+          format_instructions: listParser.getFormatInstructions(),
         });
 
       console.log("質問1の答え: " + whoUserAnswer);
 
       // 正解チェック
-      const isWhoCorrect = await matchAnswer({
-        userAnswer: whoUserAnswer,
-        documents: whoUseDocuments,
-        topK: 1,
-        threshold: 0.8,
-      });
+      let isWhoCorrectOpenAi = false;
+      for (const answer of whoUserAnswer) {
+        isWhoCorrectOpenAi = await matchAnswerOpenAi({
+          userAnswer: answer,
+          documents: whoUseDocuments,
+          topK: 1,
+          threshold: 0.8,
+        });
+      }
+
+      for (const answer of whoUserAnswer) {
+        if (!isWhoCorrectOpenAi) {
+          // 高性能モデルでもう一度検証
+          isWhoCorrectOpenAi = await matchAnswerHuggingFaceAPI(
+            answer,
+            whoUseDocuments,
+            0.7
+          );
+        }
+      }
+      console.log("質問1の正解: " + isWhoCorrectOpenAi);
 
       // 正解パターン
-      if (isWhoCorrect) {
+      if (isWhoCorrectOpenAi) {
         transition.step = 1;
         transition.isAnswerCorrect = true;
       }
@@ -95,7 +120,7 @@ async function checkUserAnswer({
       // 正解チェック
       let tempIsWhyCorrect = false;
       for (const answer of whyUserAnswer) {
-        const isWhyCorrect = await matchAnswer({
+        const isWhyCorrect = await matchAnswerOpenAi({
           userAnswer: answer,
           documents: whyUseDocuments,
           topK: 3,
