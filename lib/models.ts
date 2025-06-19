@@ -15,7 +15,7 @@ export const listParser = new CommaSeparatedListOutputParser();
 export const OpenAi = new ChatOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   model: "gpt-4o",
-  temperature: 0.5,
+  temperature: 0.8,
   cache: true,
   tags: ["Horenso-works"],
 });

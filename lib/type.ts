@@ -1,3 +1,4 @@
+import { UserAnswerEvaluation } from "@/app/api/horenso/route";
 import { Document } from "langchain/document";
 
 /** フラグ管理用 */
@@ -27,5 +28,6 @@ export type MatchAnswerArgs = {
   documents: Document[]; // 質問ドキュメント
   topK: number; // 上位からの比較個数
   threshold: number; // スコアの閾値
+  userAnswerData: UserAnswerEvaluation[];
   allTrue?: boolean; // 全問正解で正解とするか
 };

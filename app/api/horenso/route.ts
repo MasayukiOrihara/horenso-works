@@ -34,14 +34,31 @@ let isPartialMatch = DOCUMENTS.whyDocuments.map((doc) => ({
   metadata: { ...doc.metadata },
 }));
 
-async function setupInitial() {
+export type UserAnswerEvaluation = {
+  question_id: string;
+  userAnswer: string;
+  currentAnswer: string;
+  score: string;
+  isAnswerCorrect: boolean;
+};
+
+const userAnswerData: UserAnswerEvaluation[] = [];
+
+async function setupInitial({ contexts }: typeof StateAnnotation.State) {
   console.log("📝 初期設定ノード");
 
   // 前回ターンの状態を反映
   console.log("isAnswerCorrect: " + transitionStates.isAnswerCorrect);
   console.log("hasQuestion: " + transitionStates.hasQuestion);
   console.log("step: " + transitionStates.step);
+
+  // 前提・背景・状況
+  contexts = "- あなたは講師として報連相ワークを行っています。\n";
+  contexts += "- ユーザーに以下の質問を投げかけています。\n\n";
+  contexts +=
+    " 質問: ソフトウェア開発の仕事を想定した場合、報連相は誰のためのものか唯一誰か一人を上げてください。\n\n";
   return {
+    contexts,
     transition: { ...transitionStates },
   };
 }
@@ -49,6 +66,7 @@ async function setupInitial() {
 async function checkUserAnswer({
   messages,
   transition,
+  contexts,
 }: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
 
@@ -74,32 +92,40 @@ async function checkUserAnswer({
       console.log("質問1の答え: " + whoUserAnswer);
 
       // 正解チェック
-      let isWhoCorrectOpenAi = false;
+      let isWhoCorrect = false;
       for (const answer of whoUserAnswer) {
-        isWhoCorrectOpenAi = await matchAnswerOpenAi({
+        const isWhoCorrectOpenAi = await matchAnswerOpenAi({
           userAnswer: answer,
           documents: whoUseDocuments,
           topK: 1,
           threshold: 0.8,
+          userAnswerData,
         });
+
+        if (isWhoCorrectOpenAi) isWhoCorrect = true;
       }
+      console.log("データ取得");
       console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
-      for (const answer of whoUserAnswer) {
-        if (!isWhoCorrectOpenAi) {
-          // 高性能モデルでもう一度検証
-          isWhoCorrectOpenAi = await matchAnswerHuggingFaceAPI(
-            answer,
-            whoUseDocuments,
-            0.7
-          );
-        }
-      }
-      console.log("\n HuggingFace チェック完了 \n ---");
-      console.log("質問1の正解: " + isWhoCorrectOpenAi);
+      // 重いので一旦削除
+      // for (const answer of whoUserAnswer) {
+      //   if (!isWhoCorrectOpenAi) {
+      //     // 高性能モデルでもう一度検証
+      //     isWhoCorrectOpenAi = await matchAnswerHuggingFaceAPI(
+      //       answer,
+      //       whoUseDocuments,
+      //       0.7,
+      //       userAnswerData
+      //     );
+      //   }
+      // }
+      // console.log("\n HuggingFace チェック完了 \n ---");
+
+      console.dir(userAnswerData, { depth: null });
+      console.log("質問1の正解: " + isWhoCorrect);
 
       // 正解パターン
-      if (isWhoCorrectOpenAi) {
+      if (isWhoCorrect) {
         transition.step = 1;
         transition.isAnswerCorrect = true;
       }
@@ -127,6 +153,7 @@ async function checkUserAnswer({
           documents: whyUseDocuments,
           topK: 3,
           threshold: 0.65,
+          userAnswerData,
           allTrue: true,
         });
 
@@ -140,6 +167,7 @@ async function checkUserAnswer({
       }
       break;
   }
+
   return { transition };
 }
 
@@ -153,7 +181,34 @@ async function generateHint({
     case 0:
       console.log("ヒント1: 報連相は誰のため？");
 
-      contexts = MESSAGES.HINTO_GIVING;
+      // スコア順に並べ替え
+      const top = userAnswerData
+        .slice()
+        .sort((a, b) => Number(b.score) - Number(a.score))
+        .slice(0, 3);
+
+      // ヒントを出力
+      const hintTemplate =
+        "以下の問題に対して、ユーザー自身が模範解答にたどり着くように導いてください。出力時は模範解答を伏せた文章を出力してください。\n\n 問題： {question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\n\nヒント: ";
+      const hintPrompt = PromptTemplate.fromTemplate(hintTemplate);
+      const getHint = await hintPrompt
+        .pipe(haiku3_5_sentence)
+        .pipe(strParser)
+        .invoke({
+          question:
+            "ソフトウェア開発の仕事を想定した場合、報連相は誰のためのものか唯一誰か一人を上げてください。",
+          currect_answer: top.map((val) => val.currentAnswer).join(", "),
+          user_answer: top.map((val) => val.userAnswer).join(", "),
+        });
+
+      console.log("質問1のヒント: " + getHint);
+
+      // プロンプトに含める
+      contexts =
+        "- まず初めにユーザーは答えを外したので、はっきり不正解と出力してください。\n";
+      contexts += "- 次にユーザーの回答に一言コメントしてください。\n";
+      contexts += `- さらに以下のユーザーへの助言を参考に、ユーザーから回答を引き出してください。また質問の答えとなりそうな"誰か"やキーワードは出力しないでください。\n\nユーザーへの助言: \n${getHint}`;
+      contexts += "\n";
       break;
     case 1:
       console.log("ヒント2: なぜリーダーのため？");
@@ -182,21 +237,38 @@ async function askQuestion({
 }: typeof StateAnnotation.State) {
   console.log("❓ 問題出題ノード");
 
+  contexts =
+    "- 上記について話したのち、最後に生徒に下記の質問をしてください。\n\n";
+
   switch (transition.step) {
     case 0:
-      contexts = MESSAGES.QUESTION_WHO_ASKING;
+      contexts +=
+        " 質問: ソフトウェア開発の仕事を想定した場合、報連相は誰のためのものか唯一誰か一人を上げてください。";
       break;
     case 1:
-      contexts = MESSAGES.QUESTION_WHY_ASKING;
+      contexts +=
+        " 質問: 報連相はなぜリーダーのためのものなのか。答えを3つ上げてください。";
       break;
   }
   return { contexts };
 }
 
-async function ExplainAnswer({ contexts }: typeof StateAnnotation.State) {
+async function ExplainAnswer({
+  transition,
+  contexts,
+}: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
 
-  contexts = MESSAGES.SUCCESS_MESSAGE;
+  contexts = "- " + MESSAGES.SUCCESS_MESSAGE;
+  contexts +=
+    "- 今までの会話をまとめ、ユーザーの記憶に残るような質問の解説をしてください。\n";
+
+  switch (transition.step) {
+    case 0:
+      break;
+    case 1:
+      break;
+  }
 
   return { contexts };
 }
@@ -211,6 +283,11 @@ async function saveFinishState({
   // 現在の状態を外部保存
   Object.assign(transitionStates, transition);
   transitionStates.isAnswerCorrect = false;
+
+  // 使ったオブジェクトを初期化
+  for (const key of Object.keys(userAnswerData)) {
+    delete userAnswerData[Number(key)];
+  }
 
   // 正解し終わった場合すべてを初期化
   if (!transition.hasQuestion) {

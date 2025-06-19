@@ -5,6 +5,7 @@ import { Document } from "langchain/document";
 
 import { embeddings } from "@/lib/models";
 import { HorensoStates, MatchAnswerArgs } from "@/lib/type";
+import { UserAnswerEvaluation } from "./route";
 
 /** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
 export async function matchAnswerOpenAi({
@@ -12,6 +13,7 @@ export async function matchAnswerOpenAi({
   documents,
   topK,
   threshold,
+  userAnswerData,
   allTrue = false,
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
@@ -39,10 +41,20 @@ export async function matchAnswerOpenAi({
         if (bestMatch.pageContent === doc.pageContent) {
           doc.metadata.isMatched = true;
           isAnswerCorrect = true;
+
           console.log(bestMatch.pageContent + " : " + doc.metadata.isMatched);
         }
       }
     }
+    // 答えの結果を詰め込む
+    const data: UserAnswerEvaluation = {
+      question_id: bestMatch.metadata.question_id,
+      userAnswer: userAnswer,
+      currentAnswer: bestMatch.pageContent,
+      score: score.toString(),
+      isAnswerCorrect: isAnswerCorrect,
+    };
+    userAnswerData.push(data);
   }
 
   // 問題正解判定
@@ -57,6 +69,7 @@ export async function matchAnswerHuggingFaceAPI(
   userAnswer: string,
   documents: Document[],
   threshold: number,
+  userAnswerData: UserAnswerEvaluation[],
   allTrue = false
 ) {
   let isAnswerCorrect = false;
@@ -87,6 +100,15 @@ export async function matchAnswerHuggingFaceAPI(
       documents[i].metadata.isMatched = true;
       isAnswerCorrect = true;
     }
+    // 答えの結果を詰め込む
+    const data: UserAnswerEvaluation = {
+      question_id: documents[i].metadata.question_id,
+      userAnswer: userAnswer,
+      currentAnswer: documents[i].pageContent,
+      score: score.toString(),
+      isAnswerCorrect: isAnswerCorrect,
+    };
+    userAnswerData.push(data);
   });
 
   // 問題正解判定

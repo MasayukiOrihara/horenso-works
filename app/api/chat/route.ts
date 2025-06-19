@@ -83,11 +83,17 @@ export async function POST(req: Request) {
       }
     }
 
+    // プロンプト全文を取得して表示
+    const promptVariables = {
+      chat_history: formattedPreviousMessages,
+      user_message: userMessage,
+      ai_message: aiMessage,
+    };
+
     // プロンプト読み込み
     const load = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
     const template = load.manifest.kwargs.template;
     const prompt = PromptTemplate.fromTemplate(template);
-    console.log("\nchat ai_message: --- \n" + aiMessage + "\n --- \n");
 
     // ストリーミング応答を取得
     const stream = await prompt.pipe(OpenAi).stream({
@@ -95,6 +101,11 @@ export async function POST(req: Request) {
       user_message: userMessage,
       ai_message: aiMessage,
     });
+
+    const fullPrompt = await prompt.format(promptVariables);
+    console.log("=== 送信するプロンプト全文 ===");
+    console.log(fullPrompt);
+    console.log("================================");
 
     // ReadableStream を拡張して終了検知
     const enhancedStream = new ReadableStream({
