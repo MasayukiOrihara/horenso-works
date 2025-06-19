@@ -3,6 +3,8 @@ import { useUserMessages } from "./message-provider";
 import { useEffect, useRef } from "react";
 import { UIMessage } from "ai";
 import { LoaderCircleIcon } from "lucide-react";
+import { useSwitches } from "../provider/switch-provider";
+import { useStartButton } from "../provider/start-button-provider";
 
 // useChatの共通化関数
 function useMyChat(apiPath: string, memoryOn: boolean, learnOn: boolean) {
@@ -24,17 +26,12 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
   return assistantMessages[assistantMessages.length - 1];
 }
 
-export const MessageAi = ({
-  started,
-  memoryOn,
-  learnOn,
-}: {
-  started: boolean;
-  memoryOn: boolean;
-  learnOn: boolean;
-}) => {
+export const MessageAi = () => {
   const { userMessages, setAiState } = useUserMessages();
+  const { memoryOn, learnOn } = useSwitches();
+  const { started } = useStartButton();
   const { messages, status, append } = useMyChat("api/chat", memoryOn, learnOn);
+
   const hasRun = useRef(false);
 
   // ユーザーメッセージの送信

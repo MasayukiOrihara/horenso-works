@@ -1,14 +1,11 @@
 "use client";
 
 import { Switch } from "@/components/ui/switch";
-import { MemorizingProps } from "@/lib/type";
+import { useSwitches } from "./provider/switch-provider";
 
-export const Navi: React.FC<MemorizingProps> = ({
-  memoryOn,
-  setMemoryOn,
-  learnOn,
-  setLearnOn,
-}) => {
+export const Navi: React.FC = () => {
+  const { memoryOn, setMemoryOn, learnOn, setLearnOn } = useSwitches();
+
   return (
     <div className="sticky mx-12 my-4 flex flex-col items-end">
       <div className="flex flex-row mb-2">
