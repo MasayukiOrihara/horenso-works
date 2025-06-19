@@ -83,6 +83,7 @@ async function checkUserAnswer({
           threshold: 0.8,
         });
       }
+      console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
       for (const answer of whoUserAnswer) {
         if (!isWhoCorrectOpenAi) {
@@ -94,6 +95,7 @@ async function checkUserAnswer({
           );
         }
       }
+      console.log("\n HuggingFace チェック完了 \n ---");
       console.log("質問1の正解: " + isWhoCorrectOpenAi);
 
       // 正解パターン

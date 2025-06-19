@@ -5,6 +5,12 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
 
 import { formatMessage, getBaseUrl, logMessage } from "./utils";
+import {
+  AIMessage,
+  BaseMessage,
+  ChatMessage,
+  HumanMessage,
+} from "@langchain/core/messages";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -19,6 +25,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const messages = body.messages ?? [];
+    const { host, baseUrl } = getBaseUrl(req);
+    const getBoolHeader = (key: string) => req.headers.get(key) === "true";
 
     // 過去の履歴
     const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
@@ -26,27 +34,26 @@ export async function POST(req: Request) {
     const userMessage = messages[messages.length - 1].content;
 
     // メッセージ保存: フロントエンドから記憶設定を取得
-    const onMemory = req.headers.get("memoryOn") === "true";
-    if (onMemory) {
-      await logMessage(req, messages);
+    const humanMessage = new HumanMessage(userMessage);
+    if (getBoolHeader("memoryOn")) {
+      await logMessage(host, humanMessage);
     }
 
     // 指摘の取得: フロントエンドから指摘設定を取得
-    const onLearn = req.headers.get("learnOn") === "true";
-    if (onLearn) {
-      await logMessage(req, userMessage);
+    // ※※※ たぶんまだ動きません
+    if (getBoolHeader("learnOn")) {
+      await logMessage(host, userMessage);
     }
 
     // デバック: 初回メッセージのスキップ
-    const debug = req.headers.get("debug") === "true";
-    if (debug) {
-      console.log("デバックモードで作動中... ");
+    if (getBoolHeader("debug")) {
+      console.log("デバッグモードで作動中...");
     }
 
     // 始動時の状態判定
     let aiMessage = "";
     horensoContenue = true;
-    if (horensoContenue && !oldHorensoContenue && !debug) {
+    if (horensoContenue && !oldHorensoContenue && !getBoolHeader("debug")) {
       // 初回AIメッセージ
       oldHorensoContenue = true;
 
@@ -55,7 +62,6 @@ export async function POST(req: Request) {
       console.log("🏁 始めの会話");
     } else {
       // 報連相ワークAPI呼び出し
-      const { baseUrl } = getBaseUrl(req);
       const res = await fetch(baseUrl + "/api/horenso", {
         method: "POST",
         credentials: "include",
@@ -93,12 +99,21 @@ export async function POST(req: Request) {
     // ReadableStream を拡張して終了検知
     const enhancedStream = new ReadableStream({
       async start(controller) {
+        let fullText = "";
+
         for await (const chunk of stream) {
+          fullText += chunk.content || "";
+
+          // ストリームにはそのまま流す
           controller.enqueue(chunk);
         }
-
-        // ストリーミング終了
         console.log("ストリーミング終了");
+
+        // メッセージ保存: フロントエンドから記憶設定を取得
+        const aiMessage = new AIMessage(fullText);
+        if (getBoolHeader("memoryOn")) {
+          await logMessage(host, aiMessage);
+        }
         controller.close();
       },
     });

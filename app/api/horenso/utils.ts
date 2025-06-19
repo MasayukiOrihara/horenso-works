@@ -16,7 +16,7 @@ export async function matchAnswerOpenAi({
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
 
-  console.log("---\n OpenAI Embeddingsでの回答チェック");
+  console.log(" ---\n OpenAI Embeddingsでの回答チェック");
 
   // ベクトルストア準備
   const vectorStore = await MemoryVectorStore.fromDocuments(
@@ -44,7 +44,6 @@ export async function matchAnswerOpenAi({
       }
     }
   }
-  console.log("---");
 
   // 問題正解判定
   if (allTrue) {
@@ -62,7 +61,7 @@ export async function matchAnswerHuggingFaceAPI(
 ) {
   let isAnswerCorrect = false;
 
-  console.log("---\n HuggingFace APIでの回答チェック");
+  console.log(" ---\n HuggingFace APIでの回答チェック");
   const getScore = await fetch(
     "https://api-inference.huggingface.co/models/sentence-transformers/all-mpnet-base-v2",
     {
@@ -89,8 +88,6 @@ export async function matchAnswerHuggingFaceAPI(
       isAnswerCorrect = true;
     }
   });
-
-  console.log("---");
 
   // 問題正解判定
   if (allTrue) {
