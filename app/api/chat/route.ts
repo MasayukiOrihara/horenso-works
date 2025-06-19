@@ -25,24 +25,28 @@ export async function POST(req: Request) {
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
 
-    // メッセージ保存: フロントエンドからのヘッダーから記憶設定を取得
+    // メッセージ保存: フロントエンドから記憶設定を取得
     const onMemory = req.headers.get("memoryOn") === "true";
-    console.log("chat側記憶設定: " + onMemory);
     if (onMemory) {
       await logMessage(req, messages);
     }
 
-    // ログ出力
+    // 指摘の取得: フロントエンドから指摘設定を取得
     const onLearn = req.headers.get("learnOn") === "true";
-    console.log("chat側学習設定: " + onLearn);
     if (onLearn) {
       await logMessage(req, userMessage);
+    }
+
+    // デバック: 初回メッセージのスキップ
+    const debug = req.headers.get("debug") === "true";
+    if (debug) {
+      console.log("デバックモードで作動中... ");
     }
 
     // 始動時の状態判定
     let aiMessage = "";
     horensoContenue = true;
-    if (horensoContenue && !oldHorensoContenue) {
+    if (horensoContenue && !oldHorensoContenue && !debug) {
       // 初回AIメッセージ
       oldHorensoContenue = true;
 
@@ -77,6 +81,7 @@ export async function POST(req: Request) {
     const load = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
     const template = load.manifest.kwargs.template;
     const prompt = PromptTemplate.fromTemplate(template);
+    console.log("\nchat ai_message: --- \n" + aiMessage + "\n --- \n");
 
     // ストリーミング応答を取得
     const stream = await prompt.pipe(OpenAi).stream({
@@ -85,9 +90,20 @@ export async function POST(req: Request) {
       ai_message: aiMessage,
     });
 
-    console.log("chat ai_message: " + aiMessage);
+    // ReadableStream を拡張して終了検知
+    const enhancedStream = new ReadableStream({
+      async start(controller) {
+        for await (const chunk of stream) {
+          controller.enqueue(chunk);
+        }
 
-    return LangChainAdapter.toDataStreamResponse(stream);
+        // ストリーミング終了
+        console.log("ストリーミング終了");
+        controller.close();
+      },
+    });
+
+    return LangChainAdapter.toDataStreamResponse(enhancedStream);
   } catch (error) {
     console.log(error);
     if (error instanceof Error) {

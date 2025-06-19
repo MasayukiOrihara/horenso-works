@@ -7,12 +7,18 @@ import { useSwitches } from "../provider/switch-provider";
 import { useStartButton } from "../provider/start-button-provider";
 
 // useChatの共通化関数
-function useMyChat(apiPath: string, memoryOn: boolean, learnOn: boolean) {
+function useMyChat(
+  apiPath: string,
+  memoryOn: boolean,
+  learnOn: boolean,
+  debug: boolean
+) {
   return useChat({
     api: apiPath,
     headers: {
       memoryOn: memoryOn.toString(),
       learnOn: learnOn.toString(),
+      debug: debug.toString(),
     },
     onError: (error) => {
       console.log(error);
@@ -29,9 +35,15 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 export const MessageAi = () => {
   const { userMessages, setAiState } = useUserMessages();
   const { memoryOn, learnOn } = useSwitches();
-  const { started } = useStartButton();
-  const { messages, status, append } = useMyChat("api/chat", memoryOn, learnOn);
+  const { started, debug } = useStartButton();
+  const { messages, status, append } = useMyChat(
+    "api/chat",
+    memoryOn,
+    learnOn,
+    debug
+  );
 
+  // システムの開始状態を管理
   const hasRun = useRef(false);
 
   // ユーザーメッセージの送信
@@ -42,8 +54,9 @@ export const MessageAi = () => {
     append({ role: "user", content: currentUserMessage });
   }, [userMessages]);
 
-  // スタートボタン
+  // システムの開始処理
   useEffect(() => {
+    // 初回の実行処理
     if (started && !hasRun.current) {
       hasRun.current = true;
       append({ role: "user", content: "研修よろしくお願いします。" });
@@ -55,6 +68,7 @@ export const MessageAi = () => {
     setAiState(status);
   }, [status]);
 
+  // 直近のメッセージを取得
   const currentAiCommentMessage = getLatestAssistantMessage(messages);
 
   return (

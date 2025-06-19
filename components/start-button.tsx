@@ -4,10 +4,10 @@ import { useStartButton } from "./provider/start-button-provider";
 import { Button } from "./ui/button";
 
 export const StartButton: React.FC = () => {
-  const { started, setStarted, setDebug } = useStartButton();
+  const { started, setStarted, debug, setDebug } = useStartButton();
 
   // 開始中なら何もしない
-  if (started) return null;
+  if (started || debug) return null;
 
   return (
     <div>
