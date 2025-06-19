@@ -1,12 +1,20 @@
 "use client";
 
-import React, { ReactNode, useContext, useState } from "react";
+import React, {
+  Dispatch,
+  ReactNode,
+  SetStateAction,
+  useContext,
+  useState,
+} from "react";
 
 type StartButtonContextType = {
   started: boolean;
   setStarted: (value: boolean) => void;
   debug: boolean;
   setDebug: (value: boolean) => void;
+  step: number;
+  setStep: Dispatch<SetStateAction<number>>;
 };
 
 const StartButtonContext = React.createContext<
@@ -21,10 +29,11 @@ const StartButtonContext = React.createContext<
 export const StartButtonProvider = ({ children }: { children: ReactNode }) => {
   const [started, setStarted] = useState(false);
   const [debug, setDebug] = useState(false);
+  const [step, setStep] = useState(0);
 
   return (
     <StartButtonContext.Provider
-      value={{ started, setStarted, debug, setDebug }}
+      value={{ started, setStarted, debug, setDebug, step, setStep }}
     >
       {children}
     </StartButtonContext.Provider>

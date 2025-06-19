@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     const messages = body.messages ?? [];
     const { host, baseUrl } = getBaseUrl(req);
     const getBoolHeader = (key: string) => req.headers.get(key) === "true";
+    const step = req.headers.get("step") ?? "0";
 
     // 過去の履歴
     const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
@@ -68,6 +69,7 @@ export async function POST(req: Request) {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+          step: step,
         },
         body: JSON.stringify({ messages }),
       });

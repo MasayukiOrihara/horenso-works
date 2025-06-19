@@ -43,9 +43,13 @@ export type UserAnswerEvaluation = {
 };
 
 const userAnswerData: UserAnswerEvaluation[] = [];
+let debugStep = 0;
 
 async function setupInitial({ contexts }: typeof StateAnnotation.State) {
   console.log("📝 初期設定ノード");
+
+  // デバッグ時にstepを設定
+  transitionStates.step = debugStep;
 
   // 前回ターンの状態を反映
   console.log("isAnswerCorrect: " + transitionStates.isAnswerCorrect);
@@ -66,7 +70,6 @@ async function setupInitial({ contexts }: typeof StateAnnotation.State) {
 async function checkUserAnswer({
   messages,
   transition,
-  contexts,
 }: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
 
@@ -337,6 +340,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const messages = body.messages ?? [];
     const userMessage = messages[messages.length - 1].content;
+
+    debugStep = Number(req.headers.get("step")) ?? 0;
 
     console.log("🏁 報連相ワーク ターン開始");
 

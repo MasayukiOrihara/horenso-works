@@ -4,7 +4,8 @@ import { useStartButton } from "./provider/start-button-provider";
 import { Button } from "./ui/button";
 
 export const StartButton: React.FC = () => {
-  const { started, setStarted, debug, setDebug } = useStartButton();
+  const { started, setStarted, debug, setDebug, step, setStep } =
+    useStartButton();
 
   // 開始中なら何もしない
   if (started || debug) return null;
@@ -26,10 +27,28 @@ export const StartButton: React.FC = () => {
               onClick={() => setDebug(true)}
               variant={"ghost"}
               size={"md"}
-              className="hover:bg-zinc-50/50 hover:cursor-pointer"
+              className="mb-1 h-7"
             >
               デバッグ
             </Button>
+            {/** この辺にデバック用のステッパー */}
+            <div className="flex items-center gap-2 text-xs">
+              <Button
+                onClick={() => setStep((v) => Math.max(0, v - 1))}
+                variant={"ghost"}
+                className="px-2 py-1 bg-gray-200/20"
+              >
+                -
+              </Button>
+              <span className="w-2 text-center">{step}</span>
+              <Button
+                onClick={() => setStep((v) => Math.min(1, v + 1))}
+                variant={"ghost"}
+                className="px-2 py-1 bg-gray-200/20"
+              >
+                +
+              </Button>
+            </div>
           </div>
         </div>
       )}

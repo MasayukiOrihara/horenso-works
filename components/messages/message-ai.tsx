@@ -11,7 +11,8 @@ function useMyChat(
   apiPath: string,
   memoryOn: boolean,
   learnOn: boolean,
-  debug: boolean
+  debug: boolean,
+  step: number
 ) {
   return useChat({
     api: apiPath,
@@ -19,6 +20,7 @@ function useMyChat(
       memoryOn: memoryOn.toString(),
       learnOn: learnOn.toString(),
       debug: debug.toString(),
+      step: step.toString(),
     },
     onError: (error) => {
       console.log(error);
@@ -35,12 +37,13 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 export const MessageAi = () => {
   const { userMessages, setAiState } = useUserMessages();
   const { memoryOn, learnOn } = useSwitches();
-  const { started, debug } = useStartButton();
+  const { started, debug, step } = useStartButton();
   const { messages, status, append } = useMyChat(
     "api/chat",
     memoryOn,
     learnOn,
-    debug
+    debug,
+    step
   );
 
   // システムの開始状態を管理
