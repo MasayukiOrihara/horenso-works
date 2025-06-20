@@ -6,7 +6,8 @@ export const END_TAG = "--終了--";
 export const FOR_REPORT_COMMUNICATION =
   "質問: ソフトウェア開発の仕事を想定した場合、報連相は誰のためのものか唯一誰か一人を上げてください。\n\n";
 export const REPORT_REASON_FOR_LEADER =
-  "質問: 報連相はなぜリーダーのためのものなのか。答えを3つ上げてください。\n\n";
+  "質問: 報連相はなぜリーダーのためのものなのか。";
+export const THREE_ANSWER = "答えを3つ上げてください。\n\n";
 
 /* prompt message */
 export const INSTRUCTOR_INTRO_MESSAGE_PROMPT =
@@ -18,13 +19,16 @@ export const KEYWORD_EXTRACTION_PROMPT =
 export const CLAIM_EXTRACTION_PROMPT =
   "以下の入力に含まれる文章のうち、主張ごとに区切って抜き出してください。\n各主張は入力からのみ抜き出し、「,」で区切って出力してください。\n抜き出せなかった場合は入力をそのまま出力してください。\n\n入力: {input}\n\n{format_instructions}";
 export const GUIDED_ANSWER_PROMPT =
-  "以下の質問に対して、ユーザー自身が模範解答にたどり着くように導いてください。出力時は模範解答を伏せた文章を出力してください。\n\n{question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\n\nヒント: ";
+  "以下の質問に対して、ユーザー自身が模範解答にたどり着くようなヒントを出力してください。出力時は模範解答を伏せた文章を出力してください。\n\n{question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\nヒント: ";
+export const PARTIAL_CORRECT_FEEDBACK_PROMPT =
+  "まず初めに以下は部分正解になるので、正解だったことを伝え、解説をしてください。\n";
 export const CLEAR_FEEDBACK_PROMPT =
   "まず初めにユーザーは答えを外したので、はっきり不正解と出力してください。\n";
 export const COMMENT_ON_ANSWER_PROMPT =
   "次にユーザーの回答に一言コメントしてください。\n";
 export const USER_ADVICE_PROMPT =
   "さらに以下のユーザーへの助言を参考に、ユーザーから回答を引き出してください。また質問の答えとなりそうな誰かやキーワードは出力しないでください。\n\nユーザーへの助言: \n";
+export const CORRECT_PARTS_LABEL_PROMPT = "以下が現在正解している部分です。\n";
 export const SUCCESS_MESSAGE_PROMPT =
   "問題に正解したのであなたはユーザーを褒めてください。\n";
 export const STUDENT_FEEDBACK_QUESTION_PROMPT =

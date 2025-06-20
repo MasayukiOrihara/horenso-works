@@ -63,7 +63,7 @@ async function setupInitial({ contexts }: typeof StateAnnotation.State) {
       contexts += MSG.FOR_REPORT_COMMUNICATION;
       break;
     case 1:
-      contexts += MSG.REPORT_REASON_FOR_LEADER;
+      contexts += MSG.REPORT_REASON_FOR_LEADER + MSG.THREE_ANSWER;
       break;
   }
   return {
@@ -174,9 +174,7 @@ async function generateHint({
 
   // プロンプトに含める
   if (Object.keys(changed).length > 0) {
-    contexts =
-      MSG.BULLET +
-      "まず初めに以下は部分正解になるので、正解だったことを伝え、解説をしてください。\n";
+    contexts = MSG.BULLET + MSG.PARTIAL_CORRECT_FEEDBACK_PROMPT;
     for (const page of changed) {
       for (const data of userAnswerData) {
         if (page.pageContent === data.currentAnswer && data.isAnswerCorrect) {
@@ -212,8 +210,8 @@ async function generateHint({
 
       // ヒントを出力
       const getWhyHint = await generateHintLlm(
-        "以下の質問に対して、ユーザー自身が模範解答にたどり着くようなヒントを出力してください。出力時は模範解答を伏せた文章を出力してください。\n\n{question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\nヒント: ",
-        "質問: 報連相はなぜリーダーのためのものなのか。",
+        MSG.GUIDED_ANSWER_PROMPT,
+        MSG.THREE_ANSWER,
         top
       );
       console.log("質問2のヒント: " + getWhyHint);
@@ -222,7 +220,7 @@ async function generateHint({
       const count = Object.values(whyUseDocuments).filter(
         (val) => val.metadata.isMatched === true
       ).length;
-      contexts += "- 以下が現在正解している部分です。\n";
+      contexts += MSG.BULLET + MSG.CORRECT_PARTS_LABEL_PROMPT;
       contexts += `正解数 ${count} \n正解した項目: ${whyUseDocuments.map(
         (page) =>
           page.metadata.isMatched === true ? page.pageContent + ", " : ""
@@ -257,15 +255,14 @@ async function askQuestion({
       contexts += MSG.FOR_REPORT_COMMUNICATION;
       break;
     case 1:
-      //contexts += MSG.REPORT_REASON_FOR_LEADER;
-      contexts += "質問: 報連相はなぜリーダーのためのものなのか。";
+      contexts += MSG.REPORT_REASON_FOR_LEADER;
       const count = Object.values(whyUseDocuments).filter(
         (val) => val.metadata.isMatched === false
       ).length;
       if (count < 3) {
         contexts += `答えは残り ${count} つです。\n\n`;
       } else {
-        contexts += "答えを3つ上げてください。\n\n";
+        contexts += MSG.THREE_ANSWER;
       }
       break;
   }
