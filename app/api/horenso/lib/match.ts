@@ -1,11 +1,9 @@
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
-import { BaseMessage } from "@langchain/core/messages";
-import { Annotation, messagesStateReducer } from "@langchain/langgraph";
 import { Document } from "langchain/document";
 
-import { embeddings } from "@/lib/models";
-import { HorensoStates, MatchAnswerArgs } from "@/lib/type";
-import { UserAnswerEvaluation } from "./route";
+import { MatchAnswerArgs, UserAnswerEvaluation } from "@/lib/type";
+
+import { cachedVectorStore } from "./utils";
 
 /** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
 export async function matchAnswerOpenAi({
@@ -18,15 +16,8 @@ export async function matchAnswerOpenAi({
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
 
-  console.log(" ---\n OpenAI Embeddingsでの回答チェック");
-
   // ベクトルストア準備
-  const vectorStore = await MemoryVectorStore.fromDocuments(
-    documents,
-    embeddings
-  );
-  console.log("ベクトルストアの準備が完了しました。");
-
+  const vectorStore = await cachedVectorStore(documents);
   // ベクトルストア内のドキュメントとユーザーの答えを比較
   const similarityResults = await vectorStore.similaritySearchWithScore(
     userAnswer,
@@ -64,7 +55,7 @@ export async function matchAnswerOpenAi({
   return isAnswerCorrect;
 }
 
-// HuggingFaceのAPIを使用して類似度を計算する関数
+/** HuggingFaceのAPIを使用して類似度を計算する関数 */
 export async function matchAnswerHuggingFaceAPI(
   userAnswer: string,
   documents: Document[],
@@ -118,43 +109,12 @@ export async function matchAnswerHuggingFaceAPI(
   return isAnswerCorrect;
 }
 
-/** メッセージ形式をStringに変換する関数 */
-export function messageToText(message: BaseMessage[], index: number) {
-  const result =
-    typeof message[index].content === "string"
-      ? message[index].content
-      : message[index].content
-          .map((c: { type?: string; text?: string }) => c.text ?? "")
-          .join("");
-
-  return result;
-}
-
-/** グラフ内の状態を司るアノテーション */
-export const StateAnnotation = Annotation.Root({
-  messages: Annotation<BaseMessage[]>({
-    reducer: messagesStateReducer,
-    default: () => [],
-  }),
-  contexts: Annotation<string>({
-    value: (state: string = "", action: string) => state + action,
-    default: () => "",
-  }),
-  transition: Annotation<HorensoStates>({
-    value: (
-      state: HorensoStates = {
-        isAnswerCorrect: false,
-        hasQuestion: true,
-        step: 0,
-      },
-      action: Partial<HorensoStates>
-    ) => ({
-      ...state,
-      ...action,
-    }),
-  }),
-});
-
+/**
+ * isMatched の値が変化した要素だけを抽出する関数
+ * @param before
+ * @param after
+ * @returns
+ */
 export function findMatchStatusChanges(before: Document[], after: Document[]) {
   return after.filter((afterItem) => {
     const beforeItem = before.find(

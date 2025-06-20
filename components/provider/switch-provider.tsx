@@ -19,7 +19,7 @@ const SwitchContext = React.createContext<SwitchContextType | undefined>(
  * @returns
  */
 export const SwitchProvider = ({ children }: { children: ReactNode }) => {
-  const [memoryOn, setMemoryOn] = useState(false);
+  const [memoryOn, setMemoryOn] = useState(true);
   const [learnOn, setLearnOn] = useState(false);
 
   return (

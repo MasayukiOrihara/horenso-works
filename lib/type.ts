@@ -1,4 +1,3 @@
-import { UserAnswerEvaluation } from "@/app/api/horenso/route";
 import { Document } from "langchain/document";
 
 /** フラグ管理用 */
@@ -30,4 +29,13 @@ export type MatchAnswerArgs = {
   threshold: number; // スコアの閾値
   userAnswerData: UserAnswerEvaluation[];
   allTrue?: boolean; // 全問正解で正解とするか
+};
+
+/** ユーザーの回答データを管理する型 */
+export type UserAnswerEvaluation = {
+  question_id: string;
+  userAnswer: string;
+  currentAnswer: string;
+  score: string;
+  isAnswerCorrect: boolean;
 };

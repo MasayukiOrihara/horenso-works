@@ -27,7 +27,8 @@ export async function POST(req: Request) {
     const messages = body.messages ?? [];
     const { host, baseUrl } = getBaseUrl(req);
     const getBoolHeader = (key: string) => req.headers.get(key) === "true";
-    const step = req.headers.get("step") ?? "0";
+
+    let step = "0";
 
     // 過去の履歴
     const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
@@ -49,6 +50,7 @@ export async function POST(req: Request) {
     // デバック: 初回メッセージのスキップ
     if (getBoolHeader("debug")) {
       console.log("デバッグモードで作動中...");
+      step = req.headers.get("step") ?? "0";
     }
 
     // 始動時の状態判定

@@ -1,55 +1,50 @@
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { StateGraph } from "@langchain/langgraph";
 
-import * as MESSAGES from "@/lib/messages";
+import { UserAnswerEvaluation } from "@/lib/type";
+import * as MSG from "./contents/messages";
+import * as DOC from "./contents/documents";
+import { StateAnnotation } from "./lib/annotation";
+import { findMatchStatusChanges, matchAnswerOpenAi } from "./lib/match";
 import {
-  findMatchStatusChanges,
-  matchAnswerHuggingFaceAPI,
-  matchAnswerOpenAi,
+  generateHintLlm,
   messageToText,
-  StateAnnotation,
-} from "./utils";
-import * as DOCUMENTS from "./documents";
-import {
-  haiku3,
-  haiku3_5,
-  haiku3_5_sentence,
-  listParser,
-  strParser,
-} from "@/lib/models";
-import { PromptTemplate } from "@langchain/core/prompts";
+  sortScore,
+  splitInputLlm,
+} from "./lib/utils";
 
-// 初期状態準備
-const transitionStates = { ...DOCUMENTS.defaultTransitionStates };
-const whoUseDocuments = DOCUMENTS.whoDocuments.map((doc) => ({
+// 使用ドキュメントの初期状態準備
+const transitionStates = { ...DOC.defaultTransitionStates };
+const whoUseDocuments = DOC.whoDocuments.map((doc) => ({
   pageContent: doc.pageContent,
   metadata: { ...doc.metadata },
 }));
-const whyUseDocuments = DOCUMENTS.whyDocuments.map((doc) => ({
+const whyUseDocuments = DOC.whyDocuments.map((doc) => ({
   pageContent: doc.pageContent,
   metadata: { ...doc.metadata },
 }));
-let isPartialMatch = DOCUMENTS.whyDocuments.map((doc) => ({
+let isPartialMatch = DOC.whyDocuments.map((doc) => ({
   pageContent: doc.pageContent,
   metadata: { ...doc.metadata },
 }));
 
-export type UserAnswerEvaluation = {
-  question_id: string;
-  userAnswer: string;
-  currentAnswer: string;
-  score: string;
-  isAnswerCorrect: boolean;
-};
-
+// ユーザーデータの初期化
 const userAnswerData: UserAnswerEvaluation[] = [];
+// デバック用変数
 let debugStep = 0;
 
+// メッセージ定数
+
+/**
+ * langGraphの初期設定を行うノード
+ * @param param0
+ * @returns
+ */
 async function setupInitial({ contexts }: typeof StateAnnotation.State) {
   console.log("📝 初期設定ノード");
 
   // デバッグ時にstepを設定
-  transitionStates.step = debugStep;
+  if (debugStep != 0) transitionStates.step = debugStep;
 
   // 前回ターンの状態を反映
   console.log("isAnswerCorrect: " + transitionStates.isAnswerCorrect);
@@ -57,16 +52,29 @@ async function setupInitial({ contexts }: typeof StateAnnotation.State) {
   console.log("step: " + transitionStates.step);
 
   // 前提・背景・状況
-  contexts = "- あなたは講師として報連相ワークを行っています。\n";
-  contexts += "- ユーザーに以下の質問を投げかけています。\n\n";
-  contexts +=
-    " 質問: ソフトウェア開発の仕事を想定した場合、報連相は誰のためのものか唯一誰か一人を上げてください。\n\n";
+  contexts = MSG.BULLET + MSG.INSTRUCTOR_INTRO_MESSAGE_PROMPT;
+  contexts += MSG.BULLET + MSG.USER_QUESTION_LABEL_PROMPT + "\n";
+
+  // 問題分岐
+  switch (transitionStates.step) {
+    case 0:
+      contexts += MSG.FOR_REPORT_COMMUNICATION;
+      break;
+    case 1:
+      contexts += MSG.REPORT_REASON_FOR_LEADER;
+      break;
+  }
   return {
     contexts,
     transition: { ...transitionStates },
   };
 }
 
+/**
+ * ユーザーの回答をチェックするノード
+ * @param param0
+ * @returns
+ */
 async function checkUserAnswer({
   messages,
   transition,
@@ -80,55 +88,31 @@ async function checkUserAnswer({
       console.log("質問1: 報連相は誰のため？");
 
       // 答えの分離
-      // const whoTemplate = MESSAGES.QUESTION_WHO_CHECK;
-      const whoTemplate =
-        "以下の入力に含まれる単語のうち、重要なキーワードを5個以内でリストアップしてください。新たな言葉は追加しないでください。\n： {input}\n\n{format_instructions}";
-      const whoPrompt = PromptTemplate.fromTemplate(whoTemplate);
-      const whoUserAnswer = await whoPrompt
-        .pipe(haiku3_5_sentence)
-        .pipe(listParser)
-        .invoke({
-          input: userMessage,
-          format_instructions: listParser.getFormatInstructions(),
-        });
-
+      const whoUserAnswer = await splitInputLlm(
+        MSG.KEYWORD_EXTRACTION_PROMPT,
+        userMessage
+      );
       console.log("質問1の答え: " + whoUserAnswer);
 
-      // 正解チェック
-      let isWhoCorrect = false;
-      for (const answer of whoUserAnswer) {
-        const isWhoCorrectOpenAi = await matchAnswerOpenAi({
+      // 正解チェック(OpenAi埋め込みモデル使用)
+      const matchWhoPromises = whoUserAnswer.map((answer) =>
+        matchAnswerOpenAi({
           userAnswer: answer,
           documents: whoUseDocuments,
           topK: 1,
           threshold: 0.8,
           userAnswerData,
-        });
-
-        if (isWhoCorrectOpenAi) isWhoCorrect = true;
-      }
-      console.log("データ取得");
+        })
+      );
+      const whoResults = await Promise.all(matchWhoPromises);
+      const tempIsWhoCorrect = whoResults.some((result) => result === true);
       console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
-      // 重いので一旦削除
-      // for (const answer of whoUserAnswer) {
-      //   if (!isWhoCorrectOpenAi) {
-      //     // 高性能モデルでもう一度検証
-      //     isWhoCorrectOpenAi = await matchAnswerHuggingFaceAPI(
-      //       answer,
-      //       whoUseDocuments,
-      //       0.7,
-      //       userAnswerData
-      //     );
-      //   }
-      // }
-      // console.log("\n HuggingFace チェック完了 \n ---");
-
       console.dir(userAnswerData, { depth: null });
-      console.log("質問1の正解: " + isWhoCorrect);
+      console.log("質問1の正解: " + tempIsWhoCorrect);
 
       // 正解パターン
-      if (isWhoCorrect) {
+      if (tempIsWhoCorrect) {
         transition.step = 1;
         transition.isAnswerCorrect = true;
       }
@@ -137,31 +121,29 @@ async function checkUserAnswer({
       console.log("質問2: なぜリーダーのため？");
 
       // 答えの分離
-      const whyTemplate = MESSAGES.QUESTION_WHY_CHECK;
-      const whyPrompt = PromptTemplate.fromTemplate(whyTemplate);
-      const whyUserAnswer = await whyPrompt
-        .pipe(haiku3_5_sentence)
-        .pipe(listParser)
-        .invoke({
-          input: userMessage,
-          format_instructions: listParser.getFormatInstructions(),
-        });
+      const whyUserAnswer = await splitInputLlm(
+        MSG.CLAIM_EXTRACTION_PROMPT,
+        userMessage
+      );
       console.log("なぜの答え: \n" + whyUserAnswer);
 
-      // 正解チェック
-      let tempIsWhyCorrect = false;
-      for (const answer of whyUserAnswer) {
-        const isWhyCorrect = await matchAnswerOpenAi({
+      // 正解チェック(OpenAi埋め込みモデル使用)
+      const matchWhyPromises = whyUserAnswer.map((answer) =>
+        matchAnswerOpenAi({
           userAnswer: answer,
           documents: whyUseDocuments,
           topK: 3,
           threshold: 0.65,
           userAnswerData,
           allTrue: true,
-        });
+        })
+      );
+      const whyResults = await Promise.all(matchWhyPromises);
+      const tempIsWhyCorrect = whyResults.some((result) => result === true);
+      console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
-        tempIsWhyCorrect = isWhyCorrect;
-      }
+      console.dir(userAnswerData, { depth: null });
+      console.log("質問2の正解: " + tempIsWhyCorrect);
 
       // 全正解
       if (tempIsWhyCorrect) {
@@ -170,7 +152,6 @@ async function checkUserAnswer({
       }
       break;
   }
-
   return { transition };
 }
 
@@ -180,48 +161,51 @@ async function generateHint({
 }: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
 
+  // スコア順に並べ替え
+  const top = sortScore(userAnswerData);
+
+  // プロンプトに含める
+  contexts = MSG.BULLET + MSG.CLEAR_FEEDBACK_PROMPT;
+  contexts += MSG.BULLET + MSG.COMMENT_ON_ANSWER_PROMPT;
+
   switch (transition.step) {
     case 0:
       console.log("ヒント1: 報連相は誰のため？");
 
-      // スコア順に並べ替え
-      const top = userAnswerData
-        .slice()
-        .sort((a, b) => Number(b.score) - Number(a.score))
-        .slice(0, 3);
-
       // ヒントを出力
-      const hintTemplate =
-        "以下の問題に対して、ユーザー自身が模範解答にたどり着くように導いてください。出力時は模範解答を伏せた文章を出力してください。\n\n 問題： {question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\n\nヒント: ";
-      const hintPrompt = PromptTemplate.fromTemplate(hintTemplate);
-      const getHint = await hintPrompt
-        .pipe(haiku3_5_sentence)
-        .pipe(strParser)
-        .invoke({
-          question:
-            "ソフトウェア開発の仕事を想定した場合、報連相は誰のためのものか唯一誰か一人を上げてください。",
-          currect_answer: top.map((val) => val.currentAnswer).join(", "),
-          user_answer: top.map((val) => val.userAnswer).join(", "),
-        });
-
-      console.log("質問1のヒント: " + getHint);
+      const getWhoHint = await generateHintLlm(
+        MSG.GUIDED_ANSWER_PROMPT,
+        MSG.FOR_REPORT_COMMUNICATION,
+        top
+      );
+      console.log("質問1のヒント: " + getWhoHint);
 
       // プロンプトに含める
-      contexts =
-        "- まず初めにユーザーは答えを外したので、はっきり不正解と出力してください。\n";
-      contexts += "- 次にユーザーの回答に一言コメントしてください。\n";
-      contexts += `- さらに以下のユーザーへの助言を参考に、ユーザーから回答を引き出してください。また質問の答えとなりそうな"誰か"やキーワードは出力しないでください。\n\nユーザーへの助言: \n${getHint}`;
-      contexts += "\n";
+      contexts += MSG.BULLET + MSG.USER_ADVICE_PROMPT;
+      contexts += `${getWhoHint}\n`;
       break;
     case 1:
       console.log("ヒント2: なぜリーダーのため？");
 
+      // 今回正解した差分を見つけ出す
       const changed = findMatchStatusChanges(isPartialMatch, whyUseDocuments);
       console.log("差分: " + JSON.stringify(changed, null, 2));
 
+      // ヒントを出力
+      const getWhyHint = await generateHintLlm(
+        MSG.GUIDED_ANSWER_PROMPT,
+        MSG.REPORT_REASON_FOR_LEADER,
+        top
+      );
+      console.log("質問2のヒント: " + getWhyHint);
+
+      // プロンプトに含める
+      contexts += MSG.BULLET + MSG.USER_ADVICE_PROMPT;
+      contexts += `${getWhyHint}\n`;
+
       // 部分正解
       for (const item of changed) {
-        contexts += item.pageContent + MESSAGES.MATCH_OF_PIECE;
+        // contexts += item.pageContent + MESSAGES.MATCH_OF_PIECE;
       }
 
       isPartialMatch = whyUseDocuments.map((doc) => ({
@@ -240,17 +224,15 @@ async function askQuestion({
 }: typeof StateAnnotation.State) {
   console.log("❓ 問題出題ノード");
 
-  contexts =
-    "- 上記について話したのち、最後に生徒に下記の質問をしてください。\n\n";
+  // プロンプトに追加
+  contexts = MSG.BULLET + MSG.STUDENT_FEEDBACK_QUESTION_PROMPT + "\n";
 
   switch (transition.step) {
     case 0:
-      contexts +=
-        " 質問: ソフトウェア開発の仕事を想定した場合、報連相は誰のためのものか唯一誰か一人を上げてください。";
+      contexts += MSG.FOR_REPORT_COMMUNICATION;
       break;
     case 1:
-      contexts +=
-        " 質問: 報連相はなぜリーダーのためのものなのか。答えを3つ上げてください。";
+      contexts += MSG.REPORT_REASON_FOR_LEADER;
       break;
   }
   return { contexts };
@@ -262,9 +244,8 @@ async function ExplainAnswer({
 }: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
 
-  contexts = "- " + MESSAGES.SUCCESS_MESSAGE;
-  contexts +=
-    "- 今までの会話をまとめ、ユーザーの記憶に残るような質問の解説をしてください。\n";
+  contexts = MSG.BULLET + MSG.SUCCESS_MESSAGE_PROMPT;
+  contexts += MSG.BULLET + MSG.SUMMARY_REQUEST_PROMPT;
 
   switch (transition.step) {
     case 0:
@@ -288,15 +269,13 @@ async function saveFinishState({
   transitionStates.isAnswerCorrect = false;
 
   // 使ったオブジェクトを初期化
-  for (const key of Object.keys(userAnswerData)) {
-    delete userAnswerData[Number(key)];
-  }
+  userAnswerData.length = 0;
 
   // 正解し終わった場合すべてを初期化
   if (!transition.hasQuestion) {
     console.log("質問終了");
-    contexts += "--終了--";
-    Object.assign(transitionStates, DOCUMENTS.defaultTransitionStates);
+    contexts += MSG.END_TAG;
+    Object.assign(transitionStates, DOC.defaultTransitionStates);
     whoUseDocuments.forEach((doc) => {
       doc.metadata.isMatched = false;
     });
