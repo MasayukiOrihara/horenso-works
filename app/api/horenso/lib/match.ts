@@ -1,8 +1,6 @@
-import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { Document } from "langchain/document";
 
 import { MatchAnswerArgs, UserAnswerEvaluation } from "@/lib/type";
-
 import { cachedVectorStore } from "./utils";
 
 /** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
@@ -15,6 +13,7 @@ export async function matchAnswerOpenAi({
   allTrue = false,
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
+  let saveAnswerCorrect = false;
 
   // ベクトルストア準備
   const vectorStore = await cachedVectorStore(documents);
@@ -32,6 +31,7 @@ export async function matchAnswerOpenAi({
         if (bestMatch.pageContent === doc.pageContent) {
           doc.metadata.isMatched = true;
           isAnswerCorrect = true;
+          saveAnswerCorrect = true;
 
           console.log(bestMatch.pageContent + " : " + doc.metadata.isMatched);
         }
@@ -43,9 +43,10 @@ export async function matchAnswerOpenAi({
       userAnswer: userAnswer,
       currentAnswer: bestMatch.pageContent,
       score: score.toString(),
-      isAnswerCorrect: isAnswerCorrect,
+      isAnswerCorrect: saveAnswerCorrect,
     };
     userAnswerData.push(data);
+    saveAnswerCorrect = false;
   }
 
   // 問題正解判定

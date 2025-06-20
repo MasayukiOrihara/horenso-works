@@ -26,6 +26,14 @@ export const embeddings = new OpenAIEmbeddings({
   modelName: "text-embedding-3-large",
 });
 
+// anthropic(sonnet)(langchain経由)
+export const sonnet = new ChatAnthropic({
+  model: "claude-sonnet-4-20250514",
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+  maxTokens: 216,
+  temperature: 0,
+});
+
 // anthropic(haiku-3.5)(langchain経由)
 export const haiku3_5 = new ChatAnthropic({
   model: ANTHROPIC_MODEL_3_5,

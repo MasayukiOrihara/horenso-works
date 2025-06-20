@@ -12,6 +12,8 @@ import {
   sortScore,
   splitInputLlm,
 } from "./lib/utils";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { haiku3_5_sentence, strParser } from "@/lib/models";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -156,6 +158,7 @@ async function checkUserAnswer({
 }
 
 async function generateHint({
+  messages,
   transition,
   contexts,
 }: typeof StateAnnotation.State) {
@@ -163,9 +166,29 @@ async function generateHint({
 
   // スコア順に並べ替え
   const top = sortScore(userAnswerData);
+  console.dir(top, { depth: null });
+
+  // 今回正解した差分を見つけ出す
+  const changed = findMatchStatusChanges(isPartialMatch, whyUseDocuments);
+  console.log("差分: " + changed.map((page) => page.pageContent));
 
   // プロンプトに含める
-  contexts = MSG.BULLET + MSG.CLEAR_FEEDBACK_PROMPT;
+  if (Object.keys(changed).length > 0) {
+    contexts =
+      MSG.BULLET +
+      "まず初めに以下は部分正解になるので、正解だったことを伝え、解説をしてください。\n";
+    for (const page of changed) {
+      for (const data of userAnswerData) {
+        if (page.pageContent === data.currentAnswer && data.isAnswerCorrect) {
+          console.log("部分正解: " + data.userAnswer);
+          contexts += data.userAnswer + "\n";
+        }
+      }
+    }
+    contexts += "\n";
+  } else {
+    contexts = MSG.BULLET + MSG.CLEAR_FEEDBACK_PROMPT;
+  }
   contexts += MSG.BULLET + MSG.COMMENT_ON_ANSWER_PROMPT;
 
   switch (transition.step) {
@@ -187,26 +210,28 @@ async function generateHint({
     case 1:
       console.log("ヒント2: なぜリーダーのため？");
 
-      // 今回正解した差分を見つけ出す
-      const changed = findMatchStatusChanges(isPartialMatch, whyUseDocuments);
-      console.log("差分: " + JSON.stringify(changed, null, 2));
-
       // ヒントを出力
       const getWhyHint = await generateHintLlm(
-        MSG.GUIDED_ANSWER_PROMPT,
-        MSG.REPORT_REASON_FOR_LEADER,
+        "以下の質問に対して、ユーザー自身が模範解答にたどり着くようなヒントを出力してください。出力時は模範解答を伏せた文章を出力してください。\n\n{question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\nヒント: ",
+        "質問: 報連相はなぜリーダーのためのものなのか。",
         top
       );
       console.log("質問2のヒント: " + getWhyHint);
 
+      // 現在の正解を報告
+      const count = Object.values(whyUseDocuments).filter(
+        (val) => val.metadata.isMatched === true
+      ).length;
+      contexts += "- 以下が現在正解している部分です。\n";
+      contexts += `正解数 ${count} \n正解した項目: ${whyUseDocuments.map(
+        (page) =>
+          page.metadata.isMatched === true ? page.pageContent + ", " : ""
+      )}`;
+      contexts += "\n\n";
+
       // プロンプトに含める
       contexts += MSG.BULLET + MSG.USER_ADVICE_PROMPT;
       contexts += `${getWhyHint}\n`;
-
-      // 部分正解
-      for (const item of changed) {
-        // contexts += item.pageContent + MESSAGES.MATCH_OF_PIECE;
-      }
 
       isPartialMatch = whyUseDocuments.map((doc) => ({
         pageContent: doc.pageContent,
@@ -232,7 +257,16 @@ async function askQuestion({
       contexts += MSG.FOR_REPORT_COMMUNICATION;
       break;
     case 1:
-      contexts += MSG.REPORT_REASON_FOR_LEADER;
+      //contexts += MSG.REPORT_REASON_FOR_LEADER;
+      contexts += "質問: 報連相はなぜリーダーのためのものなのか。";
+      const count = Object.values(whyUseDocuments).filter(
+        (val) => val.metadata.isMatched === false
+      ).length;
+      if (count < 3) {
+        contexts += `答えは残り ${count} つです。\n\n`;
+      } else {
+        contexts += "答えを3つ上げてください。\n\n";
+      }
       break;
   }
   return { contexts };

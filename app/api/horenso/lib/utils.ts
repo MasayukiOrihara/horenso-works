@@ -7,6 +7,7 @@ import {
   embeddings,
   haiku3_5_sentence,
   listParser,
+  sonnet,
   strParser,
 } from "@/lib/models";
 import { UserAnswerEvaluation } from "@/lib/type";
@@ -65,7 +66,8 @@ export const sortScore = (data: UserAnswerEvaluation[]) => {
   return data
     .slice()
     .sort((a, b) => Number(b.score) - Number(a.score))
-    .slice(0, 3);
+    .filter((item) => item.isAnswerCorrect === false)
+    .slice(0, 1);
 };
 
 /** LLMを利用して答えを導くヒントを生成する */
@@ -77,7 +79,7 @@ export const generateHintLlm = async (
   const template = promptText;
   const prompt = PromptTemplate.fromTemplate(template);
   const getHint = await prompt
-    .pipe(haiku3_5_sentence)
+    .pipe(sonnet)
     .pipe(strParser)
     .invoke({
       question: question,

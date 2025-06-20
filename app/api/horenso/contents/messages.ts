@@ -18,7 +18,7 @@ export const KEYWORD_EXTRACTION_PROMPT =
 export const CLAIM_EXTRACTION_PROMPT =
   "以下の入力に含まれる文章のうち、主張ごとに区切って抜き出してください。\n各主張は入力からのみ抜き出し、「,」で区切って出力してください。\n抜き出せなかった場合は入力をそのまま出力してください。\n\n入力: {input}\n\n{format_instructions}";
 export const GUIDED_ANSWER_PROMPT =
-  "以下の問題に対して、ユーザー自身が模範解答にたどり着くように導いてください。出力時は模範解答を伏せた文章を出力してください。\n\n{question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\n\nヒント: ";
+  "以下の質問に対して、ユーザー自身が模範解答にたどり着くように導いてください。出力時は模範解答を伏せた文章を出力してください。\n\n{question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\n\nヒント: ";
 export const CLEAR_FEEDBACK_PROMPT =
   "まず初めにユーザーは答えを外したので、はっきり不正解と出力してください。\n";
 export const COMMENT_ON_ANSWER_PROMPT =
