@@ -1,12 +1,16 @@
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { StateGraph } from "@langchain/langgraph";
+import { v4 as uuidv4 } from "uuid";
+import { Document } from "langchain/document";
+import fs from "fs";
 
-import { UserAnswerEvaluation } from "@/lib/type";
+import { QAEntry, QAMetadata, UserAnswerEvaluation } from "@/lib/type";
 import * as MSG from "./contents/messages";
 import * as DOC from "./contents/documents";
 import { StateAnnotation } from "./lib/annotation";
 import { findMatchStatusChanges, matchAnswerOpenAi } from "./lib/match";
 import {
+  cachedVectorStore,
   generateHintLlm,
   messageToText,
   sortScore,
@@ -14,6 +18,9 @@ import {
 } from "./lib/utils";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { haiku3_5_sentence, strParser } from "@/lib/models";
+import { QUESTION_WHO_ASKING } from "../../../lib/messages";
+import { embeddings } from "../../../lib/models";
+import path from "path";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -34,8 +41,44 @@ let isPartialMatch = DOC.whyDocuments.map((doc) => ({
 const userAnswerData: UserAnswerEvaluation[] = [];
 // デバック用変数
 let debugStep = 0;
+// エントリーデータID(送信用)
+let qaEntryId = "";
 
-// メッセージ定数
+const qaEntries: QAEntry[] = [
+  {
+    id: uuidv4(),
+    userAnswer: "自分",
+    hint: "残念、20点。もっと別の人がいるでしょ。",
+    metadata: {
+      timestamp: new Date(Date.now()).toISOString(),
+      quality: 0.5,
+      question_id: "",
+      source: "user",
+    },
+  },
+  {
+    id: uuidv4(),
+    userAnswer: "犬",
+    hint: "残念、0点。まじめにやってください。",
+    metadata: {
+      timestamp: new Date(Date.now()).toISOString(),
+      quality: 0.5,
+      question_id: "",
+      source: "user",
+    },
+  },
+  {
+    id: uuidv4(),
+    userAnswer: "神",
+    hint: "残念、0点。さすがに上すぎる",
+    metadata: {
+      timestamp: new Date(Date.now()).toISOString(),
+      quality: 0.5,
+      question_id: "",
+      source: "user",
+    },
+  },
+];
 
 /**
  * langGraphの初期設定を行うノード
@@ -157,8 +200,98 @@ async function checkUserAnswer({
   return { transition };
 }
 
-async function generateHint({
+/**
+ *
+ * @param param0
+ * @returns
+ */
+async function rerank({
   messages,
+  contexts,
+  transition,
+}: typeof StateAnnotation.State) {
+  console.log("👓 過去返答検索ノード");
+
+  // JSONからデータの読み込み
+  const qaEntriesFilePath = path.join(
+    process.cwd(),
+    "public",
+    "advice",
+    "qa-entries.json"
+  );
+  console.log("jsonファイルパス" + qaEntriesFilePath);
+
+  // 既存データを読み込む（なければ空配列）
+  let qaList: QAEntry[] = [];
+  if (
+    fs.existsSync(qaEntriesFilePath) &&
+    fs.statSync(qaEntriesFilePath).size > 0
+  ) {
+    const raw = fs.readFileSync(qaEntriesFilePath, "utf-8");
+    qaList = JSON.parse(raw);
+  }
+
+  // 埋め込み作成用にデータをマップ
+  const documents: Document<QAMetadata>[] = qaList.map((qa) => ({
+    pageContent: qa.userAnswer,
+    metadata: {
+      hint: qa.hint,
+      ...qa.metadata,
+    },
+  }));
+
+  // ユーザーの回答を埋め込み
+  const userMessage = messageToText(messages, messages.length - 1);
+  const embedding = await embeddings.embedQuery(userMessage);
+
+  // ベクトルストア準備 + 比較
+  const vectorStore = await cachedVectorStore(documents);
+  const results = await vectorStore.similaritySearchVectorWithScore(
+    embedding,
+    5
+  );
+
+  // エントリーデータ蓄積用
+  qaEntryId = uuidv4();
+  const qaEntry: QAEntry = {
+    id: qaEntryId,
+    userAnswer: userMessage,
+    hint: "",
+    metadata: {
+      timestamp: new Date(Date.now()).toISOString(),
+      quality: 0.5,
+      question_id: `${transition.step + 1}`,
+      source: "bot",
+    },
+  };
+
+  // 新しいエントリを追加
+  qaList.push(qaEntry);
+  // 上書き保存（整形付き）
+  fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
+
+  contexts = MSG.BULLET + "以下の過去の返答例を参考にしてください。\n\n";
+  contexts += "この回答に対する過去の返答例: \n";
+
+  for (const [bestMatch, score] of results) {
+    console.log("score: " + score + ", match: " + bestMatch.pageContent);
+    if (score >= 0.8) {
+      contexts += `「${bestMatch.metadata.hint}」\n`;
+    }
+  }
+
+  contexts += "\n";
+
+  // console.log(qaEntry);
+  return { contexts };
+}
+
+/**
+ * ヒントを作成するノード
+ * @param param0
+ * @returns
+ */
+async function generateHint({
   transition,
   contexts,
 }: typeof StateAnnotation.State) {
@@ -202,8 +335,8 @@ async function generateHint({
       console.log("質問1のヒント: " + getWhoHint);
 
       // プロンプトに含める
-      contexts += MSG.BULLET + MSG.USER_ADVICE_PROMPT;
-      contexts += `${getWhoHint}\n`;
+      // contexts += MSG.BULLET + MSG.USER_ADVICE_PROMPT;
+      contexts += `ユーザーへの助言: --- \n ${getWhoHint}\n---\n`;
       break;
     case 1:
       console.log("ヒント2: なぜリーダーのため？");
@@ -228,8 +361,8 @@ async function generateHint({
       contexts += "\n\n";
 
       // プロンプトに含める
-      contexts += MSG.BULLET + MSG.USER_ADVICE_PROMPT;
-      contexts += `${getWhyHint}\n`;
+      // contexts += MSG.BULLET + MSG.USER_ADVICE_PROMPT;
+      contexts += `ユーザーへの助言: \n${getWhyHint}\n`;
 
       isPartialMatch = whyUseDocuments.map((doc) => ({
         pageContent: doc.pageContent,
@@ -328,6 +461,7 @@ async function saveFinishState({
 const graph = new StateGraph(StateAnnotation)
   .addNode("setup", setupInitial)
   .addNode("check", checkUserAnswer)
+  .addNode("rerank", rerank)
   .addNode("hint", generateHint)
   .addNode("ask", askQuestion)
   .addNode("explain", ExplainAnswer)
@@ -335,8 +469,9 @@ const graph = new StateGraph(StateAnnotation)
   .addEdge("__start__", "setup")
   .addEdge("setup", "check")
   .addConditionalEdges("check", (state) =>
-    state.transition.isAnswerCorrect ? "explain" : "hint"
+    state.transition.isAnswerCorrect ? "explain" : "rerank"
   )
+  .addEdge("rerank", "hint")
   .addEdge("hint", "ask")
   .addConditionalEdges("explain", (state) =>
     state.transition.hasQuestion ? "ask" : "save"
@@ -364,7 +499,11 @@ export async function POST(req: Request) {
     console.log("🈡 報連相ワーク ターン終了");
 
     return new Response(
-      JSON.stringify({ text: aiText, contenue: !aiText.includes("終了") }),
+      JSON.stringify({
+        text: aiText,
+        contenue: !aiText.includes("終了"),
+        qaEntryId: qaEntryId,
+      }),
       {
         headers: { "Content-Type": "application/json" },
       }

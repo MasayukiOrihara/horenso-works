@@ -3,14 +3,17 @@ import * as MESSAGES from "@/lib/messages";
 import { OpenAi } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
+import fs from "fs";
+import path from "path";
 
-import { formatMessage, getBaseUrl, logMessage } from "./utils";
+import { formatMessage, getBaseUrl, logLearn, logMessage } from "./utils";
 import {
   AIMessage,
   BaseMessage,
   ChatMessage,
   HumanMessage,
 } from "@langchain/core/messages";
+import { QAEntry } from "@/lib/type";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -29,6 +32,7 @@ export async function POST(req: Request) {
     const getBoolHeader = (key: string) => req.headers.get(key) === "true";
 
     let step = "0";
+    let qaEntryId = "";
 
     // 過去の履歴
     const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
@@ -44,7 +48,7 @@ export async function POST(req: Request) {
     // 指摘の取得: フロントエンドから指摘設定を取得
     // ※※※ たぶんまだ動きません
     if (getBoolHeader("learnOn")) {
-      await logMessage(host, userMessage);
+      await logLearn(host, userMessage);
     }
 
     // デバック: 初回メッセージのスキップ
@@ -77,6 +81,7 @@ export async function POST(req: Request) {
       });
       const apiBody = await res.json();
       aiMessage = apiBody.text;
+      qaEntryId = apiBody.qaEntryId;
 
       // 終了時の状態判定
       console.log("継続判定 api側: " + apiBody.contenue);
@@ -122,12 +127,49 @@ export async function POST(req: Request) {
           // ストリームにはそのまま流す
           controller.enqueue(chunk);
         }
-        console.log("ストリーミング終了");
+        console.log("ストリーミング終了\n");
 
         // メッセージ保存: フロントエンドから記憶設定を取得
         const aiMessage = new AIMessage(fullText);
         if (getBoolHeader("memoryOn")) {
           await logMessage(host, aiMessage);
+        }
+
+        // 今回のエントリーにメッセージを追記
+        if (!(qaEntryId === "")) {
+          // 既存データを読み込む（なければ空配列）
+          const qaEntriesFilePath = path.join(
+            process.cwd(),
+            "public",
+            "advice",
+            "qa-entries.json"
+          );
+          console.log("jsonファイルパス" + qaEntriesFilePath);
+          let qaList: QAEntry[] = [];
+          if (
+            fs.existsSync(qaEntriesFilePath) &&
+            fs.statSync(qaEntriesFilePath).size > 0
+          ) {
+            const raw = fs.readFileSync(qaEntriesFilePath, "utf-8");
+            qaList = JSON.parse(raw);
+          }
+          // 値の更新
+          const updated = qaList.map((qa) =>
+            qa.id === qaEntryId
+              ? {
+                  ...qa,
+                  hint: fullText,
+                  metadata: {
+                    ...qa.metadata,
+                  },
+                }
+              : qa
+          );
+          // 上書き保存（整形付き）
+          fs.writeFileSync(qaEntriesFilePath, JSON.stringify(updated, null, 2));
+          console.log(
+            `✅ エントリーデータを ${qaEntriesFilePath} に更新しました`
+          );
         }
         controller.close();
       },
