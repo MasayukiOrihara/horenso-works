@@ -11,6 +11,7 @@ function useMyChat(
   apiPath: string,
   memoryOn: boolean,
   learnOn: boolean,
+  addPromptOn: boolean,
   debug: boolean,
   step: number
 ) {
@@ -19,6 +20,7 @@ function useMyChat(
     headers: {
       memoryOn: memoryOn.toString(),
       learnOn: learnOn.toString(),
+      addPromptOn: addPromptOn.toString(),
       debug: debug.toString(),
       step: step.toString(),
     },
@@ -36,12 +38,13 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 
 export const MessageAi = () => {
   const { userMessages, currentUserMessage, setAiState } = useUserMessages();
-  const { memoryOn, learnOn } = useSwitches();
+  const { memoryOn, learnOn, addPromptOn } = useSwitches();
   const { started, debug, step } = useStartButton();
   const { messages, status, append } = useMyChat(
     "api/chat",
     memoryOn,
     learnOn,
+    addPromptOn,
     debug,
     step
   );

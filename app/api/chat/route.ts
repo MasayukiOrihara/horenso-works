@@ -112,12 +112,17 @@ export async function POST(req: Request) {
     };
 
     // 追加プロンプトの読み込み
-    const add = await readAddPrompt();
-    console.log("追加プロンプト: \n" + add);
+    let add = "";
+    if (getBoolHeader("addPromptOn")) {
+      add = await readAddPrompt();
+      console.log("追加プロンプト: \n" + add);
+
+      add = "\n\n" + add; // 整形
+    }
 
     // プロンプト読み込み
     const load = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
-    const template = load.manifest.kwargs.template + "\n\n" + add;
+    const template = load.manifest.kwargs.template + add;
     const prompt = PromptTemplate.fromTemplate(template);
 
     // ストリーミング応答を取得

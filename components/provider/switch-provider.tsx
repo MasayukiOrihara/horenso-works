@@ -7,6 +7,8 @@ type SwitchContextType = {
   setMemoryOn: (value: boolean) => void;
   learnOn: boolean;
   setLearnOn: (value: boolean) => void;
+  addPromptOn: boolean;
+  setAddPromptOn: (value: boolean) => void;
   inputTag: string;
   setInputTag: (value: string) => void;
 };
@@ -23,6 +25,7 @@ const SwitchContext = React.createContext<SwitchContextType | undefined>(
 export const SwitchProvider = ({ children }: { children: ReactNode }) => {
   const [memoryOn, setMemoryOn] = useState(true);
   const [learnOn, setLearnOn] = useState(false);
+  const [addPromptOn, setAddPromptOn] = useState(false);
   const [inputTag, setInputTag] = useState("");
 
   return (
@@ -32,6 +35,8 @@ export const SwitchProvider = ({ children }: { children: ReactNode }) => {
         setMemoryOn,
         learnOn,
         setLearnOn,
+        addPromptOn,
+        setAddPromptOn,
         inputTag,
         setInputTag,
       }}
