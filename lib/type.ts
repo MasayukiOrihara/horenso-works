@@ -55,8 +55,9 @@ export type QAEntry = {
 };
 export type QAMetadata = {
   hint: string;
+  id: string;
   timestamp: string;
   quality: number;
-  topic?: string;
+  question_id?: string;
   source?: "user" | "admin" | "bot";
 };

@@ -157,6 +157,7 @@ export async function POST(req: Request) {
         }
 
         // 今回のエントリーにメッセージを追記
+        // ※※※ 最新ファイルを参照しているため、正解パターンだと入力がないので書き換わってバグります。要変更
         if (!(qaEntryId === "")) {
           // 既存データを読み込む（なければ空配列）
           const qaEntriesFilePath = path.join(
