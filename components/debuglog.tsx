@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useUserMessages } from "./messages/message-provider";
 import { Button } from "./ui/button";
 import { useSwitches } from "./provider/switch-provider";
+
+let message = "";
 
 export const Debuglog: React.FC = () => {
   const { currentUserMessage } = useUserMessages();
@@ -10,16 +12,28 @@ export const Debuglog: React.FC = () => {
   const handleEntryButtonClick = () => {
     setInputTag("【エントリー】");
   };
-
   const handlePromptButtonClick = () => {
     setInputTag("【プロンプト】");
   };
+
+  // 指摘後長文を出さないようにするため
+  useEffect(() => {
+    if (!currentUserMessage) return;
+
+    if (
+      !currentUserMessage.includes("【エントリー】") &&
+      !currentUserMessage.includes("【プロンプト】")
+    ) {
+      // タグが含まれない時のみ表示
+      message = currentUserMessage;
+    }
+  }, [currentUserMessage]);
 
   return (
     <div className="absolute z-10 text-zinc-400">
       <div>
         <h2 className="text-zinc-600">直近のユーザーメッセージ: </h2>
-        <p>{currentUserMessage}</p>
+        <p>{message}</p>
       </div>
 
       <div className="flex items-center">

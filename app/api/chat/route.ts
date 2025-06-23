@@ -1,13 +1,19 @@
 import { LangSmithClient } from "@/lib/clients";
 import * as MESSAGES from "@/lib/messages";
-import { OpenAi } from "@/lib/models";
+import { fake, OpenAi } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { LangChainAdapter } from "ai";
 import fs from "fs";
 import path from "path";
 
-import { formatMessage, getBaseUrl, logLearn, logMessage } from "./utils";
+import {
+  formatMessage,
+  getBaseUrl,
+  logLearn,
+  logMessage,
+  readAddPrompt,
+} from "./utils";
 import {
   AIMessage,
   BaseMessage,
@@ -48,18 +54,13 @@ export async function POST(req: Request) {
     }
 
     // 指摘の取得: フロントエンドから指摘設定を取得
-    // ※※※ たぶんまだ動きません
     if (getBoolHeader("learnOn")) {
-      await logLearn(host, userMessage);
+      const log = await logLearn(host, userMessage);
+      console.log("指摘終了\n");
 
       // 定型文を吐いて会話を抜ける
-      console.log("指摘完了\n");
-      const fakeModel = new FakeListChatModel({
-        responses: [POINT_OUT_LOG],
-      });
-      const fakePrompt = PromptTemplate.fromTemplate("");
-      const fakeStream = await fakePrompt.pipe(fakeModel).stream({});
-      return LangChainAdapter.toDataStreamResponse(fakeStream);
+      const outputText = `${POINT_OUT_LOG}\n${log}\n\nブラウザを再読み込みしてください。`;
+      return LangChainAdapter.toDataStreamResponse(await fake(outputText));
     }
 
     // デバック: 初回メッセージのスキップ
@@ -110,9 +111,13 @@ export async function POST(req: Request) {
       ai_message: aiMessage,
     };
 
+    // 追加プロンプトの読み込み
+    const add = await readAddPrompt();
+    console.log("追加プロンプト: \n" + add);
+
     // プロンプト読み込み
     const load = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
-    const template = load.manifest.kwargs.template;
+    const template = load.manifest.kwargs.template + "\n\n" + add;
     const prompt = PromptTemplate.fromTemplate(template);
 
     // ストリーミング応答を取得

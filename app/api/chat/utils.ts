@@ -1,14 +1,11 @@
-import { LangChainAdapter, Message as VercelChatMessage } from "ai";
+import { Message as VercelChatMessage } from "ai";
+import { BaseMessage } from "@langchain/core/messages";
 import { put, head } from "@vercel/blob";
 import { v4 as uuidv4 } from "uuid";
 
 import fs from "fs";
 import path from "path";
-import { LEARN_CHECK, POINT_OUT_LOG } from "@/lib/messages";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { haiku3_5, strParser } from "@/lib/models";
 
-import { BaseMessage } from "@langchain/core/messages";
 import { QAEntry } from "@/lib/type";
 
 // 変数
@@ -91,69 +88,114 @@ export async function logLearn(host: string, learnText: string) {
     case learnText.includes("【エントリー】"):
       console.log("エントリーの入力");
 
-      // 既存データを読み込む（なければ空配列）
-      const qaEntriesFilePath = path.join(
-        process.cwd(),
-        "public",
-        "advice",
-        "qa-entries.json"
-      );
-      console.log("jsonファイルパス" + qaEntriesFilePath);
+      let entryFinishLog = "";
+      try {
+        // 既存データを読み込む（なければ空配列）
+        const qaEntriesFilePath = path.join(
+          process.cwd(),
+          "public",
+          "advice",
+          "qa-entries.json"
+        );
+        console.log("jsonファイルパス" + qaEntriesFilePath);
 
-      let qaList: QAEntry[] = [];
-      if (
-        fs.existsSync(qaEntriesFilePath) &&
-        fs.statSync(qaEntriesFilePath).size > 0
-      ) {
-        const raw = fs.readFileSync(qaEntriesFilePath, "utf-8");
-        qaList = JSON.parse(raw);
+        let qaList: QAEntry[] = [];
+        if (
+          fs.existsSync(qaEntriesFilePath) &&
+          fs.statSync(qaEntriesFilePath).size > 0
+        ) {
+          const raw = fs.readFileSync(qaEntriesFilePath, "utf-8");
+          qaList = JSON.parse(raw);
+        }
+
+        // timestampが最大のもの（最新）を探す
+        const latestEntry = qaList.reduce((latest, entry) =>
+          entry.metadata.timestamp > latest.metadata.timestamp ? entry : latest
+        );
+
+        // 値の追加
+        const qaEntry: QAEntry = {
+          id: uuidv4(),
+          userAnswer: latestEntry.userAnswer,
+          hint: learnText.replace("【エントリー】", ""),
+          metadata: {
+            ...latestEntry.metadata,
+            timestamp: new Date(Date.now()).toISOString(),
+            quality: 0.5,
+            source: "user",
+          },
+        };
+        qaList.push(qaEntry);
+
+        // 上書き保存（整形付き）
+        fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
+        entryFinishLog = `✅ エントリーデータを ${qaEntriesFilePath} に更新しました`;
+      } catch (error) {
+        entryFinishLog = `⚠ エントリーデータを更新できませんでした: ${error}`;
       }
-
-      // timestampが最大のもの（最新）を探す
-      const latestEntry = qaList.reduce((latest, entry) =>
-        entry.metadata.timestamp > latest.metadata.timestamp ? entry : latest
-      );
-
-      // 値の追加
-      const qaEntry: QAEntry = {
-        id: uuidv4(),
-        userAnswer: latestEntry.userAnswer,
-        hint: learnText.replace("【エントリー】", ""),
-        metadata: {
-          ...latestEntry.metadata,
-          timestamp: new Date(Date.now()).toISOString(),
-          quality: 0.5,
-          source: "user",
-        },
-      };
-      qaList.push(qaEntry);
-
-      // 上書き保存（整形付き）
-      fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
-      console.log(`✅ エントリーデータを ${qaEntriesFilePath} に更新しました`);
-      break;
+      console.log(entryFinishLog);
+      return entryFinishLog;
     case learnText.includes("【プロンプト】"):
       console.log("プロンプトの入力");
-      // 一時的な追加プロンプト
-      let tempPrompt = "";
 
-      // プロンプトに追加
-      tempPrompt += learnText + "\n";
-      const result = " - " + learnText + "\n";
+      let promptFinishLog = "";
+      try {
+        // プロンプトに追加
+        const result = " - " + learnText.replace("【プロンプト】", "") + "\n";
 
-      // 指摘をファイルに書き出し
-      if (host?.includes("localhost")) {
-        fs.appendFileSync(learnFilePath, result, "utf-8");
+        // 指摘をファイルに書き出し
+        if (host?.includes("localhost")) {
+          fs.appendFileSync(learnFilePath, result, "utf-8");
 
-        console.log(`✅ 指摘内容を ${learnFileName} に保存しました。`);
-      } else if (host?.includes("vercel")) {
-        // vercel に保存
-        await saveVercelText(learnFileName, result);
-      } else {
-        console.log("⚠ 記憶の保存ができませんでした。");
+          promptFinishLog = `✅ 指摘内容を ${learnFileName} に保存しました。\n`;
+        } else if (host?.includes("vercel")) {
+          // vercel に保存
+          await saveVercelText(learnFileName, result);
+        } else {
+          promptFinishLog = "⚠ 記憶の保存ができませんでした。";
+        }
+      } catch (error) {
+        promptFinishLog = `⚠ プロンプトを更新できませんでした: ${error}`;
       }
-      break;
+      console.log(promptFinishLog);
+      return promptFinishLog;
   }
+  return "今回の変更はありません。";
+}
+
+/** 追加プロンプトの読み込み */
+export async function readAddPrompt() {
+  // 今日のファイルがあればそこから読む
+  if (fs.existsSync(learnFilePath)) {
+    return fs.readFileSync(learnFilePath, "utf-8");
+  }
+
+  const dir = path.dirname(learnFilePath);
+  const files = fs.readdirSync(dir);
+
+  // 最新ファイルを探す
+  const fullPaths = files
+    .map((f) => ({
+      file: f,
+      fullPath: path.join(dir, f),
+      mtime: fs.statSync(path.join(dir, f)).mtime.getTime(),
+    }))
+    .filter((entry) => fs.statSync(entry.fullPath).isFile());
+
+  // フォルダは空
+  if (fullPaths.length === 0) {
+    return "";
+  }
+
+  // mtime（更新日時）で降順にソートして一番新しいものを取得
+  const latest = fullPaths.sort((a, b) => b.mtime - a.mtime)[0];
+  // その内容で新規作成
+  const latestText = fs.readFileSync(latest.fullPath, "utf-8");
+
+  fs.appendFileSync(learnFilePath, latestText, "utf-8");
+  console.log("⚠ ファイルが存在しなかったので、新しいファイルを作成しました。");
+
+  return fs.readFileSync(learnFilePath, "utf-8");
 }
 
 /** vercelでの書き込み処理 */

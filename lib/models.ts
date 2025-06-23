@@ -1,9 +1,11 @@
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { ChatAnthropic } from "@langchain/anthropic";
+import { FakeListChatModel } from "@langchain/core/utils/testing";
 import {
   CommaSeparatedListOutputParser,
   StringOutputParser,
 } from "@langchain/core/output_parsers";
+import { PromptTemplate } from "@langchain/core/prompts";
 
 const ANTHROPIC_MODEL_3 = "claude-3-haiku-20240307";
 const ANTHROPIC_MODEL_3_5 = "claude-3-5-haiku-20241022";
@@ -57,3 +59,13 @@ export const haiku3 = new ChatAnthropic({
   maxTokens: 64,
   temperature: 0,
 });
+
+// フェイクLLMで定型文を吐かせる
+export const fake = async (output: string) => {
+  const fakeModel = new FakeListChatModel({
+    responses: [output],
+  });
+  const fakePrompt = PromptTemplate.fromTemplate("");
+  const fakeStream = await fakePrompt.pipe(fakeModel).stream({});
+  return fakeStream;
+};
