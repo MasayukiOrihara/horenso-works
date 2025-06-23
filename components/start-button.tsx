@@ -13,7 +13,7 @@ export const StartButton: React.FC = () => {
   return (
     <div>
       {!started && (
-        <div className="absolute [width:calc(100%-3.5rem)] [height:calc(100%-2.75rem)] bg-zinc-600/60 z-10 overflow-hidden">
+        <div className="absolute [width:calc(100%-3.5rem)] [height:calc(100%-2.75rem)] bg-zinc-600/60 z-30 overflow-hidden">
           <div className="flex flex-col items-center justify-start pt-44 h-screen  ">
             <Button
               onClick={() => setStarted(true)}

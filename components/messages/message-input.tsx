@@ -1,12 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUserMessages } from "./message-provider";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { SendHorizontalIcon } from "lucide-react";
+import { useSwitches } from "../provider/switch-provider";
 
 export const MessageInput = () => {
   const [text, setText] = useState("");
   const { addUserMessage, aiState } = useUserMessages();
+  const { inputTag, setInputTag } = useSwitches();
+
+  // テキストアエリアにデバッグ用のタグを追加
+  useEffect(() => {
+    if (!text.includes("【エントリー】") && !text.includes("【プロンプト】")) {
+      // ほかのタグが含まれない時
+      setText((prev) => inputTag + prev);
+      setInputTag("");
+    }
+  }, [inputTag]);
 
   return (
     <form

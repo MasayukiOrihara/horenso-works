@@ -35,7 +35,7 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 }
 
 export const MessageAi = () => {
-  const { userMessages, setAiState } = useUserMessages();
+  const { userMessages, currentUserMessage, setAiState } = useUserMessages();
   const { memoryOn, learnOn } = useSwitches();
   const { started, debug, step } = useStartButton();
   const { messages, status, append } = useMyChat(
@@ -52,8 +52,6 @@ export const MessageAi = () => {
   // ユーザーメッセージの送信
   useEffect(() => {
     if (userMessages.length === 0) return;
-    const currentUserMessage = userMessages[userMessages.length - 1];
-
     append({ role: "user", content: currentUserMessage });
   }, [userMessages]);
 
