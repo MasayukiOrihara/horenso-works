@@ -1,13 +1,15 @@
 import { LangChainAdapter, Message as VercelChatMessage } from "ai";
 import { put, head } from "@vercel/blob";
+import { v4 as uuidv4 } from "uuid";
 
 import fs from "fs";
 import path from "path";
 import { LEARN_CHECK, POINT_OUT_LOG } from "@/lib/messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { haiku3_5, strParser } from "@/lib/models";
-import { FakeListChatModel } from "@langchain/core/utils/testing";
+
 import { BaseMessage } from "@langchain/core/messages";
+import { QAEntry } from "@/lib/type";
 
 // 変数
 const timestamp = new Date().toISOString();
@@ -70,56 +72,87 @@ export async function logMessage(host: string, message: BaseMessage) {
   if (host?.includes("localhost")) {
     fs.appendFileSync(memoryFilePath, result, "utf-8");
 
-    console.log(`✅ 会話内容を ${memoryFileName} に保存しました。`);
+    console.log(`✅ 会話内容を ${memoryFileName} に保存しました。\n`);
   } else if (host?.includes("vercel")) {
     // vercel版
     await saveVercelText(memoryFileName, result);
   } else {
-    console.log("⚠ 記憶の保存ができませんでした。");
+    console.log("⚠ 記憶の保存ができませんでした。\n");
   }
 }
 
 /** 講師の指摘から学ぶ */
 export async function logLearn(host: string, learnText: string) {
-  console.log("会話を指摘可能...");
+  console.log("タグ付き入力で会話を指摘可能...");
+  console.log("【プロンプト】 → 追加プロンプトを入力");
+  console.log("【エントリー】 → エントリーを入力");
 
-  // 一時的な追加プロンプト
-  let tempPrompt = "";
+  switch (true) {
+    case learnText.includes("【エントリー】"):
+      console.log("エントリーの入力");
 
-  const learnTemplate = LEARN_CHECK;
-  const learnPrompt = PromptTemplate.fromTemplate(learnTemplate);
-  const isInstructionalResponse = await learnPrompt
-    .pipe(haiku3_5)
-    .pipe(strParser)
-    .invoke({
-      user_input: learnText,
-    });
-  console.log("指摘かどうか: " + isInstructionalResponse);
+      // 既存データを読み込む（なければ空配列）
+      const qaEntriesFilePath = path.join(
+        process.cwd(),
+        "public",
+        "advice",
+        "qa-entries.json"
+      );
+      console.log("jsonファイルパス" + qaEntriesFilePath);
 
-  if (isInstructionalResponse.includes("YES")) {
-    // プロンプトに追加
-    tempPrompt += learnText + "\n";
-    const result = " - " + learnText + "\n";
+      let qaList: QAEntry[] = [];
+      if (
+        fs.existsSync(qaEntriesFilePath) &&
+        fs.statSync(qaEntriesFilePath).size > 0
+      ) {
+        const raw = fs.readFileSync(qaEntriesFilePath, "utf-8");
+        qaList = JSON.parse(raw);
+      }
 
-    // 指摘をファイルに書き出し
-    if (host?.includes("localhost")) {
-      fs.appendFileSync(learnFilePath, result, "utf-8");
+      // timestampが最大のもの（最新）を探す
+      const latestEntry = qaList.reduce((latest, entry) =>
+        entry.metadata.timestamp > latest.metadata.timestamp ? entry : latest
+      );
 
-      console.log(`✅ 指摘内容を ${learnFileName} に保存しました。`);
-    } else if (host?.includes("vercel")) {
-      // vercel に保存
-      await saveVercelText(learnFileName, result);
-    } else {
-      console.log("⚠ 記憶の保存ができませんでした。");
-    }
+      // 値の追加
+      const qaEntry: QAEntry = {
+        id: uuidv4(),
+        userAnswer: latestEntry.userAnswer,
+        hint: learnText.replace("【エントリー】", ""),
+        metadata: {
+          ...latestEntry.metadata,
+          timestamp: new Date(Date.now()).toISOString(),
+          quality: 0.5,
+          source: "user",
+        },
+      };
+      qaList.push(qaEntry);
 
-    // 定型文を吐いて会話を抜ける
-    const fakeModel = new FakeListChatModel({
-      responses: [POINT_OUT_LOG],
-    });
-    const fakePrompt = PromptTemplate.fromTemplate("");
-    const fakeStream = await fakePrompt.pipe(fakeModel).stream({});
-    return LangChainAdapter.toDataStreamResponse(fakeStream);
+      // 上書き保存（整形付き）
+      fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
+      console.log(`✅ エントリーデータを ${qaEntriesFilePath} に更新しました`);
+      break;
+    case learnText.includes("【プロンプト】"):
+      console.log("プロンプトの入力");
+      // 一時的な追加プロンプト
+      let tempPrompt = "";
+
+      // プロンプトに追加
+      tempPrompt += learnText + "\n";
+      const result = " - " + learnText + "\n";
+
+      // 指摘をファイルに書き出し
+      if (host?.includes("localhost")) {
+        fs.appendFileSync(learnFilePath, result, "utf-8");
+
+        console.log(`✅ 指摘内容を ${learnFileName} に保存しました。`);
+      } else if (host?.includes("vercel")) {
+        // vercel に保存
+        await saveVercelText(learnFileName, result);
+      } else {
+        console.log("⚠ 記憶の保存ができませんでした。");
+      }
+      break;
   }
 }
 

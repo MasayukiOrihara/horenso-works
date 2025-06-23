@@ -44,42 +44,6 @@ let debugStep = 0;
 // エントリーデータID(送信用)
 let qaEntryId = "";
 
-const qaEntries: QAEntry[] = [
-  {
-    id: uuidv4(),
-    userAnswer: "自分",
-    hint: "残念、20点。もっと別の人がいるでしょ。",
-    metadata: {
-      timestamp: new Date(Date.now()).toISOString(),
-      quality: 0.5,
-      question_id: "",
-      source: "user",
-    },
-  },
-  {
-    id: uuidv4(),
-    userAnswer: "犬",
-    hint: "残念、0点。まじめにやってください。",
-    metadata: {
-      timestamp: new Date(Date.now()).toISOString(),
-      quality: 0.5,
-      question_id: "",
-      source: "user",
-    },
-  },
-  {
-    id: uuidv4(),
-    userAnswer: "神",
-    hint: "残念、0点。さすがに上すぎる",
-    metadata: {
-      timestamp: new Date(Date.now()).toISOString(),
-      quality: 0.5,
-      question_id: "",
-      source: "user",
-    },
-  },
-];
-
 /**
  * langGraphの初期設定を行うノード
  * @param param0

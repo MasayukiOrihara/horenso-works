@@ -2,6 +2,7 @@ import { LangSmithClient } from "@/lib/clients";
 import * as MESSAGES from "@/lib/messages";
 import { OpenAi } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
+import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { LangChainAdapter } from "ai";
 import fs from "fs";
 import path from "path";
@@ -14,6 +15,7 @@ import {
   HumanMessage,
 } from "@langchain/core/messages";
 import { QAEntry } from "@/lib/type";
+import { POINT_OUT_LOG } from "@/lib/messages";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -49,6 +51,15 @@ export async function POST(req: Request) {
     // ※※※ たぶんまだ動きません
     if (getBoolHeader("learnOn")) {
       await logLearn(host, userMessage);
+
+      // 定型文を吐いて会話を抜ける
+      console.log("指摘完了\n");
+      const fakeModel = new FakeListChatModel({
+        responses: [POINT_OUT_LOG],
+      });
+      const fakePrompt = PromptTemplate.fromTemplate("");
+      const fakeStream = await fakePrompt.pipe(fakeModel).stream({});
+      return LangChainAdapter.toDataStreamResponse(fakeStream);
     }
 
     // デバック: 初回メッセージのスキップ
