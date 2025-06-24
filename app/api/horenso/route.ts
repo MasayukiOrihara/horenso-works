@@ -4,7 +4,12 @@ import { v4 as uuidv4 } from "uuid";
 import { Document } from "langchain/document";
 import fs from "fs";
 
-import { QAEntry, QAMetadata, UserAnswerEvaluation } from "@/lib/type";
+import {
+  QAEntry,
+  QAMetadata,
+  UsedEntry,
+  UserAnswerEvaluation,
+} from "@/lib/type";
 import * as MSG from "./contents/messages";
 import * as DOC from "./contents/documents";
 import { StateAnnotation } from "./lib/annotation";
@@ -12,15 +17,14 @@ import { findMatchStatusChanges, matchAnswerOpenAi } from "./lib/match";
 import {
   cachedVectorStore,
   generateHintLlm,
+  getRankedResults,
   messageToText,
   sortScore,
   splitInputLlm,
+  writeQaEntriesQuality,
 } from "./lib/utils";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { haiku3_5_sentence, strParser } from "@/lib/models";
-import { QUESTION_WHO_ASKING } from "../../../lib/messages";
 import { embeddings } from "../../../lib/models";
-import path from "path";
+import { qaEntriesFilePath, timestamp } from "@/lib/path";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -44,13 +48,7 @@ let debugStep = 0;
 // エントリーデータID(送信用)
 let qaEntryId = "";
 // ヒントに使ったエントリーデータ
-let usedEntry: { entry: Document; sum: number }[] = [];
-const qaEntriesFilePath = path.join(
-  process.cwd(),
-  "public",
-  "advice",
-  "qa-entries.json"
-);
+let usedEntry: UsedEntry[] = [];
 
 /**
  * langGraphの初期設定を行うノード
@@ -185,43 +183,7 @@ async function rerank({
   console.log("👓 過去返答検索ノード");
 
   // 既存データを読み込む（なければ空配列）
-  let qaList: QAEntry[] = [];
-  if (
-    fs.existsSync(qaEntriesFilePath) &&
-    fs.statSync(qaEntriesFilePath).size > 0
-  ) {
-    const raw = fs.readFileSync(qaEntriesFilePath, "utf-8");
-    qaList = JSON.parse(raw);
-  }
-
-  // ここで使用したエントリーの重みを変更
-  if (usedEntry.length != 0) {
-    for (const used of usedEntry) {
-      console.log("前回のID: " + used.entry.metadata.id);
-      for (const list of qaList) {
-        if (used.entry.metadata.id === list.id) {
-          const current = used.entry.metadata.quality ?? 0.5;
-          const newQuality = Math.min(1.0, Math.max(0.0, current - 0.1));
-          console.log("Quality: " + newQuality);
-
-          // 値の更新
-          const updated = qaList.map((qa) =>
-            qa.id === list.id
-              ? {
-                  ...qa,
-                  metadata: {
-                    ...qa.metadata,
-                    quality: newQuality,
-                  },
-                }
-              : qa
-          );
-          // 上書き保存
-          qaList = updated;
-        }
-      }
-    }
-  }
+  const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1);
 
   // 埋め込み作成用にデータをマップ
   const documents: Document<QAMetadata>[] = qaList.map((qa) => ({
@@ -251,53 +213,22 @@ async function rerank({
     userAnswer: userMessage,
     hint: "",
     metadata: {
-      timestamp: new Date(Date.now()).toISOString(),
+      timestamp: timestamp,
       quality: 0.5,
       question_id: `${transition.step + 1}`,
       source: "bot",
     },
   };
 
-  // 新しいエントリを追加
+  // 新しいエントリを追加 + 上書き保存（整形付き）
   qaList.push(qaEntry);
-  // 上書き保存（整形付き）
   fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
 
   contexts = MSG.BULLET + "以下の過去の返答例を参考にしてください。\n\n";
   contexts += "この回答に対する過去の返答例: \n";
 
-  const rankedResults: {
-    entry: Document;
-    sum: number;
-  }[] = [];
-
-  for (const [bestMatch, score] of results) {
-    console.log("score: " + score + ", match: " + bestMatch.pageContent);
-
-    // 重みづけと選出
-    const qual = bestMatch.metadata.quality ?? 0.5;
-    let weight = 0.8;
-    switch (bestMatch.metadata.source) {
-      case "bot":
-        weight = 0.6;
-        break;
-      case "admin":
-        weight = 1.4;
-        break;
-      case "user":
-        weight = 1.0;
-        break;
-    }
-
-    // 総合スコア計算（調整式は適宜チューニング）
-    const sum = score * 0.6 + qual * 0.3 + weight * 0.1;
-    console.log(sum);
-
-    rankedResults.push({
-      entry: bestMatch,
-      sum: sum,
-    });
-  }
+  // データ取得
+  const rankedResults: UsedEntry[] = getRankedResults(results);
 
   // sum の高い順に並べて、上位2件を取得
   usedEntry = rankedResults.sort((a, b) => b.sum - a.sum).slice(0, 2);
@@ -435,48 +366,10 @@ async function ExplainAnswer({
   contexts = MSG.BULLET + MSG.SUCCESS_MESSAGE_PROMPT;
   contexts += MSG.BULLET + MSG.SUMMARY_REQUEST_PROMPT;
 
-  // 既存データを読み込む（なければ空配列）
-  let qaList: QAEntry[] = [];
-  if (
-    fs.existsSync(qaEntriesFilePath) &&
-    fs.statSync(qaEntriesFilePath).size > 0
-  ) {
-    const raw = fs.readFileSync(qaEntriesFilePath, "utf-8");
-    qaList = JSON.parse(raw);
-  }
-
   // ここで使用したエントリーの重みを変更
   if (usedEntry.length != 0) {
-    for (const used of usedEntry) {
-      for (const list of qaList) {
-        if (used.entry.metadata.id === list.id) {
-          const current = used.entry.metadata.quality ?? 0.5;
-          const newQuality = Math.min(1.0, Math.max(0.0, current + 0.1));
-
-          // 値の更新
-          const updated = qaList.map((qa) =>
-            qa.id === list.id
-              ? {
-                  ...qa,
-                  metadata: {
-                    ...qa.metadata,
-                    quality: newQuality,
-                  },
-                }
-              : qa
-          );
-          // 上書き保存（整形付き）
-          fs.writeFileSync(qaEntriesFilePath, JSON.stringify(updated, null, 2));
-        }
-      }
-    }
-  }
-
-  switch (transition.step) {
-    case 0:
-      break;
-    case 1:
-      break;
+    const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, 0.1);
+    fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
   }
 
   return { contexts };

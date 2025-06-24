@@ -1,7 +1,7 @@
 import { BaseMessage } from "@langchain/core/messages";
 import { Annotation, messagesStateReducer } from "@langchain/langgraph";
 
-import { HorensoStates } from "@/lib/type";
+import { HorensoStates, UserAnswerEvaluation } from "@/lib/type";
 
 /** グラフ内の状態を司るアノテーション */
 export const StateAnnotation = Annotation.Root({
@@ -25,5 +25,8 @@ export const StateAnnotation = Annotation.Root({
       ...state,
       ...action,
     }),
+  }),
+  userAnswerData: Annotation<UserAnswerEvaluation[]>({
+    value: (a, b) => [...a, ...b],
   }),
 });

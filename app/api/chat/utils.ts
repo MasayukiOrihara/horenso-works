@@ -7,14 +7,15 @@ import fs from "fs";
 import path from "path";
 
 import { QAEntry } from "@/lib/type";
+import * as Path from "@/lib/path";
 
-// 変数
-const timestamp = new Date().toISOString();
-const named = timestamp.slice(0, 10);
-const memoryFileName = `memory-${named}.txt`;
-const learnFileName = `learn-${named}.txt`;
-const memoryFilePath = path.join(process.cwd(), "memory", memoryFileName);
-const learnFilePath = path.join(process.cwd(), "learn", learnFileName);
+// ダミーデータ
+const initial: QAEntry = {
+  id: "xxx",
+  userAnswer: "",
+  hint: "",
+  metadata: { timestamp: Path.timestamp, quality: 0.5 },
+};
 
 /** 履歴用に整形 */
 export const formatMessage = (message: VercelChatMessage) => {
@@ -31,6 +32,7 @@ function convertToOpenAIFormat(langchainMessage: BaseMessage) {
     function: "function",
   } as const;
 
+  // 型変換
   const messageType = langchainMessage.getType() as keyof typeof roleMapping;
 
   return {
@@ -45,14 +47,6 @@ const logShort = (msg: string, max = 30) => {
   console.log(trimmed);
 };
 
-/** ベースURLを取得 */
-export function getBaseUrl(req: Request) {
-  const host = req.headers.get("host") ?? "";
-  const protocol = host.includes("localhost") ? "http" : "https";
-  const baseUrl = `${protocol}://${host}`;
-  return { host, protocol, baseUrl };
-}
-
 /** これまでの会話を記憶 */
 export async function logMessage(host: string, message: BaseMessage) {
   console.log("会話を記憶中...");
@@ -61,103 +55,63 @@ export async function logMessage(host: string, message: BaseMessage) {
   const formatted = convertToOpenAIFormat(message);
   const cleaned = `${formatted.role}: ${formatted.content}`;
   const result =
-    cleaned.replace(/[\r\n]+/g, "") + "\n - " + timestamp.slice(0, 16) + "\n";
-
+    cleaned.replace(/[\r\n]+/g, "") +
+    "\n - " +
+    Path.timestamp.slice(0, 16) +
+    "\n";
   logShort("書き出す内容: \n" + result);
 
-  // ファイル書き出し(ローカル)
-  if (host?.includes("localhost")) {
-    fs.appendFileSync(memoryFilePath, result, "utf-8");
-
-    console.log(`✅ 会話内容を ${memoryFileName} に保存しました。\n`);
-  } else if (host?.includes("vercel")) {
-    // vercel版
-    await saveVercelText(memoryFileName, result);
-  } else {
-    console.log("⚠ 記憶の保存ができませんでした。\n");
-  }
+  // 書き出し
+  await writeTextFile(host, Path.memoryFilePath, result);
 }
 
 /** 講師の指摘から学ぶ */
 export async function logLearn(host: string, learnText: string) {
   console.log("タグ付き入力で会話を指摘可能...");
-  console.log("【プロンプト】 → 追加プロンプトを入力");
-  console.log("【エントリー】 → エントリーを入力");
 
   switch (true) {
     case learnText.includes("【エントリー】"):
       console.log("エントリーの入力");
 
-      let entryFinishLog = "";
-      try {
-        // 既存データを読み込む（なければ空配列）
-        const qaEntriesFilePath = path.join(
-          process.cwd(),
-          "public",
-          "advice",
-          "qa-entries.json"
-        );
-        console.log("jsonファイルパス" + qaEntriesFilePath);
+      // 既存データを読み込む（なければ空配列）
+      let qaList: QAEntry[] = readJson(Path.qaEntriesFilePath);
 
-        let qaList: QAEntry[] = [];
-        if (
-          fs.existsSync(qaEntriesFilePath) &&
-          fs.statSync(qaEntriesFilePath).size > 0
-        ) {
-          const raw = fs.readFileSync(qaEntriesFilePath, "utf-8");
-          qaList = JSON.parse(raw);
-        }
+      // timestampが最大のもの（最新）を探す
+      const latestEntry = qaList.reduce(
+        (latest, entry) =>
+          entry.metadata.timestamp > latest.metadata.timestamp ? entry : latest,
+        initial
+      );
 
-        // timestampが最大のもの（最新）を探す
-        const latestEntry = qaList.reduce((latest, entry) =>
-          entry.metadata.timestamp > latest.metadata.timestamp ? entry : latest
-        );
+      // 値の追加
+      const qaEntry: QAEntry = {
+        id: uuidv4(),
+        userAnswer: latestEntry.userAnswer,
+        hint: learnText.replace("【エントリー】", ""),
+        metadata: {
+          ...latestEntry.metadata,
+          timestamp: Path.timestamp,
+          quality: 0.5,
+          source: "user",
+        },
+      };
+      qaList.push(qaEntry);
 
-        // 値の追加
-        const qaEntry: QAEntry = {
-          id: uuidv4(),
-          userAnswer: latestEntry.userAnswer,
-          hint: learnText.replace("【エントリー】", ""),
-          metadata: {
-            ...latestEntry.metadata,
-            timestamp: new Date(Date.now()).toISOString(),
-            quality: 0.5,
-            source: "user",
-          },
-        };
-        qaList.push(qaEntry);
-
-        // 上書き保存（整形付き）
-        fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
-        entryFinishLog = `✅ エントリーデータを ${qaEntriesFilePath} に更新しました`;
-      } catch (error) {
-        entryFinishLog = `⚠ エントリーデータを更新できませんでした: ${error}`;
-      }
+      // 上書き保存（整形付き）
+      fs.writeFileSync(Path.qaEntriesFilePath, JSON.stringify(qaList, null, 2));
+      const entryFinishLog = `✅ エントリーデータを ${Path.qaEntriesFilePath} に更新しました`;
       console.log(entryFinishLog);
+
       return entryFinishLog;
     case learnText.includes("【プロンプト】"):
       console.log("プロンプトの入力");
 
-      let promptFinishLog = "";
-      try {
-        // プロンプトに追加
-        const result = " - " + learnText.replace("【プロンプト】", "") + "\n";
+      // プロンプトに追加
+      const result = " - " + learnText.replace("【プロンプト】", "") + "\n";
+      // 指摘をファイルに書き出し
+      await writeTextFile(host, Path.learnFilePath, result);
 
-        // 指摘をファイルに書き出し
-        if (host?.includes("localhost")) {
-          fs.appendFileSync(learnFilePath, result, "utf-8");
-
-          promptFinishLog = `✅ 指摘内容を ${learnFileName} に保存しました。\n`;
-        } else if (host?.includes("vercel")) {
-          // vercel に保存
-          await saveVercelText(learnFileName, result);
-        } else {
-          promptFinishLog = "⚠ 記憶の保存ができませんでした。";
-        }
-      } catch (error) {
-        promptFinishLog = `⚠ プロンプトを更新できませんでした: ${error}`;
-      }
-      console.log(promptFinishLog);
+      const promptFinishLog = `✅ 指摘内容を ${Path.learnFileName} に保存しました。\n`;
       return promptFinishLog;
   }
   return "今回の変更はありません。";
@@ -166,11 +120,11 @@ export async function logLearn(host: string, learnText: string) {
 /** 追加プロンプトの読み込み */
 export async function readAddPrompt() {
   // 今日のファイルがあればそこから読む
-  if (fs.existsSync(learnFilePath)) {
-    return fs.readFileSync(learnFilePath, "utf-8");
+  if (fs.existsSync(Path.learnFilePath)) {
+    return fs.readFileSync(Path.learnFilePath, "utf-8");
   }
 
-  const dir = path.dirname(learnFilePath);
+  const dir = path.dirname(Path.learnFilePath);
   const files = fs.readdirSync(dir);
 
   // 最新ファイルを探す
@@ -192,10 +146,10 @@ export async function readAddPrompt() {
   // その内容で新規作成
   const latestText = fs.readFileSync(latest.fullPath, "utf-8");
 
-  fs.appendFileSync(learnFilePath, latestText, "utf-8");
+  fs.appendFileSync(Path.learnFilePath, latestText, "utf-8");
   console.log("⚠ ファイルが存在しなかったので、新しいファイルを作成しました。");
 
-  return fs.readFileSync(learnFilePath, "utf-8");
+  return fs.readFileSync(Path.learnFilePath, "utf-8");
 }
 
 /** vercelでの書き込み処理 */
@@ -225,3 +179,29 @@ async function saveVercelText(fileName: string, writeText: string) {
   });
   console.log(`✅ 会話内容を ${blob.url} に保存しました。`);
 }
+
+// ローカル or vercelにtxtファイル書き出し
+const writeTextFile = async (host: string, path: string, result: string) => {
+  // ファイル書き出し
+  if (host?.includes("localhost")) {
+    // ローカル
+    fs.appendFileSync(path, result, "utf-8");
+    console.log(`✅ 会話内容を ${path} に保存しました。\n`);
+  } else if (host?.includes("vercel")) {
+    // vercel版
+    await saveVercelText(path, result);
+    console.log(`✅ 会話内容を ${path} に保存しました。\n`);
+  } else {
+    console.log("⚠ 記憶の保存ができませんでした。\n");
+  }
+};
+
+// Json fileの読み込み
+export const readJson = (path: string) => {
+  if (fs.existsSync(path) && fs.statSync(path).size > 0) {
+    const raw = fs.readFileSync(path, "utf-8");
+    return JSON.parse(raw);
+  }
+
+  return [];
+};

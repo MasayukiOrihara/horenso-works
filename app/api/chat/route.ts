@@ -2,26 +2,20 @@ import { LangSmithClient } from "@/lib/clients";
 import * as MESSAGES from "@/lib/messages";
 import { fake, OpenAi } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { FakeListChatModel } from "@langchain/core/utils/testing";
 import { LangChainAdapter } from "ai";
 import fs from "fs";
-import path from "path";
 
 import {
   formatMessage,
-  getBaseUrl,
   logLearn,
   logMessage,
   readAddPrompt,
+  readJson,
 } from "./utils";
-import {
-  AIMessage,
-  BaseMessage,
-  ChatMessage,
-  HumanMessage,
-} from "@langchain/core/messages";
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { QAEntry } from "@/lib/type";
 import { POINT_OUT_LOG } from "@/lib/messages";
+import { getBaseUrl, qaEntriesFilePath } from "@/lib/path";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -38,9 +32,6 @@ export async function POST(req: Request) {
     const messages = body.messages ?? [];
     const { host, baseUrl } = getBaseUrl(req);
     const getBoolHeader = (key: string) => req.headers.get(key) === "true";
-
-    let step = "0";
-    let qaEntryId = "";
 
     // 過去の履歴
     const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
@@ -64,6 +55,7 @@ export async function POST(req: Request) {
     }
 
     // デバック: 初回メッセージのスキップ
+    let step = "0";
     if (getBoolHeader("debug")) {
       console.log("デバッグモードで作動中...");
       step = req.headers.get("step") ?? "0";
@@ -71,6 +63,7 @@ export async function POST(req: Request) {
 
     // 始動時の状態判定
     let aiMessage = "";
+    let qaEntryId = "";
     horensoContenue = true;
     if (horensoContenue && !oldHorensoContenue && !getBoolHeader("debug")) {
       // 初回AIメッセージ
@@ -86,7 +79,7 @@ export async function POST(req: Request) {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+          Authorization: `Bearer ${process.env.ACCESS_TOKEN}`, // vercel用
           step: step,
         },
         body: JSON.stringify({ messages }),
@@ -144,7 +137,6 @@ export async function POST(req: Request) {
 
         for await (const chunk of stream) {
           fullText += chunk.content || "";
-
           // ストリームにはそのまま流す
           controller.enqueue(chunk);
         }
@@ -157,27 +149,13 @@ export async function POST(req: Request) {
         }
 
         // 今回のエントリーにメッセージを追記
-        // ※※※ 最新ファイルを参照しているため、正解パターンだと入力がないので書き換わってバグります。要変更
         if (!(qaEntryId === "")) {
           // 既存データを読み込む（なければ空配列）
-          const qaEntriesFilePath = path.join(
-            process.cwd(),
-            "public",
-            "advice",
-            "qa-entries.json"
-          );
-          console.log("jsonファイルパス" + qaEntriesFilePath);
-          let qaList: QAEntry[] = [];
-          if (
-            fs.existsSync(qaEntriesFilePath) &&
-            fs.statSync(qaEntriesFilePath).size > 0
-          ) {
-            const raw = fs.readFileSync(qaEntriesFilePath, "utf-8");
-            qaList = JSON.parse(raw);
-          }
+          let qaList: QAEntry[] = readJson(qaEntriesFilePath);
+
           // 値の更新
           const updated = qaList.map((qa) =>
-            qa.id === qaEntryId
+            qa.id === qaEntryId && qa.hint === ""
               ? {
                   ...qa,
                   hint: fullText,

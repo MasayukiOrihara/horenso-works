@@ -61,3 +61,5 @@ export type QAMetadata = {
   question_id?: string;
   source?: "user" | "admin" | "bot";
 };
+
+export type UsedEntry = { entry: Document; sum: number };
