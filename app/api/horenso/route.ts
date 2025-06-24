@@ -11,7 +11,7 @@ import { StateAnnotation } from "./lib/annotation";
 import { findMatchStatusChanges, matchAnswerOpenAi } from "./lib/match";
 import * as Utils from "./lib/utils";
 import { embeddings } from "../../../lib/models";
-import { qaEntriesFilePath, timestamp } from "@/lib/path";
+import { getBaseUrl, qaEntriesFilePath, timestamp } from "@/lib/path";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -34,6 +34,8 @@ let debugStep = 0;
 let qaEntryId = "";
 // ヒントに使ったエントリーデータ(次のターンも使いまわす)
 let usedEntry: UsedEntry[] = [];
+// 起動しているホスト
+let usingHost = "";
 
 /**
  * langGraphの初期設定を行うノード
@@ -169,7 +171,11 @@ async function rerank({
   console.log("👓 過去返答検索ノード");
 
   // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = Utils.writeQaEntriesQuality(usedEntry, -0.1);
+  const qaList: QAEntry[] = Utils.writeQaEntriesQuality(
+    usedEntry,
+    -0.1,
+    usingHost
+  );
 
   // 埋め込み作成用にデータをマップ
   const documents: Document<QAMetadata>[] = qaList.map((qa) => ({
@@ -210,7 +216,10 @@ async function rerank({
 
   // 新しいエントリを追加 + 上書き保存（整形付き）
   qaList.push(qaEntry);
-  fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
+  fs.writeFileSync(
+    qaEntriesFilePath(usingHost),
+    JSON.stringify(qaList, null, 2)
+  );
 
   contexts = MSG.BULLET + MSG.PAST_REPLY_HINT_PROMPT;
   contexts += MSG.ANSWER_EXAMPLE_PREFIX_PROMPT;
@@ -353,8 +362,15 @@ async function ExplainAnswer({ contexts }: typeof StateAnnotation.State) {
 
   // ここで使用したエントリーの重みを変更
   if (usedEntry.length != 0) {
-    const qaList: QAEntry[] = Utils.writeQaEntriesQuality(usedEntry, 0.1);
-    fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
+    const qaList: QAEntry[] = Utils.writeQaEntriesQuality(
+      usedEntry,
+      0.1,
+      usingHost
+    );
+    fs.writeFileSync(
+      qaEntriesFilePath(usingHost),
+      JSON.stringify(qaList, null, 2)
+    );
   }
 
   return { contexts };
@@ -421,6 +437,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const messages = body.messages ?? [];
     const userMessage = messages[messages.length - 1].content;
+
+    const { host } = getBaseUrl(req);
+    usingHost = host;
 
     debugStep = Number(req.headers.get("step")) ?? 0;
 

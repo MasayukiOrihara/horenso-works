@@ -74,7 +74,7 @@ export async function logLearn(host: string, learnText: string) {
       console.log("エントリーの入力");
 
       // 既存データを読み込む（なければ空配列）
-      const qaList: QAEntry[] = readJson(Path.qaEntriesFilePath);
+      const qaList: QAEntry[] = readJson(Path.qaEntriesFilePath(host));
 
       // timestampが最大のもの（最新）を探す
       const latestEntry = qaList.reduce(
@@ -98,8 +98,13 @@ export async function logLearn(host: string, learnText: string) {
       qaList.push(qaEntry);
 
       // 上書き保存（整形付き）
-      fs.writeFileSync(Path.qaEntriesFilePath, JSON.stringify(qaList, null, 2));
-      const entryFinishLog = `✅ エントリーデータを ${Path.qaEntriesFilePath} に更新しました`;
+      fs.writeFileSync(
+        Path.qaEntriesFilePath(host),
+        JSON.stringify(qaList, null, 2)
+      );
+      const entryFinishLog = `✅ エントリーデータを ${Path.qaEntriesFilePath(
+        host
+      )} に更新しました`;
       console.log(entryFinishLog);
 
       return entryFinishLog;

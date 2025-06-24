@@ -153,7 +153,7 @@ export async function POST(req: Request) {
         // 今回のエントリーにメッセージを追記
         if (!(qaEntryId === "")) {
           // 既存データを読み込む（なければ空配列）
-          const qaList: QAEntry[] = readJson(qaEntriesFilePath);
+          const qaList: QAEntry[] = readJson(qaEntriesFilePath(host));
 
           // 値の更新
           const updated = qaList.map((qa) =>
@@ -168,9 +168,12 @@ export async function POST(req: Request) {
               : qa
           );
           // 上書き保存（整形付き）
-          fs.writeFileSync(qaEntriesFilePath, JSON.stringify(updated, null, 2));
+          fs.writeFileSync(
+            qaEntriesFilePath(host),
+            JSON.stringify(updated, null, 2)
+          );
           console.log(
-            `✅ エントリーデータを ${qaEntriesFilePath} に更新しました`
+            `✅ エントリーデータを ${qaEntriesFilePath(host)} に更新しました`
           );
         }
         controller.close();

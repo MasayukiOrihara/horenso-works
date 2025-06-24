@@ -112,10 +112,11 @@ export const generateHintLlm = async (
 /** 使用したデータからqualityの値を更新する */
 export function writeQaEntriesQuality(
   usedDocuments: UsedEntry[],
-  qual: number
+  qual: number,
+  host: string
 ) {
   // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = readJson(qaEntriesFilePath);
+  const qaList: QAEntry[] = readJson(qaEntriesFilePath(host));
 
   let updated: QAEntry[] = qaList;
   for (const used of usedDocuments) {

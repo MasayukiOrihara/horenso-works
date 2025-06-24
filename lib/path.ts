@@ -9,12 +9,15 @@ export const getBaseUrl = (req: Request) => {
 };
 
 // qa-entries.json のファイルパス
-export const qaEntriesFilePath = path.join(
-  process.cwd(),
-  "public",
-  "advice",
-  "qa-entries.json"
-);
+export const qaEntriesFilePath = (host: string) => {
+  if (host?.includes("vercel")) {
+    // vercel
+    return path.join("/tmp", "qa-entries.json");
+  } else {
+    // ローカル
+    return path.join(process.cwd(), "public", "advice", "qa-entries.json");
+  }
+};
 
 function toJSTISOString(date = new Date()) {
   const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000); // UTC+9
