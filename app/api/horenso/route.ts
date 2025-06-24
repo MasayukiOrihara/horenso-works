@@ -4,25 +4,12 @@ import { v4 as uuidv4 } from "uuid";
 import { Document } from "langchain/document";
 import fs from "fs";
 
-import {
-  QAEntry,
-  QAMetadata,
-  UsedEntry,
-  UserAnswerEvaluation,
-} from "@/lib/type";
+import { QAEntry, QAMetadata, UsedEntry } from "@/lib/type";
 import * as MSG from "./contents/messages";
 import * as DOC from "./contents/documents";
 import { StateAnnotation } from "./lib/annotation";
 import { findMatchStatusChanges, matchAnswerOpenAi } from "./lib/match";
-import {
-  cachedVectorStore,
-  generateHintLlm,
-  getRankedResults,
-  messageToText,
-  sortScore,
-  splitInputLlm,
-  writeQaEntriesQuality,
-} from "./lib/utils";
+import * as Utils from "./lib/utils";
 import { embeddings } from "../../../lib/models";
 import { qaEntriesFilePath, timestamp } from "@/lib/path";
 
@@ -95,14 +82,14 @@ async function checkUserAnswer({
 }: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
 
-  const userMessage = messageToText(messages, messages.length - 1);
+  const userMessage = Utils.messageToText(messages, messages.length - 1);
 
   switch (transition.step) {
     case 0:
       console.log("質問1: 報連相は誰のため？");
 
       // 答えの分離
-      const whoUserAnswer = await splitInputLlm(
+      const whoUserAnswer = await Utils.splitInputLlm(
         MSG.KEYWORD_EXTRACTION_PROMPT,
         userMessage
       );
@@ -135,7 +122,7 @@ async function checkUserAnswer({
       console.log("質問2: なぜリーダーのため？");
 
       // 答えの分離
-      const whyUserAnswer = await splitInputLlm(
+      const whyUserAnswer = await Utils.splitInputLlm(
         MSG.CLAIM_EXTRACTION_PROMPT,
         userMessage
       );
@@ -182,7 +169,7 @@ async function rerank({
   console.log("👓 過去返答検索ノード");
 
   // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1);
+  const qaList: QAEntry[] = Utils.writeQaEntriesQuality(usedEntry, -0.1);
 
   // 埋め込み作成用にデータをマップ
   const documents: Document<QAMetadata>[] = qaList.map((qa) => ({
@@ -195,11 +182,11 @@ async function rerank({
   }));
 
   // ユーザーの回答を埋め込み
-  const userMessage = messageToText(messages, messages.length - 1);
+  const userMessage = Utils.messageToText(messages, messages.length - 1);
   const embedding = await embeddings.embedQuery(userMessage);
 
   // ベクトルストア準備 + 比較
-  const vectorStore = await cachedVectorStore(documents);
+  const vectorStore = await Utils.cachedVectorStore(documents);
   const results = await vectorStore.similaritySearchVectorWithScore(
     embedding,
     5
@@ -223,11 +210,11 @@ async function rerank({
   qaList.push(qaEntry);
   fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
 
-  contexts = MSG.BULLET + "以下の過去の返答例を参考にしてください。\n\n";
-  contexts += "この回答に対する過去の返答例: \n";
+  contexts = MSG.BULLET + MSG.PAST_REPLY_HINT_PROMPT;
+  contexts += MSG.ANSWER_EXAMPLE_PREFIX_PROMPT;
 
   // データ取得
-  const rankedResults: UsedEntry[] = getRankedResults(results);
+  const rankedResults: UsedEntry[] = Utils.getRankedResults(results);
 
   // sum の高い順に並べて、上位2件を取得
   usedEntry = rankedResults.sort((a, b) => b.sum - a.sum).slice(0, 2);
@@ -253,7 +240,7 @@ async function generateHint({
   console.log("🛎 ヒント生成ノード");
 
   // スコア順に並べ替え
-  const top = sortScore(userAnswerData);
+  const top = Utils.sortScore(userAnswerData);
   console.dir(top, { depth: null });
 
   // 今回正解した差分を見つけ出す
@@ -282,7 +269,7 @@ async function generateHint({
       console.log("ヒント1: 報連相は誰のため？");
 
       // ヒントを出力
-      const getWhoHint = await generateHintLlm(
+      const getWhoHint = await Utils.generateHintLlm(
         MSG.GUIDED_ANSWER_PROMPT,
         MSG.FOR_REPORT_COMMUNICATION,
         top
@@ -290,14 +277,13 @@ async function generateHint({
       console.log("質問1のヒント: " + getWhoHint);
 
       // プロンプトに含める
-      // contexts += MSG.BULLET + MSG.USER_ADVICE_PROMPT;
       contexts += `ユーザーへの助言: ---------- \n ${getWhoHint}\n -----------\n`;
       break;
     case 1:
       console.log("ヒント2: なぜリーダーのため？");
 
       // ヒントを出力
-      const getWhyHint = await generateHintLlm(
+      const getWhyHint = await Utils.generateHintLlm(
         MSG.GUIDED_ANSWER_PROMPT,
         MSG.THREE_ANSWER,
         top
@@ -316,7 +302,6 @@ async function generateHint({
       contexts += "\n\n";
 
       // プロンプトに含める
-      // contexts += MSG.BULLET + MSG.USER_ADVICE_PROMPT;
       contexts += `ユーザーへの助言: ---------- \n ${getWhyHint}\n -----------\n`;
 
       isPartialMatch = whyUseDocuments.map((doc) => ({
@@ -344,6 +329,7 @@ async function askQuestion({
       break;
     case 1:
       contexts += MSG.REPORT_REASON_FOR_LEADER;
+      // 残り問題数の出力
       const count = Object.values(whyUseDocuments).filter(
         (val) => val.metadata.isMatched === false
       ).length;
@@ -357,10 +343,7 @@ async function askQuestion({
   return { contexts };
 }
 
-async function ExplainAnswer({
-  transition,
-  contexts,
-}: typeof StateAnnotation.State) {
+async function ExplainAnswer({ contexts }: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
 
   contexts = MSG.BULLET + MSG.SUCCESS_MESSAGE_PROMPT;
@@ -368,7 +351,7 @@ async function ExplainAnswer({
 
   // ここで使用したエントリーの重みを変更
   if (usedEntry.length != 0) {
-    const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, 0.1);
+    const qaList: QAEntry[] = Utils.writeQaEntriesQuality(usedEntry, 0.1);
     fs.writeFileSync(qaEntriesFilePath, JSON.stringify(qaList, null, 2));
   }
 
@@ -445,7 +428,7 @@ export async function POST(req: Request) {
     const result = await graph.invoke({
       messages: [new HumanMessage(userMessage)],
     });
-    const aiText = messageToText(result.messages, 1);
+    const aiText = Utils.messageToText(result.messages, 1);
 
     console.log("🈡 報連相ワーク ターン終了");
 

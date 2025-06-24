@@ -18,6 +18,9 @@ export const KEYWORD_EXTRACTION_PROMPT =
   "以下の入力に含まれる単語のうち、重要なキーワードを入力から抜き出しリストアップしてください。新たな言葉は追加しないでください。\n： {input}\n\n{format_instructions}";
 export const CLAIM_EXTRACTION_PROMPT =
   "以下の入力に含まれる文章のうち、主張ごとに区切って抜き出してください。\n各主張は入力からのみ抜き出し、「,」で区切って出力してください。\n抜き出せなかった場合は入力をそのまま出力してください。\n\n入力: {input}\n\n{format_instructions}";
+export const PAST_REPLY_HINT_PROMPT =
+  "以下の過去の返答例を参考にしてください。\n\n";
+export const ANSWER_EXAMPLE_PREFIX_PROMPT = "この回答に対する過去の返答例: \n";
 export const GUIDED_ANSWER_PROMPT =
   "以下の質問に対して、ユーザー自身が模範解答にたどり着くようなヒントを出力してください。出力時は模範解答を伏せた文章を出力してください。\n\n{question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\nヒント: ";
 export const PARTIAL_CORRECT_FEEDBACK_PROMPT =
