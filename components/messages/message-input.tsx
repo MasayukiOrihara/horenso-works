@@ -7,8 +7,8 @@ import { useSwitches } from "../provider/switch-provider";
 
 export const MessageInput = () => {
   const [text, setText] = useState("");
-  const { addUserMessage, aiState } = useUserMessages();
-  const { inputTag, setInputTag } = useSwitches();
+  const { addUserMessage, aiMessage, aiState } = useUserMessages();
+  const { learnOn, inputTag, setInputTag } = useSwitches();
 
   // テキストアエリアにデバッグ用のタグを追加
   useEffect(() => {
@@ -19,6 +19,10 @@ export const MessageInput = () => {
     }
   }, [inputTag]);
 
+  const handleAiMessageCopy = () => {
+    setText((prev) => prev + aiMessage);
+  };
+
   return (
     <form
       onSubmit={(e) => {
@@ -28,12 +32,24 @@ export const MessageInput = () => {
           setText("");
         }
       }}
-      className="my-4"
+      className={learnOn ? "" : "my-2"}
     >
-      <div className="w-full flex flex-row">
+      {learnOn && (
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            onClick={handleAiMessageCopy}
+            disabled={aiMessage === ""}
+            className="mb-2 hover:cursor-pointer"
+          >
+            ↓ 貼り付け ↓
+          </Button>
+        </div>
+      )}
+      <div className="w-full flex flex-row overflow-hidden">
         {/* テキストエリア */}
         <Input
-          className="w-full p-2 mr-2 rounded shadow-xl text-zinc-400 placeholder:text-neutral-400 bg-white"
+          className="w-full h-12 p-2 mr-2 rounded shadow-xl text-zinc-400 placeholder:text-neutral-400 bg-white"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="[ENTER で 送信...]"

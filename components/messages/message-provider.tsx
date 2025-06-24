@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 type UserMessageContextType = {
   userMessages: string[];
   addUserMessage: (msg: string) => void;
+  aiMessage: string;
+  setAiMessage: (msg: string) => void;
   currentUserMessage: string;
   aiState: string;
   setAiState: (msg: string) => void;
@@ -14,6 +16,7 @@ const MessageContext = createContext<UserMessageContextType | undefined>(
 
 export const MessageProvider = ({ children }: { children: ReactNode }) => {
   const [userMessages, setUserMessages] = useState<string[]>([]);
+  const [aiMessage, setAiMessage] = useState("");
   const [aiState, setAiState] = useState("");
 
   /** メッセージを追加する関数 */
@@ -29,6 +32,8 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       value={{
         userMessages,
         addUserMessage,
+        aiMessage,
+        setAiMessage,
         currentUserMessage,
         aiState,
         setAiState,

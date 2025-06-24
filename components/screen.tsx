@@ -4,8 +4,6 @@ import { useStartButton } from "./provider/start-button-provider";
 export const SCREEN: React.FC = () => {
   const { started } = useStartButton();
 
-  // if (!started) return null;
-
   return (
     <div className="w-full flex justify-center">
       <div

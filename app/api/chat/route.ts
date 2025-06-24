@@ -38,10 +38,12 @@ export async function POST(req: Request) {
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
 
-    // メッセージ保存: フロントエンドから記憶設定を取得
-    const humanMessage = new HumanMessage(userMessage);
-    if (getBoolHeader("memoryOn")) {
-      await logMessage(host, humanMessage);
+    if (horensoContenue) {
+      // メッセージ保存: フロントエンドから記憶設定を取得
+      const humanMessage = new HumanMessage(userMessage);
+      if (getBoolHeader("memoryOn")) {
+        await logMessage(host, humanMessage);
+      }
     }
 
     // 指摘の取得: フロントエンドから指摘設定を取得

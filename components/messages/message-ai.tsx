@@ -37,7 +37,8 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 }
 
 export const MessageAi = () => {
-  const { userMessages, currentUserMessage, setAiState } = useUserMessages();
+  const { userMessages, setAiMessage, currentUserMessage, setAiState } =
+    useUserMessages();
   const { memoryOn, learnOn, addPromptOn } = useSwitches();
   const { started, debug, step } = useStartButton();
   const { messages, status, append } = useMyChat(
@@ -67,13 +68,18 @@ export const MessageAi = () => {
     }
   }, [started]);
 
+  // 直近のメッセージを取得
+  const currentAiCommentMessage = getLatestAssistantMessage(messages);
+
   // 待機状況
   useEffect(() => {
     setAiState(status);
-  }, [status]);
 
-  // 直近のメッセージを取得
-  const currentAiCommentMessage = getLatestAssistantMessage(messages);
+    // Aimessageの取得
+    if (status === "ready" && messages.length != 0) {
+      setAiMessage(currentAiCommentMessage.content);
+    }
+  }, [status]);
 
   return (
     <div className="w-full my-2 bg-white">
