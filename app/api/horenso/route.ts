@@ -32,7 +32,7 @@ let isPartialMatch = DOC.whyDocuments.map((doc) => ({
 let debugStep = 0;
 // エントリーデータID(送信用)
 let qaEntryId = "";
-// ヒントに使ったエントリーデータ
+// ヒントに使ったエントリーデータ(次のターンも使いまわす)
 let usedEntry: UsedEntry[] = [];
 
 /**

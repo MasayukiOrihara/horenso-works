@@ -27,11 +27,11 @@ export async function matchAnswerOpenAi({
 
     // スコアが閾値以上の場合3つのそれぞれのフラグを上げる
     if (score >= threshold) {
+      saveAnswerCorrect = true;
       for (const doc of documents) {
         if (bestMatch.pageContent === doc.pageContent) {
           doc.metadata.isMatched = true;
           isAnswerCorrect = true;
-          saveAnswerCorrect = true;
 
           console.log(bestMatch.pageContent + " : " + doc.metadata.isMatched);
         }
@@ -56,7 +56,7 @@ export async function matchAnswerOpenAi({
   return isAnswerCorrect;
 }
 
-/** HuggingFaceのAPIを使用して類似度を計算する関数 */
+/** HuggingFaceのAPIを使用して類似度を計算する関数（※※※未調整） */
 export async function matchAnswerHuggingFaceAPI(
   userAnswer: string,
   documents: Document[],
