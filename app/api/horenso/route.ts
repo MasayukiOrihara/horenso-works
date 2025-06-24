@@ -41,8 +41,6 @@ let isPartialMatch = DOC.whyDocuments.map((doc) => ({
   metadata: { ...doc.metadata },
 }));
 
-// ユーザーデータの初期化
-const userAnswerData: UserAnswerEvaluation[] = [];
 // デバック用変数
 let debugStep = 0;
 // エントリーデータID(送信用)
@@ -93,6 +91,7 @@ async function setupInitial({ contexts }: typeof StateAnnotation.State) {
 async function checkUserAnswer({
   messages,
   transition,
+  userAnswerData,
 }: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
 
@@ -167,7 +166,7 @@ async function checkUserAnswer({
       }
       break;
   }
-  return { transition };
+  return { transition, userAnswerData };
 }
 
 /**
@@ -249,6 +248,7 @@ async function rerank({
 async function generateHint({
   transition,
   contexts,
+  userAnswerData,
 }: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
 
@@ -317,7 +317,7 @@ async function generateHint({
 
       // プロンプトに含める
       // contexts += MSG.BULLET + MSG.USER_ADVICE_PROMPT;
-      contexts += `ユーザーへの助言: \n${getWhyHint}\n`;
+      contexts += `ユーザーへの助言: ---------- \n ${getWhyHint}\n -----------\n`;
 
       isPartialMatch = whyUseDocuments.map((doc) => ({
         pageContent: doc.pageContent,
@@ -385,9 +385,6 @@ async function saveFinishState({
   // 現在の状態を外部保存
   Object.assign(transitionStates, transition);
   transitionStates.isAnswerCorrect = false;
-
-  // 使ったオブジェクトを初期化
-  userAnswerData.length = 0;
 
   // 正解し終わった場合すべてを初期化
   if (!transition.hasQuestion) {

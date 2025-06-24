@@ -150,7 +150,7 @@ export const getRankedResults = (
 
     // 総合スコア計算（調整式は適宜チューニング）
     const sum = score * 0.6 + qual * 0.3 + weight * 0.1;
-    console.log(sum);
+    console.log("総合スコア: " + sum + " ID: " + bestMatch.metadata.id);
 
     rankedResults.push({
       entry: bestMatch,

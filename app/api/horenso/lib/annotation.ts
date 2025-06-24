@@ -27,6 +27,10 @@ export const StateAnnotation = Annotation.Root({
     }),
   }),
   userAnswerData: Annotation<UserAnswerEvaluation[]>({
-    value: (a, b) => [...a, ...b],
+    value: (
+      state: UserAnswerEvaluation[] = [],
+      action: UserAnswerEvaluation[]
+    ) => [...state, ...action],
+    default: () => [],
   }),
 });
