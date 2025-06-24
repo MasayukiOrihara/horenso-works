@@ -151,7 +151,7 @@ export async function POST(req: Request) {
         // 今回のエントリーにメッセージを追記
         if (!(qaEntryId === "")) {
           // 既存データを読み込む（なければ空配列）
-          let qaList: QAEntry[] = readJson(qaEntriesFilePath);
+          const qaList: QAEntry[] = readJson(qaEntriesFilePath);
 
           // 値の更新
           const updated = qaList.map((qa) =>

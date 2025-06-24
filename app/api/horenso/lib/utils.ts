@@ -31,15 +31,33 @@ export async function cachedVectorStore(documents: Document[]) {
   let cachedVectorStore: MemoryVectorStore | null = null;
   let cachedDocHash = "";
 
+  // contentだけを使ってハッシュ化
   function hashDocuments(docs: Document[]): string {
-    return JSON.stringify(docs); // 簡易版。正確にやるなら md5 等でハッシュ化
+    const contentOnly = docs
+      .map((doc) => doc.pageContent)
+      .filter((text) => typeof text === "string" && text.trim() !== "");
+    return JSON.stringify(contentOnly);
   }
 
-  const currentDocHash = hashDocuments(documents);
+  // 文書の事前バリデーション（無効なものを除去）
+  const validDocuments = documents.filter((doc, index) => {
+    const isValid =
+      typeof doc.pageContent === "string" && doc.pageContent.trim() !== "";
+    if (!isValid) {
+      console.warn(
+        `⚠️ 無効なドキュメント（index: ${index}）を除外しました`,
+        doc
+      );
+    }
+    return isValid;
+  });
 
+  const currentDocHash = hashDocuments(validDocuments);
+
+  // キャッシュがなければ新しく作成（同じ文書なら再利用）
   if (!cachedVectorStore || cachedDocHash !== currentDocHash) {
     cachedVectorStore = await MemoryVectorStore.fromDocuments(
-      documents,
+      validDocuments,
       embeddings
     );
     cachedDocHash = currentDocHash;
@@ -127,6 +145,7 @@ export function writeQaEntriesQuality(
 
 /** データに重みづけしたスコアを計算して出力 */
 export const getRankedResults = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   results: [Document<Record<string, any>>, number][]
 ) => {
   const rankedResults: UsedEntry[] = [];

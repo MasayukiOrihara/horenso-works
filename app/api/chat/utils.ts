@@ -14,7 +14,7 @@ const initial: QAEntry = {
   id: "xxx",
   userAnswer: "",
   hint: "",
-  metadata: { timestamp: Path.timestamp, quality: 0.5 },
+  metadata: { timestamp: "1970-01-01T00:00:00.000+00:00", quality: 0.5 },
 };
 
 /** 履歴用に整形 */
@@ -74,7 +74,7 @@ export async function logLearn(host: string, learnText: string) {
       console.log("エントリーの入力");
 
       // 既存データを読み込む（なければ空配列）
-      let qaList: QAEntry[] = readJson(Path.qaEntriesFilePath);
+      const qaList: QAEntry[] = readJson(Path.qaEntriesFilePath);
 
       // timestampが最大のもの（最新）を探す
       const latestEntry = qaList.reduce(

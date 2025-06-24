@@ -183,10 +183,12 @@ async function rerank({
 
   // ユーザーの回答を埋め込み
   const userMessage = Utils.messageToText(messages, messages.length - 1);
+  console.log("userMessage: " + userMessage);
   const embedding = await embeddings.embedQuery(userMessage);
 
   // ベクトルストア準備 + 比較
   const vectorStore = await Utils.cachedVectorStore(documents);
+  console.log("ベクトルストア２");
   const results = await vectorStore.similaritySearchVectorWithScore(
     embedding,
     5
