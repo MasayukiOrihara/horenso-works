@@ -8,6 +8,8 @@ import path from "path";
 
 import { QAEntry } from "@/lib/type";
 import * as Path from "@/lib/path";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { haiku3_5_sentence, strParser } from "@/lib/models";
 
 // ダミーデータ
 const initial: QAEntry = {
@@ -17,9 +19,23 @@ const initial: QAEntry = {
   metadata: { timestamp: "1970-01-01T00:00:00.000+00:00", quality: 0.5 },
 };
 
-/** 履歴用に整形 */
-export const formatMessage = (message: VercelChatMessage) => {
-  return `${message.role}: ${message.content}`;
+/** 履歴用に整形（文章要約付き） */
+export const formatMessage = async (message: VercelChatMessage) => {
+  // 短い場合はそのまま履歴に
+  if (message.content.length < 40) return `${message.role}: ${message.content}`;
+
+  // 長い場合はメッセージの要約
+  const template =
+    "以下の入力を過去の会話の記憶として保持できるように重要な意図や情報・流れがわかるように短く要約してください。出力は要約した文のみとします。\n{input}";
+  const prompt = PromptTemplate.fromTemplate(template);
+  const summary = await prompt
+    .pipe(haiku3_5_sentence)
+    .pipe(strParser)
+    .invoke({ input: message.content });
+
+  const content = summary.replace(/[\r\n]+/g, "");
+
+  return `${message.role}: ${content}`;
 };
 
 /* LangChainメッセージをOpenAI形式に変換する */

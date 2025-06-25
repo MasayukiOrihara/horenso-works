@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const getBoolHeader = (key: string) => req.headers.get(key) === "true";
 
     // 過去の履歴
-    const formattedPreviousMessages = messages.slice(0, -1).map(formatMessage);
+    const formattedMessagePromises = messages.slice(0, -1).map(formatMessage);
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
 
@@ -98,6 +98,10 @@ export async function POST(req: Request) {
         aiMessage = aiMessage + "\n\n" + MESSAGES.FINISH_MESSAGE;
       }
     }
+    // 過去履歴の同期
+    const formattedPreviousMessages = await Promise.all(
+      formattedMessagePromises
+    );
 
     // プロンプト全文を取得して表示
     const promptVariables = {

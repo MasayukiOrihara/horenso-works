@@ -194,7 +194,7 @@ async function rerank({
 
   // ベクトルストア準備 + 比較
   const vectorStore = await Utils.cachedVectorStore(documents);
-  console.log("ベクトルストア２");
+  console.log("ベクトルストア設置完了");
   const results = await vectorStore.similaritySearchVectorWithScore(
     embedding,
     5
