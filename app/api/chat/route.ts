@@ -34,7 +34,16 @@ export async function POST(req: Request) {
     const getBoolHeader = (key: string) => req.headers.get(key) === "true";
 
     // 過去の履歴
-    const formattedMessagePromises = messages.slice(0, -1).map(formatMessage);
+    const memoryResponsePromise = fetch(baseUrl + "/api/memory", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.ACCESS_TOKEN}`, // vercel用
+      },
+      body: JSON.stringify({ messages }),
+    });
+
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
 
@@ -99,13 +108,13 @@ export async function POST(req: Request) {
       }
     }
     // 過去履歴の同期
-    const formattedPreviousMessages = await Promise.all(
-      formattedMessagePromises
-    );
+    const memoryResponse = await memoryResponsePromise;
+    const memoryData = await memoryResponse.json();
+    console.log(memoryData);
 
     // プロンプト全文を取得して表示
     const promptVariables = {
-      chat_history: formattedPreviousMessages,
+      chat_history: memoryData,
       user_message: userMessage,
       ai_message: aiMessage,
     };
@@ -126,7 +135,7 @@ export async function POST(req: Request) {
 
     // ストリーミング応答を取得
     const stream = await prompt.pipe(OpenAi).stream({
-      chat_history: formattedPreviousMessages,
+      chat_history: memoryData,
       user_message: userMessage,
       ai_message: aiMessage,
     });

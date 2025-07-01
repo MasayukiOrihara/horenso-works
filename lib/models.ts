@@ -21,6 +21,13 @@ export const OpenAi = new ChatOpenAI({
   cache: true,
   tags: ["Horenso-works"],
 });
+// opebAIモデル（4o-mini）
+export const openAi4oMini = new ChatOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  model: "gpt-4o-mini",
+  temperature: 0.4,
+  tags: ["Horenso-works"],
+});
 
 // openAI 埋め込みモデル（large）
 export const embeddings = new OpenAIEmbeddings({

@@ -469,7 +469,6 @@ export async function POST(req: Request) {
 
     const { host } = getBaseUrl(req);
     usingHost = host;
-
     debugStep = Number(req.headers.get("step")) ?? 0;
 
     console.log("🏁 報連相ワーク ターン開始");
@@ -482,7 +481,6 @@ export async function POST(req: Request) {
       },
       config
     );
-
     console.log(result.contexts);
     const aiText = result.contexts.join("");
 
@@ -491,7 +489,7 @@ export async function POST(req: Request) {
     return new Response(
       JSON.stringify({
         text: aiText,
-        contenue: !aiText.includes("終了"),
+        contenue: !aiText.includes("--終了--"),
         qaEntryId: qaEntryId,
       }),
       {
