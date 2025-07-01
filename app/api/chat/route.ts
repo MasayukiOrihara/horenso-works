@@ -84,7 +84,7 @@ export async function POST(req: Request) {
           Authorization: `Bearer ${process.env.ACCESS_TOKEN}`, // vercel用
           step: step,
         },
-        body: JSON.stringify({ messages }),
+        body: JSON.stringify({ userMessage }),
       });
       const apiBody = await res.json();
       aiMessage = apiBody.text;

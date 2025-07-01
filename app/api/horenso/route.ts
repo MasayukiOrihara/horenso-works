@@ -1,10 +1,16 @@
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import { StateGraph } from "@langchain/langgraph";
+import { MemorySaver, StateGraph } from "@langchain/langgraph";
 import { v4 as uuidv4 } from "uuid";
 import { Document } from "langchain/document";
 import fs from "fs";
 
-import { QAEntry, QAMetadata, UsedEntry } from "@/lib/type";
+import {
+  HorensoStates,
+  QAEntry,
+  QAMetadata,
+  UsedEntry,
+  UserAnswerEvaluation,
+} from "@/lib/type";
 import * as MSG from "./contents/messages";
 import * as DOC from "./contents/documents";
 import { StateAnnotation } from "./lib/annotation";
@@ -42,33 +48,38 @@ let usingHost = "";
  * @param param0
  * @returns
  */
-async function setupInitial({ contexts }: typeof StateAnnotation.State) {
+async function setupInitial(state: typeof StateAnnotation.State) {
   console.log("📝 初期設定ノード");
 
   // デバッグ時にstepを設定
   if (debugStep != 0) transitionStates.step = debugStep;
 
+  console.log("受け取った messages 確認");
+  console.log(state.messages);
+
   // 前回ターンの状態を反映
-  console.log("isAnswerCorrect: " + transitionStates.isAnswerCorrect);
-  console.log("hasQuestion: " + transitionStates.hasQuestion);
-  console.log("step: " + transitionStates.step);
+  console.log("前回ターンの状態変数");
+  console.log(transitionStates);
 
   // 前提・背景・状況
-  contexts = MSG.BULLET + MSG.INSTRUCTOR_INTRO_MESSAGE_PROMPT;
-  contexts += MSG.BULLET + MSG.USER_QUESTION_LABEL_PROMPT + "\n";
+  const contexts = [];
+  contexts.push(MSG.BULLET + MSG.INSTRUCTOR_INTRO_MESSAGE_PROMPT);
+  contexts.push(MSG.BULLET + MSG.USER_QUESTION_LABEL_PROMPT + "\n");
 
   // 問題分岐
   switch (transitionStates.step) {
     case 0:
-      contexts += MSG.FOR_REPORT_COMMUNICATION;
+      contexts.push(MSG.FOR_REPORT_COMMUNICATION);
       break;
     case 1:
-      contexts += MSG.REPORT_REASON_FOR_LEADER + MSG.THREE_ANSWER;
+      contexts.push(MSG.REPORT_REASON_FOR_LEADER + MSG.THREE_ANSWER);
       break;
   }
+
   return {
-    contexts,
+    contexts: contexts,
     transition: { ...transitionStates },
+    userAnswerData: [],
   };
 }
 
@@ -77,16 +88,18 @@ async function setupInitial({ contexts }: typeof StateAnnotation.State) {
  * @param param0
  * @returns
  */
-async function checkUserAnswer({
-  messages,
-  transition,
-  userAnswerData,
-}: typeof StateAnnotation.State) {
+async function checkUserAnswer(state: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
 
-  const userMessage = Utils.messageToText(messages, messages.length - 1);
+  const userMessage = Utils.messageToText(
+    state.messages,
+    state.messages.length - 1
+  );
+  console.log("userMessage: " + userMessage);
 
-  switch (transition.step) {
+  const data: UserAnswerEvaluation[] = [];
+  const flag: HorensoStates = { ...state.transition };
+  switch (state.transition.step) {
     case 0:
       console.log("質問1: 報連相は誰のため？");
 
@@ -104,20 +117,20 @@ async function checkUserAnswer({
           documents: whoUseDocuments,
           topK: 1,
           threshold: 0.8,
-          userAnswerData,
+          userAnswerData: data,
         })
       );
       const whoResults = await Promise.all(matchWhoPromises);
       const tempIsWhoCorrect = whoResults.some((result) => result === true);
       console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
-      console.dir(userAnswerData, { depth: null });
+      console.dir(data, { depth: null });
       console.log("質問1の正解: " + tempIsWhoCorrect);
 
       // 正解パターン
       if (tempIsWhoCorrect) {
-        transition.step = 1;
-        transition.isAnswerCorrect = true;
+        flag.step = 1;
+        flag.isAnswerCorrect = true;
       }
       break;
     case 1:
@@ -137,7 +150,7 @@ async function checkUserAnswer({
           documents: whyUseDocuments,
           topK: 3,
           threshold: 0.65,
-          userAnswerData,
+          userAnswerData: data,
           allTrue: true,
         })
       );
@@ -145,17 +158,17 @@ async function checkUserAnswer({
       const tempIsWhyCorrect = whyResults.some((result) => result === true);
       console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
-      console.dir(userAnswerData, { depth: null });
+      console.dir(data, { depth: null });
       console.log("質問2の正解: " + tempIsWhyCorrect);
 
       // 全正解
       if (tempIsWhyCorrect) {
-        transition.hasQuestion = false;
-        transition.isAnswerCorrect = true;
+        flag.hasQuestion = false;
+        flag.isAnswerCorrect = true;
       }
       break;
   }
-  return { transition, userAnswerData };
+  return { transition: flag, userAnswerData: data };
 }
 
 /**
@@ -163,11 +176,7 @@ async function checkUserAnswer({
  * @param param0
  * @returns
  */
-async function rerank({
-  messages,
-  contexts,
-  transition,
-}: typeof StateAnnotation.State) {
+async function rerank(state: typeof StateAnnotation.State) {
   console.log("👓 過去返答検索ノード");
 
   // 既存データを読み込む（なければ空配列）
@@ -188,7 +197,10 @@ async function rerank({
   }));
 
   // ユーザーの回答を埋め込み
-  const userMessage = Utils.messageToText(messages, messages.length - 1);
+  const userMessage = Utils.messageToText(
+    state.messages,
+    state.messages.length - 1
+  );
   console.log("userMessage: " + userMessage);
   const embedding = await embeddings.embedQuery(userMessage);
 
@@ -209,7 +221,7 @@ async function rerank({
     metadata: {
       timestamp: timestamp,
       quality: 0.5,
-      question_id: `${transition.step + 1}`,
+      question_id: `${state.transition.step + 1}`,
       source: "bot",
     },
   };
@@ -221,8 +233,9 @@ async function rerank({
     JSON.stringify(qaList, null, 2)
   );
 
-  contexts = MSG.BULLET + MSG.PAST_REPLY_HINT_PROMPT;
-  contexts += MSG.ANSWER_EXAMPLE_PREFIX_PROMPT;
+  const contexts = [];
+  contexts.push(MSG.BULLET + MSG.PAST_REPLY_HINT_PROMPT);
+  contexts.push(MSG.ANSWER_EXAMPLE_PREFIX_PROMPT);
 
   // データ取得
   const rankedResults: UsedEntry[] = Utils.getRankedResults(results);
@@ -231,11 +244,11 @@ async function rerank({
   usedEntry = rankedResults.sort((a, b) => b.sum - a.sum).slice(0, 2);
   for (const result of usedEntry) {
     console.log("エントリートップ2: " + result.entry.metadata.id);
-    contexts += `${result.entry.metadata.hint}\n ***** \n`;
+    contexts.push(`${result.entry.metadata.hint}\n ***** \n`);
   }
-  contexts += "\n";
+  contexts.push("\n");
 
-  return { contexts };
+  return { contexts: [...state.contexts, ...contexts] };
 }
 
 /**
@@ -243,15 +256,11 @@ async function rerank({
  * @param param0
  * @returns
  */
-async function generateHint({
-  transition,
-  contexts,
-  userAnswerData,
-}: typeof StateAnnotation.State) {
+async function generateHint(state: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
 
   // スコア順に並べ替え
-  const top = Utils.sortScore(userAnswerData);
+  const top = Utils.sortScore(state.userAnswerData);
   console.dir(top, { depth: null });
 
   // 今回正解した差分を見つけ出す
@@ -259,23 +268,24 @@ async function generateHint({
   console.log("差分: " + changed.map((page) => page.pageContent));
 
   // プロンプトに含める
+  const contexts = [];
   if (Object.keys(changed).length > 0) {
-    contexts = MSG.BULLET + MSG.PARTIAL_CORRECT_FEEDBACK_PROMPT;
+    contexts.push(MSG.BULLET + MSG.PARTIAL_CORRECT_FEEDBACK_PROMPT);
     for (const page of changed) {
-      for (const data of userAnswerData) {
+      for (const data of state.userAnswerData) {
         if (page.pageContent === data.currentAnswer && data.isAnswerCorrect) {
           console.log("部分正解: " + data.userAnswer);
-          contexts += data.userAnswer + "\n";
+          contexts.push(data.userAnswer + "\n");
         }
       }
     }
-    contexts += "\n";
+    contexts.push("\n");
   } else {
-    contexts = MSG.BULLET + MSG.CLEAR_FEEDBACK_PROMPT;
+    contexts.push(MSG.BULLET + MSG.CLEAR_FEEDBACK_PROMPT);
   }
-  contexts += MSG.BULLET + MSG.COMMENT_ON_ANSWER_PROMPT;
+  contexts.push(MSG.BULLET + MSG.COMMENT_ON_ANSWER_PROMPT);
 
-  switch (transition.step) {
+  switch (state.transition.step) {
     case 0:
       console.log("ヒント1: 報連相は誰のため？");
 
@@ -288,7 +298,9 @@ async function generateHint({
       console.log("質問1のヒント: " + getWhoHint);
 
       // プロンプトに含める
-      contexts += `ユーザーへの助言: ---------- \n ${getWhoHint}\n -----------\n`;
+      contexts.push(
+        `ユーザーへの助言: ---------- \n ${getWhoHint}\n -----------\n`
+      );
       break;
     case 1:
       console.log("ヒント2: なぜリーダーのため？");
@@ -305,15 +317,18 @@ async function generateHint({
       const count = Object.values(whyUseDocuments).filter(
         (val) => val.metadata.isMatched === true
       ).length;
-      contexts += MSG.BULLET + MSG.CORRECT_PARTS_LABEL_PROMPT;
-      contexts += `正解数 ${count} \n正解した項目: ${whyUseDocuments.map(
-        (page) =>
+      contexts.push(MSG.BULLET + MSG.CORRECT_PARTS_LABEL_PROMPT);
+      contexts.push(
+        `正解数 ${count} \n正解した項目: ${whyUseDocuments.map((page) =>
           page.metadata.isMatched === true ? page.pageContent + ", " : ""
-      )}`;
-      contexts += "\n\n";
+        )}`
+      );
+      contexts.push("\n\n");
 
       // プロンプトに含める
-      contexts += `ユーザーへの助言: ---------- \n ${getWhyHint}\n -----------\n`;
+      contexts.push(
+        `ユーザーへの助言: ---------- \n ${getWhyHint}\n -----------\n`
+      );
 
       isPartialMatch = whyUseDocuments.map((doc) => ({
         pageContent: doc.pageContent,
@@ -322,43 +337,52 @@ async function generateHint({
       break;
   }
 
-  return { contexts };
+  return { contexts: [...state.contexts, ...contexts] };
 }
 
-async function askQuestion({
-  transition,
-  contexts,
-}: typeof StateAnnotation.State) {
+/**
+ * 質問文を生成するノード
+ * @param param0
+ * @returns
+ */
+async function askQuestion(state: typeof StateAnnotation.State) {
   console.log("❓ 問題出題ノード");
+  const contexts = [];
 
   // プロンプトに追加
-  contexts = MSG.BULLET + MSG.STUDENT_FEEDBACK_QUESTION_PROMPT + "\n";
+  contexts.push(MSG.BULLET + MSG.STUDENT_FEEDBACK_QUESTION_PROMPT + "\n");
 
-  switch (transition.step) {
+  switch (state.transition.step) {
     case 0:
-      contexts += MSG.FOR_REPORT_COMMUNICATION;
+      contexts.push(MSG.FOR_REPORT_COMMUNICATION);
       break;
     case 1:
-      contexts += MSG.REPORT_REASON_FOR_LEADER;
+      contexts.push(MSG.REPORT_REASON_FOR_LEADER);
       // 残り問題数の出力
       const count = Object.values(whyUseDocuments).filter(
         (val) => val.metadata.isMatched === false
       ).length;
       if (count < 3) {
-        contexts += `答えは残り ${count} つです。\n\n`;
+        contexts.push(`答えは残り ${count} つです。\n\n`);
       } else {
-        contexts += MSG.THREE_ANSWER;
+        contexts.push(MSG.THREE_ANSWER);
       }
       break;
   }
-  return { contexts };
+  return { contexts: [...state.contexts, ...contexts] };
 }
 
-async function ExplainAnswer({ contexts }: typeof StateAnnotation.State) {
+/**
+ * 回答解説を行うノード
+ * @param state
+ * @returns
+ */
+async function ExplainAnswer(state: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
 
-  contexts = MSG.BULLET + MSG.SUCCESS_MESSAGE_PROMPT;
-  contexts += MSG.BULLET + MSG.SUMMARY_REQUEST_PROMPT;
+  const contexts = [];
+  contexts.push(MSG.BULLET + MSG.SUCCESS_MESSAGE_PROMPT);
+  contexts.push(MSG.BULLET + MSG.SUMMARY_REQUEST_PROMPT);
 
   // ここで使用したエントリーの重みを変更
   if (usedEntry.length != 0) {
@@ -373,24 +397,26 @@ async function ExplainAnswer({ contexts }: typeof StateAnnotation.State) {
     );
   }
 
-  return { contexts };
+  return { contexts: [...state.contexts, ...contexts] };
 }
 
-async function saveFinishState({
-  messages,
-  contexts,
-  transition,
-}: typeof StateAnnotation.State) {
+/**
+ * 状態を保存するノード（ターンの最後）
+ * @param state
+ * @returns
+ */
+async function saveFinishState(state: typeof StateAnnotation.State) {
   console.log("💾 状態保存ノード");
 
   // 現在の状態を外部保存
-  Object.assign(transitionStates, transition);
+  Object.assign(transitionStates, state.transition);
   transitionStates.isAnswerCorrect = false;
 
   // 正解し終わった場合すべてを初期化
-  if (!transition.hasQuestion) {
+  const contexts = [];
+  if (!state.transition.hasQuestion) {
     console.log("質問終了");
-    contexts += MSG.END_TAG;
+    contexts.push(MSG.END_TAG);
     Object.assign(transitionStates, DOC.defaultTransitionStates);
     whoUseDocuments.forEach((doc) => {
       doc.metadata.isMatched = false;
@@ -400,9 +426,8 @@ async function saveFinishState({
     });
   }
 
-  // contextsを出力
   return {
-    messages: [...messages, new AIMessage(contexts)],
+    contexts: [...state.contexts, ...contexts],
   };
 }
 
@@ -410,7 +435,8 @@ async function saveFinishState({
  * グラフ定義
  * messages: 今までのメッセージを保存しているもの
  */
-const graph = new StateGraph(StateAnnotation)
+const workflow = new StateGraph(StateAnnotation)
+  // ノード
   .addNode("setup", setupInitial)
   .addNode("check", checkUserAnswer)
   .addNode("rerank", rerank)
@@ -418,6 +444,7 @@ const graph = new StateGraph(StateAnnotation)
   .addNode("ask", askQuestion)
   .addNode("explain", ExplainAnswer)
   .addNode("save", saveFinishState)
+  // エッジ
   .addEdge("__start__", "setup")
   .addEdge("setup", "check")
   .addConditionalEdges("check", (state) =>
@@ -429,14 +456,16 @@ const graph = new StateGraph(StateAnnotation)
     state.transition.hasQuestion ? "ask" : "save"
   )
   .addEdge("ask", "save")
-  .addEdge("save", "__end__")
-  .compile();
+  .addEdge("save", "__end__");
+
+// 記憶の引継ぎ
+const memory = new MemorySaver();
+const app = workflow.compile({ checkpointer: memory });
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const messages = body.messages ?? [];
-    const userMessage = messages[messages.length - 1].content;
+    const userMessage = body.userMessage;
 
     const { host } = getBaseUrl(req);
     usingHost = host;
@@ -446,10 +475,16 @@ export async function POST(req: Request) {
     console.log("🏁 報連相ワーク ターン開始");
 
     // langgraph
-    const result = await graph.invoke({
-      messages: [new HumanMessage(userMessage)],
-    });
-    const aiText = Utils.messageToText(result.messages, 1);
+    const config = { configurable: { thread_id: "abc123" } };
+    const result = await app.invoke(
+      {
+        messages: userMessage,
+      },
+      config
+    );
+
+    console.log(result.contexts);
+    const aiText = result.contexts.join("");
 
     console.log("🈡 報連相ワーク ターン終了");
 

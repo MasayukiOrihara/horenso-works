@@ -1,18 +1,11 @@
-import { BaseMessage } from "@langchain/core/messages";
-import { Annotation, messagesStateReducer } from "@langchain/langgraph";
+import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 
 import { HorensoStates, UserAnswerEvaluation } from "@/lib/type";
 
 /** グラフ内の状態を司るアノテーション */
 export const StateAnnotation = Annotation.Root({
-  messages: Annotation<BaseMessage[]>({
-    reducer: messagesStateReducer,
-    default: () => [],
-  }),
-  contexts: Annotation<string>({
-    value: (state: string = "", action: string) => state + action,
-    default: () => "",
-  }),
+  contexts: Annotation<string[]>(),
+  summary: Annotation<string>(),
   transition: Annotation<HorensoStates>({
     value: (
       state: HorensoStates = {
@@ -33,4 +26,6 @@ export const StateAnnotation = Annotation.Root({
     ) => [...state, ...action],
     default: () => [],
   }),
+
+  ...MessagesAnnotation.spec,
 });
