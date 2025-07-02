@@ -22,7 +22,7 @@ export const PAST_REPLY_HINT_PROMPT =
   "以下の過去の返答例を参考にしてください。\n\n";
 export const ANSWER_EXAMPLE_PREFIX_PROMPT = "この回答に対する過去の返答例: \n";
 export const GUIDED_ANSWER_PROMPT =
-  "以下の質問に対して、ユーザー自身が模範解答にたどり着くようなヒントを出力してください。出力時は模範解答を伏せた文章を出力してください。\n\n{question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\nヒント: ";
+  "以下の質問に対して、ユーザー自身が模範解答にたどり着くようなヒントを端的に出力してください。出力時は模範解答を伏せた文章を出力してください。\n\n{question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\nヒント: ";
 export const PARTIAL_CORRECT_FEEDBACK_PROMPT =
   "まず初めに以下は部分正解になるので、正解だったことを伝え、解説をしてください。\n";
 export const CLEAR_FEEDBACK_PROMPT =

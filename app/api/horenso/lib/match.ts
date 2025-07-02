@@ -1,7 +1,14 @@
 import { Document } from "langchain/document";
 
 import { MatchAnswerArgs, UserAnswerEvaluation } from "@/lib/type";
-import { cachedVectorStore } from "./utils";
+import { buildSupportDocs, cachedVectorStore } from "./utils";
+import {
+  supportingPhrasesDeadline,
+  supportingPhrasesQuality,
+  supportingPhrasesSpecification,
+} from "../contents/documents";
+import { embeddings } from "@/lib/models";
+import { cosineSimilarity } from "ai";
 
 /** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
 export async function matchAnswerOpenAi({
@@ -30,13 +37,56 @@ export async function matchAnswerOpenAi({
       saveAnswerCorrect = true;
       for (const doc of documents) {
         if (bestMatch.pageContent === doc.pageContent) {
-          doc.metadata.isMatched = true;
+          // 同じparentIdのフラグ上げる
+          const bestParentId =
+            bestMatch.metadata.parentId ?? bestMatch.metadata.id;
+          documents.map((d) => {
+            const parentId = d.metadata.parentId ?? d.metadata.id;
+            if (bestParentId === parentId) d.metadata.isMatched = true;
+          });
           isAnswerCorrect = true;
 
           console.log(bestMatch.pageContent + " : " + doc.metadata.isMatched);
         }
       }
     }
+    // 曖昧マッチング
+    if (bestMatch.metadata.question_id === "2") {
+      const parentId = bestMatch.metadata.parentId;
+      const supportPhrasesMap: Record<string, string[]> = {
+        "1": supportingPhrasesDeadline,
+        "2": supportingPhrasesSpecification,
+        "3": supportingPhrasesQuality,
+      };
+
+      const phrases = supportPhrasesMap[parentId ?? ""] ?? [];
+      if (phrases.length > 0) {
+        const docs = buildSupportDocs(phrases, parentId);
+        const supportVectorStore = await cachedVectorStore(docs);
+        const userEmbedding = await embeddings.embedQuery(userAnswer);
+
+        // 最大スコアを取得
+        const maxSimilarity =
+          await supportVectorStore.similaritySearchVectorWithScore(
+            userEmbedding,
+            1
+          );
+        const topScore = maxSimilarity[0]?.[1] ?? 0;
+
+        console.log("曖昧結果: " + topScore);
+        if (topScore > 0.8) {
+          documents.forEach((d) => {
+            const docParentId = d.metadata.parentId ?? d.metadata.id;
+            if (docParentId === parentId) {
+              d.metadata.isMatched = true;
+              isAnswerCorrect = true;
+            }
+          });
+        }
+      }
+    }
+    console.log(bestMatch);
+
     // 答えの結果を詰め込む
     const data: UserAnswerEvaluation = {
       question_id: bestMatch.metadata.question_id,

@@ -54,9 +54,6 @@ async function setupInitial(state: typeof StateAnnotation.State) {
   // デバッグ時にstepを設定
   if (debugStep != 0) transitionStates.step = debugStep;
 
-  console.log("受け取った messages 確認");
-  console.log(state.messages);
-
   // 前回ターンの状態を反映
   console.log("前回ターンの状態変数");
   console.log(transitionStates);
@@ -149,7 +146,7 @@ async function checkUserAnswer(state: typeof StateAnnotation.State) {
           userAnswer: answer,
           documents: whyUseDocuments,
           topK: 3,
-          threshold: 0.65,
+          threshold: 0.7,
           userAnswerData: data,
           allTrue: true,
         })
@@ -458,9 +455,7 @@ const workflow = new StateGraph(StateAnnotation)
   .addEdge("ask", "save")
   .addEdge("save", "__end__");
 
-// 記憶の引継ぎ
-const memory = new MemorySaver();
-const app = workflow.compile({ checkpointer: memory });
+const app = workflow.compile();
 
 export async function POST(req: Request) {
   try {
@@ -474,13 +469,9 @@ export async function POST(req: Request) {
     console.log("🏁 報連相ワーク ターン開始");
 
     // langgraph
-    const config = { configurable: { thread_id: "abc123" } };
-    const result = await app.invoke(
-      {
-        messages: userMessage,
-      },
-      config
-    );
+    const result = await app.invoke({
+      messages: userMessage,
+    });
     console.log(result.contexts);
     const aiText = result.contexts.join("");
 

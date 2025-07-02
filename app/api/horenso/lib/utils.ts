@@ -27,10 +27,9 @@ export function messageToText(message: BaseMessage[], index: number) {
 }
 
 /** vector store が既にあるかのチェック */
+let cachedStore: MemoryVectorStore | null = null;
+let cachedDocHash = "";
 export async function cachedVectorStore(documents: Document[]) {
-  let cachedVectorStore: MemoryVectorStore | null = null;
-  let cachedDocHash = "";
-
   // contentだけを使ってハッシュ化
   function hashDocuments(docs: Document[]): string {
     const contentOnly = docs
@@ -55,15 +54,15 @@ export async function cachedVectorStore(documents: Document[]) {
   const currentDocHash = hashDocuments(validDocuments);
 
   // キャッシュがなければ新しく作成（同じ文書なら再利用）
-  if (!cachedVectorStore || cachedDocHash !== currentDocHash) {
-    cachedVectorStore = await MemoryVectorStore.fromDocuments(
+  if (!cachedStore || cachedDocHash !== currentDocHash) {
+    cachedStore = await MemoryVectorStore.fromDocuments(
       validDocuments,
       embeddings
     );
     cachedDocHash = currentDocHash;
   }
 
-  return cachedVectorStore;
+  return cachedStore;
 }
 
 /** LLMを利用して答えを切り分ける(haiku3.5使用) */
@@ -179,3 +178,16 @@ export const getRankedResults = (
   }
   return rankedResults;
 };
+
+// 例：サポート用フレーズを事前にまとめる
+export const buildSupportDocs = (
+  phrases: string[],
+  parentId: string
+): Document[] =>
+  phrases.map(
+    (text, index) =>
+      new Document({
+        pageContent: text,
+        metadata: { id: `${parentId}_${index}`, parentId },
+      })
+  );
