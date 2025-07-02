@@ -1,20 +1,48 @@
-import { haiku3_5_sentence, openAi4oMini } from "@/lib/models";
 import { RemoveMessage, SystemMessage } from "@langchain/core/messages";
 import {
   Annotation,
-  END,
   MemorySaver,
   MessagesAnnotation,
   StateGraph,
 } from "@langchain/langgraph";
+
+import { openAi4oMini } from "@/lib/models";
+
+// プロンプト: 英語にして節約してみる (注) もし英語で回答しだす用なら戻す
+/* 原文 `Conversation summary so far: ${summary}\n\n上記の新しいメッセージを考慮して要約を拡張してください。: ` */
+const MEMORY_UPDATE_PROMPT =
+  "Here is the conversation summary so far: {summary}\n\nBased on the new message above, expand this summary while retaining important intent, information, and conversational flow for long-term memory.";
+/* 原文 "上記の入力を過去の会話の記憶として保持できるように重要な意図や情報・流れがわかるように短く要約してください。: " */
+const MEMORY_SUMMARY_PROMPT =
+  "Summarize the input above concisely to preserve its key intent, information, and conversational flow, so it can be stored as memory for future context.";
+
+/** メッセージを挿入する処理 */
+async function insartMessages(state: typeof GraphAnnotation.State) {
+  console.log("📩 insart messages");
+
+  const messages = state.messages;
+  return { messages: messages };
+}
+
+/** 要約したメッセージを追加する処理 */
+async function prepareMessages(state: typeof GraphAnnotation.State) {
+  console.log("📧 prepare messages");
+
+  const summary = state.summary;
+  // 要約をシステムメッセージとして追加
+  const systemMessage = `Previous conversation summary: ${summary}`;
+  const messages = [new SystemMessage(systemMessage)];
+
+  return { messages: messages };
+}
 
 /** 会話を行うか要約するかの判断処理 */
 async function shouldContenue(state: typeof GraphAnnotation.State) {
   console.log("❓ should contenue");
   const messages = state.messages;
 
-  if (messages.length > 3) return "summarize";
-  return END;
+  if (messages.length > 6) return "summarize";
+  return "__end__";
 }
 
 /** 会話の要約処理 */
@@ -23,18 +51,18 @@ async function summarizeConversation(state: typeof GraphAnnotation.State) {
   const summary = state.summary;
 
   let summaryMessage;
+
   if (summary) {
-    summaryMessage = `Conversation summary so far: ${summary}\n\n上記の新しいメッセージを考慮して要約を拡張してください。: `;
+    summaryMessage = MEMORY_UPDATE_PROMPT.replace("{summary}", summary);
   } else {
-    summaryMessage =
-      "上記の入力を過去の会話の記憶として保持できるように重要な意図や情報・流れがわかるように短く要約してください。: ";
+    summaryMessage = MEMORY_SUMMARY_PROMPT;
   }
 
   // 要約処理
   const messages = [...state.messages, new SystemMessage(summaryMessage)];
   const response = await openAi4oMini.invoke(messages);
-  console.log(response.content);
 
+  // 要約したメッセージ除去
   const deleteMessages = messages
     .slice(0, -2)
     .map((m) => new RemoveMessage({ id: m.id! }));
@@ -50,11 +78,15 @@ const GraphAnnotation = Annotation.Root({
 // グラフ
 const workflow = new StateGraph(GraphAnnotation)
   // ノード追加
+  .addNode("insart", insartMessages)
+  .addNode("prepare", prepareMessages)
   .addNode("summarize", summarizeConversation)
 
   // エッジ追加
-  .addConditionalEdges("__start__", shouldContenue)
-  .addEdge("summarize", END);
+  .addEdge("__start__", "insart")
+  .addConditionalEdges("insart", shouldContenue)
+  .addEdge("summarize", "prepare")
+  .addEdge("prepare", "__end__");
 
 // 記憶の追加
 const memory = new MemorySaver();
@@ -69,21 +101,30 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const messages = body.messages ?? [];
-    const currentMessage = messages[messages.length - 1].content;
 
+    // 2行取得
+    const len = messages.length;
+    const previousMessage = messages.slice(Math.max(0, len - 2), len);
+
+    // 履歴用キー
     const config = { configurable: { thread_id: "abc123" } };
-    const results = await app.invoke({ messages: currentMessage }, config);
+    const results = await app.invoke({ messages: previousMessage }, config);
 
+    // 履歴メッセージの加工
     const conversation = [];
     for (let message of results.messages) {
-      const typeId = message?.id?.[2]; // ['langchain_core', 'messages', 'HumanMessage'] の3つ目
+      const content = String(message.content).replace(/\r?\n/g, "");
 
-      if (typeId === "HumanMessage")
-        conversation.push(`user: ${message.content}`);
-      if (typeId === "AIMessage")
-        conversation.push(`assistant: ${message.content}`);
-
-      conversation.push(`system: ${message.content}`);
+      switch (message.getType()) {
+        case "human":
+          conversation.push(`user: ${content}`);
+          break;
+        case "ai":
+          conversation.push(`assistant: ${content}`);
+          break;
+        default:
+          conversation.push(`${content}`);
+      }
     }
 
     return new Response(JSON.stringify(conversation), {
