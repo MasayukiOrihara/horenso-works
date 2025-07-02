@@ -15,7 +15,6 @@ export async function matchAnswerOpenAi({
   userAnswer,
   documents,
   topK,
-  threshold,
   userAnswerData,
   allTrue = false,
 }: MatchAnswerArgs) {
@@ -32,8 +31,8 @@ export async function matchAnswerOpenAi({
   for (const [bestMatch, score] of similarityResults) {
     console.log("score: " + score + ", match: " + bestMatch.pageContent);
 
-    // スコアが閾値以上の場合3つのそれぞれのフラグを上げる
-    if (score >= threshold) {
+    // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
+    if (score >= 0.78) {
       saveAnswerCorrect = true;
       for (const doc of documents) {
         if (bestMatch.pageContent === doc.pageContent) {
