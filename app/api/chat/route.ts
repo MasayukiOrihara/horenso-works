@@ -6,16 +6,17 @@ import { LangChainAdapter } from "ai";
 import fs from "fs";
 
 import {
-  formatMessage,
   logLearn,
   logMessage,
   readAddPrompt,
   readJson,
+  updateEntry,
 } from "./utils";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { QAEntry } from "@/lib/type";
 import { POINT_OUT_LOG } from "@/lib/messages";
 import { getBaseUrl, qaEntriesFilePath } from "@/lib/path";
+import { horensoApi, memoryApi } from "./api";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -34,16 +35,7 @@ export async function POST(req: Request) {
     const getBoolHeader = (key: string) => req.headers.get(key) === "true";
 
     // 過去の履歴
-    const memoryResponsePromise = fetch(baseUrl + "/api/memory", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.ACCESS_TOKEN}`, // vercel用
-      },
-      body: JSON.stringify({ messages }),
-    });
-
+    const memoryResponsePromise = memoryApi(baseUrl, messages);
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
 
@@ -80,28 +72,20 @@ export async function POST(req: Request) {
       // 初回AIメッセージ
       oldHorensoContenue = true;
 
+      console.log("🏁 始めの会話");
       aiMessage =
         MESSAGES.DEVELOPMENT_WORK_EXPLANATION + MESSAGES.QUESTION_WHO_ASKING;
-      console.log("🏁 始めの会話");
     } else {
       // 報連相ワークAPI呼び出し
-      const res = await fetch(baseUrl + "/api/horenso", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.ACCESS_TOKEN}`, // vercel用
-          step: step,
-        },
-        body: JSON.stringify({ userMessage }),
-      });
+      const res = await horensoApi(baseUrl, step, userMessage);
       const apiBody = await res.json();
       aiMessage = apiBody.text;
       qaEntryId = apiBody.qaEntryId;
 
       // 終了時の状態判定
-      console.log("継続判定 api側: " + apiBody.contenue);
-      console.log("継続判定 chat側: " + horensoContenue);
+      console.log(
+        "継続判定 api側: " + apiBody.contenue + " chat側: " + horensoContenue
+      );
       if (apiBody.contenue != horensoContenue) {
         horensoContenue = false;
         aiMessage = aiMessage + "\n\n" + MESSAGES.FINISH_MESSAGE;
@@ -110,7 +94,6 @@ export async function POST(req: Request) {
     // 過去履歴の同期
     const memoryResponse = await memoryResponsePromise;
     const memoryData = await memoryResponse.json();
-    console.log(memoryData);
 
     // プロンプト全文を取得して表示
     const promptVariables = {
@@ -165,29 +148,7 @@ export async function POST(req: Request) {
 
         // 今回のエントリーにメッセージを追記
         if (!(qaEntryId === "")) {
-          // 既存データを読み込む（なければ空配列）
-          const qaList: QAEntry[] = readJson(qaEntriesFilePath(host));
-
-          // 値の更新
-          const updated = qaList.map((qa) =>
-            qa.id === qaEntryId && qa.hint === ""
-              ? {
-                  ...qa,
-                  hint: fullText,
-                  metadata: {
-                    ...qa.metadata,
-                  },
-                }
-              : qa
-          );
-          // 上書き保存（整形付き）
-          fs.writeFileSync(
-            qaEntriesFilePath(host),
-            JSON.stringify(updated, null, 2)
-          );
-          console.log(
-            `✅ エントリーデータを ${qaEntriesFilePath(host)} に更新しました`
-          );
+          updateEntry(host, qaEntryId, fullText);
         }
         controller.close();
       },
