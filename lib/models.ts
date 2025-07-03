@@ -4,6 +4,7 @@ import { FakeListChatModel } from "@langchain/core/utils/testing";
 import {
   CommaSeparatedListOutputParser,
   StringOutputParser,
+  JsonOutputParser,
 } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
 
@@ -12,6 +13,7 @@ const ANTHROPIC_MODEL_3_5 = "claude-3-5-haiku-20241022";
 
 export const strParser = new StringOutputParser();
 export const listParser = new CommaSeparatedListOutputParser();
+export const jsonParser = new JsonOutputParser();
 
 // opebAIモデル（4o）
 export const OpenAi = new ChatOpenAI({

@@ -19,6 +19,22 @@ export const qaEntriesFilePath = (host: string) => {
   }
 };
 
+// semantic-match-answer.json のファイルパス
+export const semanticFilePath = (host: string) => {
+  if (host?.includes("vercel")) {
+    // vercel
+    return path.join("/tmp", "semantic-match-answer.json");
+  } else {
+    // ローカル
+    return path.join(
+      process.cwd(),
+      "public",
+      "semantic",
+      "semantic-match-answer.json"
+    );
+  }
+};
+
 function toJSTISOString(date = new Date()) {
   const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000); // UTC+9
   return jstDate.toISOString().replace("Z", "+09:00");

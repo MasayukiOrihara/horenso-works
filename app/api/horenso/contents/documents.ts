@@ -6,59 +6,62 @@ export const whoDocuments: Document[] = [
   {
     pageContent: "リーダー",
     metadata: {
-      id: "1",
       parentId: "1",
       question_id: "1",
       question: "報連相は誰のためか",
       isMatched: false,
     },
-  },
-  {
-    pageContent: "上司",
-    metadata: {
-      id: "2",
-      parentId: "1",
-      question_id: "1",
-      question: "報連相は誰のためか",
-      isMatched: false,
-    },
+    id: "1-1",
   },
 ];
+
+// {
+//     pageContent: "上司",
+//     metadata: {
+//       id: "2",
+//       parentId: "1",
+//       question_id: "1",
+//       question: "報連相は誰のためか",
+//       isMatched: false,
+//     },
+//   },
 
 // 質問ドキュメント2: 「納期」「仕様」「品質」
 export const whyDocuments: Document[] = [
   {
     pageContent: "納期や期限を守るために早めの情報共有が必要",
     metadata: {
-      id: "1-1",
       parentId: "1",
       question_id: "2",
       question: "報連相はなぜリーダーのためなのか",
       isMatched: false,
     },
+    id: "1-1",
   },
   {
     pageContent:
       "機能の過不足がないように仕様のズレを防ぎ、適切な機能範囲を守る",
     metadata: {
-      id: "2-1",
       parentId: "2",
       question_id: "2",
       question: "報連相はなぜリーダーのためなのか",
       isMatched: false,
     },
+    id: "2-1",
   },
   {
     pageContent: "品質を保証しバグを未然に防ぐ",
     metadata: {
-      id: "3-1",
       parentId: "3",
       question_id: "2",
       question: "報連相はなぜリーダーのためなのか",
       isMatched: false,
     },
+    id: "3-1",
   },
 ];
+
+// 曖昧マッチング用ドキュメント
 
 // 質問ドキュメント2: 曖昧マッチング「納期」
 export const supportingPhrasesDeadline = [

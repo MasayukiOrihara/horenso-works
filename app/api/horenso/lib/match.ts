@@ -8,7 +8,6 @@ import {
   supportingPhrasesSpecification,
 } from "../contents/documents";
 import { embeddings } from "@/lib/models";
-import { cosineSimilarity } from "ai";
 
 /** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
 export async function matchAnswerOpenAi({
