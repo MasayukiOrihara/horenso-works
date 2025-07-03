@@ -1,7 +1,7 @@
 import { Document } from "langchain/document";
 
 import * as MSG from "../contents/messages";
-import { findMatchStatusChanges } from "../lib/match";
+import { findMatchStatusChanges } from "../lib/match/match";
 import { UserAnswerEvaluation } from "@/lib/type";
 
 type HintNode = {

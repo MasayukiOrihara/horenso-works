@@ -27,7 +27,7 @@ export type MatchAnswerArgs = {
   documents: Document[]; // 質問ドキュメント
   topK: number; // 上位からの比較個数
   allTrue?: boolean; // 全問正解で正解とするか
-  semantic: SemanticAnswerData;
+  semanticList: SemanticAnswerData;
 };
 
 /** ユーザーの回答データを管理する型 */
@@ -76,7 +76,19 @@ type SemanticAnswerEntry = {
   reason: string;
   metadata: SemanticMetadata;
 };
-type SemanticAnswerData = {
+export type SemanticAnswerData = {
   who: SemanticAnswerEntry[][];
   why: SemanticAnswerEntry[][];
+};
+
+export type SemanticData = {
+  id: string;
+  answer: string;
+  reason: string;
+  metadata: {
+    parentId: string;
+    question_id: string;
+    timestamp: string; // ISO形式の日時
+    source: "admin" | "user" | "bot"; // 必要に応じてenum化も可能
+  };
 };

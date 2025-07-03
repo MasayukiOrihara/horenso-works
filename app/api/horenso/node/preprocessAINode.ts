@@ -6,7 +6,7 @@ import fs from "fs";
 
 import * as MSG from "../contents/messages";
 import * as Utils from "../lib/utils";
-import { matchAnswerOpenAi } from "../lib/match";
+import { matchAnswerOpenAi } from "../lib/match/match";
 import {
   QAEntry,
   QAMetadata,
@@ -16,6 +16,7 @@ import {
 import { embeddings, jsonParser, OpenAi } from "@/lib/models";
 import { readJson } from "../../chat/utils";
 import { semanticFilePath, timestamp } from "@/lib/path";
+import { judgeSemanticMatch, updateSemanticMatch } from "../lib/match/semantic";
 
 type AiNode = {
   messages: BaseMessage[];
@@ -24,18 +25,6 @@ type AiNode = {
   host: string;
   whoUseDocuments: Document<Record<string, any>>[];
   whyUseDocuments: Document<Record<string, any>>[];
-};
-
-type SemanticData = {
-  id: string;
-  answer: string;
-  reason: string;
-  metadata: {
-    parentId: string;
-    question_id: string;
-    timestamp: string; // ISO形式の日時
-    source: "admin" | "user" | "bot"; // 必要に応じてenum化も可能
-  };
 };
 
 /**
@@ -101,19 +90,6 @@ export async function preprocessAiNode({
   ]);
   console.log("質問の分離した答え: " + userAnswer);
 
-  // 答えの模索
-  const prompt = PromptTemplate.fromTemplate(
-    MSG.JUDGE_ANSWER_SEMANTIC_MATCH_PROMPT
-  );
-  const semanticJudgePromises = userAnswer.map((answer) =>
-    prompt.pipe(OpenAi).pipe(jsonParser).invoke({
-      question: question,
-      current_answer: currentAnswer,
-      user_answer: answer,
-      format_instructions: jsonParser.getFormatInstructions(),
-    })
-  );
-
   // ベクトルストア準備 + 比較
   const vectorStore = await Utils.cachedVectorStore(qaDocuments);
   console.log("QA Listベクトルストア設置完了");
@@ -122,57 +98,9 @@ export async function preprocessAiNode({
     5
   );
 
-  /* 曖昧回答の更新 */
-  const semanticJudge = await Promise.all(semanticJudgePromises);
-
-  // あいまい回答jsonの読み込み
-  let semanticList = readJson(semanticFilePath(host));
-  // ※※ semanticJudgeはopenAiに直接出力させたオブジェクトなので取り扱いがかなり怖い
-  try {
-    for (const raw of semanticJudge) {
-      if (raw.metadata.parentId && !(raw.metadata.parentId === "")) {
-        const data: SemanticData = {
-          id: uuidv4(),
-          answer: raw.answer,
-          reason: raw.reason,
-          metadata: {
-            parentId: raw.metadata.parentId,
-            question_id: `${step + 1}`,
-            timestamp: timestamp,
-            source: raw.metadata.source as "user" | "bot" | "admin", // 型が合うように明示
-          },
-        };
-        console.log("曖昧回答の出力:");
-        console.log(data);
-        switch (step) {
-          case 0:
-            semanticList.who[raw.metadata.parentId - 1].splice(
-              semanticList.why[raw.metadata.parentId - 1].length,
-              0,
-              data
-            );
-            break;
-          case 1:
-            semanticList.why[raw.metadata.parentId - 1].splice(
-              semanticList.why[raw.metadata.parentId - 1].length,
-              0,
-              data
-            );
-            break;
-        }
-      }
-    }
-  } catch (error) {
-    console.log("semanticList は更新できませんでした。" + error);
-    semanticList = readJson(semanticFilePath(host)); // 戻し
-  }
-  fs.writeFileSync(
-    semanticFilePath(host),
-    JSON.stringify(semanticList, null, 2)
-  );
-  // console.dir(semanticList, { depth: null });
-
   /* 正解チェック(OpenAi埋め込みモデル使用) */
+  // あいまい回答jsonの読み込み
+  const semanticList = readJson(semanticFilePath(host));
   const data: UserAnswerEvaluation[] = [];
   const matchResults = await Promise.all(
     userAnswer.map((answer) =>
@@ -181,7 +109,7 @@ export async function preprocessAiNode({
         documents: useDocuments,
         topK: k,
         allTrue: allTrue,
-        semantic: semanticList,
+        semanticList: semanticList,
       })
     )
   );
