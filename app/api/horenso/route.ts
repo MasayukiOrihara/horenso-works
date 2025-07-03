@@ -24,6 +24,9 @@ import { preprocessAiNode } from "./node/preprocessAINode";
 import { checkUserAnswerNode } from "./node/checkUserAnswerNode";
 import { rerankNode } from "./node/rerankNode";
 import { generateHintNode } from "./node/generateHintNode";
+import { askQuestionNode } from "./node/askQuestionNode";
+import { explainAnswerNode } from "./node/explainAnswerNode";
+import { saveFinishStateNode } from "./node/saveFinishStateNode";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -113,11 +116,6 @@ async function rerank(state: typeof StateAnnotation.State) {
   return { contexts: [...state.contexts, ...contexts] };
 }
 
-/**
- * ヒントを作成するノード
- * @param param0
- * @returns
- */
 async function generateHint(state: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
 
@@ -132,63 +130,23 @@ async function generateHint(state: typeof StateAnnotation.State) {
   return { contexts: [...state.contexts, ...contexts] };
 }
 
-/**
- * 質問文を生成するノード
- * @param param0
- * @returns
- */
 async function askQuestion(state: typeof StateAnnotation.State) {
   console.log("❓ 問題出題ノード");
-  const contexts = [];
 
-  // プロンプトに追加
-  contexts.push(MSG.BULLET + MSG.STUDENT_FEEDBACK_QUESTION_PROMPT + "\n");
-
-  switch (state.transition.step) {
-    case 0:
-      contexts.push(MSG.FOR_REPORT_COMMUNICATION);
-      break;
-    case 1:
-      contexts.push(MSG.REPORT_REASON_FOR_LEADER);
-      // 残り問題数の出力
-      const count = Object.values(whyUseDocuments).filter(
-        (val) => val.metadata.isMatched === false
-      ).length;
-      if (count < 3) {
-        contexts.push(`答えは残り ${count} つです。\n\n`);
-      } else {
-        contexts.push(MSG.THREE_ANSWER);
-      }
-      break;
-  }
+  const { contexts } = askQuestionNode({
+    step: state.transition.step,
+    whyUseDocuments: whyUseDocuments,
+  });
   return { contexts: [...state.contexts, ...contexts] };
 }
 
-/**
- * 回答解説を行うノード
- * @param state
- * @returns
- */
-async function ExplainAnswer(state: typeof StateAnnotation.State) {
+async function explainAnswer(state: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
 
-  const contexts = [];
-  contexts.push(MSG.BULLET + MSG.SUCCESS_MESSAGE_PROMPT);
-  contexts.push(MSG.BULLET + MSG.SUMMARY_REQUEST_PROMPT);
-
-  // ここで使用したエントリーの重みを変更
-  if (globalUsedEntry.length != 0) {
-    const qaList: QAEntry[] = Utils.writeQaEntriesQuality(
-      globalUsedEntry,
-      0.1,
-      globalHost
-    );
-    fs.writeFileSync(
-      qaEntriesFilePath(globalHost),
-      JSON.stringify(qaList, null, 2)
-    );
-  }
-
+  const { contexts } = explainAnswerNode({
+    usedEntry: globalUsedEntry,
+    host: globalHost,
+  });
   return { contexts: [...state.contexts, ...contexts] };
 }
 
@@ -200,24 +158,12 @@ async function ExplainAnswer(state: typeof StateAnnotation.State) {
 async function saveFinishState(state: typeof StateAnnotation.State) {
   console.log("💾 状態保存ノード");
 
-  // 現在の状態を外部保存
-  Object.assign(transitionStates, state.transition);
-  transitionStates.isAnswerCorrect = false;
-
-  // 正解し終わった場合すべてを初期化
-  const contexts = [];
-  if (!state.transition.hasQuestion) {
-    console.log("質問終了");
-    contexts.push(MSG.END_TAG);
-    Object.assign(transitionStates, DOC.defaultTransitionStates);
-    whoUseDocuments.forEach((doc) => {
-      doc.metadata.isMatched = false;
-    });
-    whyUseDocuments.forEach((doc) => {
-      doc.metadata.isMatched = false;
-    });
-  }
-
+  const { contexts } = saveFinishStateNode({
+    states: transitionStates,
+    transition: state.transition,
+    whoUseDocuments: whoUseDocuments,
+    whyUseDocuments: whyUseDocuments,
+  });
   return {
     contexts: [...state.contexts, ...contexts],
   };
@@ -235,7 +181,7 @@ const workflow = new StateGraph(StateAnnotation)
   .addNode("rerank", rerank)
   .addNode("hint", generateHint)
   .addNode("ask", askQuestion)
-  .addNode("explain", ExplainAnswer)
+  .addNode("explain", explainAnswer)
   .addNode("save", saveFinishState)
   // エッジ
   .addEdge("__start__", "setup")

@@ -16,6 +16,11 @@ type RerankNode = {
   qaEmbeddings: [Document<Record<string, any>>, number][];
 };
 
+/**
+ * 参考にする過去回答を選出するノード
+ * @param param0
+ * @returns
+ */
 export function rerankNode({
   usedEntry,
   host,
