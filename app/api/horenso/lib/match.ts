@@ -15,7 +15,6 @@ export async function matchAnswerOpenAi({
   userAnswer,
   documents,
   topK,
-
   allTrue = false,
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
