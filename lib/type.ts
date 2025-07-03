@@ -26,7 +26,6 @@ export type MatchAnswerArgs = {
   userAnswer: string; // 比較対象になる答え
   documents: Document[]; // 質問ドキュメント
   topK: number; // 上位からの比較個数
-  userAnswerData: UserAnswerEvaluation[];
   allTrue?: boolean; // 全問正解で正解とするか
 };
 

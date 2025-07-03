@@ -15,11 +15,12 @@ export async function matchAnswerOpenAi({
   userAnswer,
   documents,
   topK,
-  userAnswerData,
+
   allTrue = false,
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
   let saveAnswerCorrect = false;
+  const userAnswerDatas: UserAnswerEvaluation[] = [];
 
   // ベクトルストア準備
   const vectorStore = await cachedVectorStore(documents);
@@ -94,7 +95,7 @@ export async function matchAnswerOpenAi({
       score: score.toString(),
       isAnswerCorrect: saveAnswerCorrect,
     };
-    userAnswerData.push(data);
+    userAnswerDatas.push(data);
     saveAnswerCorrect = false;
   }
 
@@ -102,7 +103,7 @@ export async function matchAnswerOpenAi({
   if (allTrue) {
     isAnswerCorrect = documents.every((doc) => doc.metadata.isMatched);
   }
-  return isAnswerCorrect;
+  return { isAnswerCorrect, userAnswerDatas };
 }
 
 /** HuggingFaceのAPIを使用して類似度を計算する関数（※※※未調整） */

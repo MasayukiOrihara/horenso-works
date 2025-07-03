@@ -16,8 +16,9 @@ import * as DOC from "./contents/documents";
 import { StateAnnotation } from "./lib/annotation";
 import { findMatchStatusChanges, matchAnswerOpenAi } from "./lib/match";
 import * as Utils from "./lib/utils";
-import { embeddings } from "../../../lib/models";
+import { embeddings, OpenAi, openAi4oMini } from "../../../lib/models";
 import { getBaseUrl, qaEntriesFilePath, timestamp } from "@/lib/path";
+import { PromptTemplate } from "@langchain/core/prompts";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -126,13 +127,43 @@ async function PreprocessAI(state: typeof StateAnnotation.State) {
       break;
   }
 
-  /* 答えの分離 */
-  const userAnswerPromises = Utils.splitInputLlm(sepKeywordPrompt, userMessage);
+  /* 答えの分離 と ユーザーの回答を埋め込み */
+  const [userAnswer, userEmbedding] = await Promise.all([
+    Utils.splitInputLlm(sepKeywordPrompt, userMessage),
+    embeddings.embedQuery(userMessage),
+  ]);
+  console.log("質問の分離した答え: " + userAnswer);
 
-  /* ユーザーの回答を埋め込み */
-  const userEmbeddingPromises = embeddings.embedQuery(userMessage);
+  // 答えの模索
+  const template = `あなたは、チームリーダー向けのコミュニケーション研修における回答評価の専門家です。
+
+次の質問に対して、ユーザーが答えた内容が、あらかじめ用意された正解のいずれかと**意味的に一致している**かを判断してください。  
+完全一致でなくてもかまいませんが、必ず正解のどれかと**具体的に関連している必要があります**。  
+抽象的すぎる表現や、結果のみを示す回答は、一致とは見なしません。
+
+---  
+質問：  
+「報連相はなぜリーダーのためなのか？」
+
+想定される正解（3つ）：  
+1. 納期や期限を守るために、早めに情報を共有する必要があるため  
+2. 機能の過不足を防ぎ、仕様のズレをなくして適切な機能範囲を守るため  
+3. 品質を保証し、バグの混入や流出を防ぐため
+
+---  
+ユーザーの回答：  
+「{Answer}」
+
+---  
+以下の形式で答えてください：  
+- 一致した正解（1 / 2 / 3 / 一致なし）：  
+- 一致と判断した理由、もしくは一致しない理由：`;
+  const prompt = PromptTemplate.fromTemplate(template);
+  const correctPromises = userAnswer.map((answer) =>
+    prompt.pipe(OpenAi).invoke({ Answer: answer })
+  );
+
   // ベクトルストア準備 + 比較
-  const userEmbedding = await userEmbeddingPromises;
   const vectorStore = await Utils.cachedVectorStore(qaDocuments);
   console.log("QA Listベクトルストア設置完了");
   const qaEmbeddingsPromises = vectorStore.similaritySearchVectorWithScore(
@@ -141,20 +172,18 @@ async function PreprocessAI(state: typeof StateAnnotation.State) {
   );
 
   /* 正解チェック(OpenAi埋め込みモデル使用) */
-  const userAnswer = await userAnswerPromises;
-  console.log("質問の分離した答え: " + userAnswer);
-
   const data: UserAnswerEvaluation[] = [];
-  const matchPromises = userAnswer.map((answer) =>
-    matchAnswerOpenAi({
-      userAnswer: answer,
-      documents: useDocuments,
-      topK: k,
-      userAnswerData: data,
-      allTrue: allTrue,
-    })
+  const matchResults = await Promise.all(
+    userAnswer.map((answer) =>
+      matchAnswerOpenAi({
+        userAnswer: answer,
+        documents: useDocuments,
+        topK: k,
+        allTrue: allTrue,
+      })
+    )
   );
-  const matchResults = await Promise.all(matchPromises);
+  console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
   // ヒントの取得
   const top = Utils.sortScore(data);
@@ -166,11 +195,14 @@ async function PreprocessAI(state: typeof StateAnnotation.State) {
 
   const qaEmbeddings = await qaEmbeddingsPromises;
   const getHint = await getHintPromises;
-  console.log("質問1のヒント: " + getHint);
+  console.log("質問1のヒント: \n" + getHint);
+
+  const correct = await Promise.all(correctPromises);
+  console.log(correct.map((ans) => ans.content));
 
   return {
-    userAnswerData: data,
-    matched: matchResults,
+    userAnswerData: matchResults.map((r) => r.userAnswerDatas),
+    matched: matchResults.map((r) => r.isAnswerCorrect),
     qaEmbeddings: qaEmbeddings,
     aiHint: getHint,
   };
@@ -184,43 +216,16 @@ async function PreprocessAI(state: typeof StateAnnotation.State) {
 async function checkUserAnswer(state: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
 
-  const userMessage = Utils.messageToText(
-    state.messages,
-    state.messages.length - 1
-  );
-  console.log("userMessage: " + userMessage);
+  const tempIsCorrect = state.matched.some((result) => result === true);
+  console.log("質問の正解判定: " + tempIsCorrect);
 
   const flag: HorensoStates = { ...state.transition };
   switch (state.transition.step) {
     case 0:
       console.log("質問1: 報連相は誰のため？");
 
-      // // 答えの分離
-      // const whoUserAnswer = await Utils.splitInputLlm(
-      //   MSG.KEYWORD_EXTRACTION_PROMPT,
-      //   userMessage
-      // );
-      //console.log("質問1の答え: " + whoUserAnswer);
-
-      // // 正解チェック(OpenAi埋め込みモデル使用)
-      // const matchWhoPromises = whoUserAnswer.map((answer) =>
-      //   matchAnswerOpenAi({
-      //     userAnswer: answer,
-      //     documents: whoUseDocuments,
-      //     topK: 1,
-      //     threshold: 0.8,
-      //     userAnswerData: data,
-      //   })
-      // );
-      // const whoResults = await Promise.all(matchWhoPromises);
-      const tempIsWhoCorrect = state.matched.some((result) => result === true);
-      console.log("\n OpenAI Embeddings チェック完了 \n ---");
-
-      //console.dir(data, { depth: null });
-      console.log("質問1の正解: " + tempIsWhoCorrect);
-
       // 正解パターン
-      if (tempIsWhoCorrect) {
+      if (tempIsCorrect) {
         flag.step = 1;
         flag.isAnswerCorrect = true;
       }
@@ -228,32 +233,8 @@ async function checkUserAnswer(state: typeof StateAnnotation.State) {
     case 1:
       console.log("質問2: なぜリーダーのため？");
 
-      // 答えの分離
-      // const whyUserAnswer = await Utils.splitInputLlm(
-      //   MSG.CLAIM_EXTRACTION_PROMPT,
-      //   userMessage
-      // );
-      // console.log("なぜの答え: \n" + whyUserAnswer);
-
-      // 正解チェック(OpenAi埋め込みモデル使用)
-      // const matchWhyPromises = whyUserAnswer.map((answer) =>
-      //   matchAnswerOpenAi({
-      //     userAnswer: answer,
-      //     documents: whyUseDocuments,
-      //     topK: 3,
-      //     threshold: 0.7,
-      //     userAnswerData: data,
-      //     allTrue: true,
-      //   })
-      // );
-      // const whyResults = await Promise.all(matchWhyPromises);
-      const tempIsWhyCorrect = state.matched.some((result) => result === true);
-      console.log("\n OpenAI Embeddings チェック完了 \n ---");
-
-      console.log("質問2の正解: " + tempIsWhyCorrect);
-
       // 全正解
-      if (tempIsWhyCorrect) {
+      if (tempIsCorrect) {
         flag.hasQuestion = false;
         flag.isAnswerCorrect = true;
       }
@@ -277,45 +258,13 @@ async function rerank(state: typeof StateAnnotation.State) {
     usingHost
   );
 
-  // // 埋め込み作成用にデータをマップ
-  // const documents: Document<QAMetadata>[] = qaList.map((qa) => ({
-  //   pageContent: qa.userAnswer,
-  //   metadata: {
-  //     hint: qa.hint,
-  //     id: qa.id,
-  //     ...qa.metadata,
-  //   },
-  // }));
-
-  // ユーザーの回答を埋め込み
-  const userMessage = Utils.messageToText(
-    state.messages,
-    state.messages.length - 1
-  );
-  // console.log("userMessage: " + userMessage);
-  // const embedding = await embeddings.embedQuery(userMessage);
-
-  // // ベクトルストア準備 + 比較
-  // const vectorStore = await Utils.cachedVectorStore(documents);
-  // console.log("ベクトルストア設置完了");
-  // const results = await vectorStore.similaritySearchVectorWithScore(
-  //   embedding,
-  //   5
-  // );
-
   // エントリーデータ蓄積用
   qaEntryId = uuidv4();
-  const qaEntry: QAEntry = {
-    id: qaEntryId,
-    userAnswer: userMessage,
-    hint: "",
-    metadata: {
-      timestamp: timestamp,
-      quality: 0.5,
-      question_id: `${state.transition.step + 1}`,
-      source: "bot",
-    },
-  };
+  const qaEntry: QAEntry = Utils.qaEntryData(
+    qaEntryId,
+    Utils.messageToText(state.messages, state.messages.length - 1),
+    `${state.transition.step + 1}`
+  );
 
   // 新しいエントリを追加 + 上書き保存（整形付き）
   qaList.push(qaEntry);
@@ -350,10 +299,6 @@ async function rerank(state: typeof StateAnnotation.State) {
 async function generateHint(state: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
 
-  // スコア順に並べ替え
-  // const top = Utils.sortScore(state.userAnswerData);
-  // console.dir(top, { depth: null });
-
   // 今回正解した差分を見つけ出す
   const changed = findMatchStatusChanges(isPartialMatch, whyUseDocuments);
   console.log("差分: " + changed.map((page) => page.pageContent));
@@ -380,14 +325,6 @@ async function generateHint(state: typeof StateAnnotation.State) {
     case 0:
       console.log("ヒント1: 報連相は誰のため？");
 
-      // ヒントを出力
-      // const getWhoHint = await Utils.generateHintLlm(
-      //   MSG.GUIDED_ANSWER_PROMPT,
-      //   MSG.FOR_REPORT_COMMUNICATION,
-      //   top
-      // );
-      // console.log("質問1のヒント: " + state.hint);
-
       // プロンプトに含める
       contexts.push(
         `ユーザーへの助言: ---------- \n ${state.aiHint}\n -----------\n`
@@ -395,14 +332,6 @@ async function generateHint(state: typeof StateAnnotation.State) {
       break;
     case 1:
       console.log("ヒント2: なぜリーダーのため？");
-
-      // ヒントを出力
-      // const getWhyHint = await Utils.generateHintLlm(
-      //   MSG.GUIDED_ANSWER_PROMPT,
-      //   MSG.THREE_ANSWER,
-      //   top
-      // );
-      // console.log("質問2のヒント: " + state.hint);
 
       // 現在の正解を報告
       const count = Object.values(whyUseDocuments).filter(

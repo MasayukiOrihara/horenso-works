@@ -11,7 +11,7 @@ import {
   strParser,
 } from "@/lib/models";
 import { QAEntry, UsedEntry, UserAnswerEvaluation } from "@/lib/type";
-import { qaEntriesFilePath } from "@/lib/path";
+import { qaEntriesFilePath, timestamp } from "@/lib/path";
 import { readJson } from "../../chat/utils";
 
 /** メッセージ形式をStringに変換する関数 */
@@ -191,3 +191,22 @@ export const buildSupportDocs = (
         metadata: { id: `${parentId}_${index}`, parentId },
       })
   );
+
+/** エントリーデータ蓄積用 */
+export const qaEntryData = (
+  qaEntryId: string,
+  answer: string,
+  id: string
+): QAEntry => {
+  return {
+    id: qaEntryId,
+    userAnswer: answer,
+    hint: "",
+    metadata: {
+      timestamp: timestamp,
+      quality: 0.5,
+      question_id: id,
+      source: "bot",
+    },
+  };
+};
