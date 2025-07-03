@@ -27,6 +27,7 @@ export type MatchAnswerArgs = {
   documents: Document[]; // 質問ドキュメント
   topK: number; // 上位からの比較個数
   allTrue?: boolean; // 全問正解で正解とするか
+  semantic: SemanticAnswerData;
 };
 
 /** ユーザーの回答データを管理する型 */
@@ -61,3 +62,21 @@ export type QAMetadata = {
 };
 
 export type UsedEntry = { entry: Document; sum: number };
+
+/** semantic で使う型 */
+type SemanticMetadata = {
+  parentId: string | number;
+  question_id: string;
+  timestamp: string;
+  source: "user" | "admin" | "bot";
+};
+type SemanticAnswerEntry = {
+  id: string;
+  answer: string;
+  reason: string;
+  metadata: SemanticMetadata;
+};
+type SemanticAnswerData = {
+  who: SemanticAnswerEntry[][];
+  why: SemanticAnswerEntry[][];
+};

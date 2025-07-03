@@ -126,7 +126,7 @@ export async function preprocessAiNode({
   const semanticJudge = await Promise.all(semanticJudgePromises);
 
   // あいまい回答jsonの読み込み
-  const semanticList = readJson(semanticFilePath(host));
+  let semanticList = readJson(semanticFilePath(host));
   // ※※ semanticJudgeはopenAiに直接出力させたオブジェクトなので取り扱いがかなり怖い
   try {
     for (const raw of semanticJudge) {
@@ -164,11 +164,12 @@ export async function preprocessAiNode({
     }
   } catch (error) {
     console.log("semanticList は更新できませんでした。" + error);
+    semanticList = readJson(semanticFilePath(host)); // 戻し
   }
-  //   fs.writeFileSync(
-  //     semanticFilePath(host),
-  //     JSON.stringify(semanticList, null, 2)
-  //   );
+  fs.writeFileSync(
+    semanticFilePath(host),
+    JSON.stringify(semanticList, null, 2)
+  );
   // console.dir(semanticList, { depth: null });
 
   /* 正解チェック(OpenAi埋め込みモデル使用) */
@@ -180,6 +181,7 @@ export async function preprocessAiNode({
         documents: useDocuments,
         topK: k,
         allTrue: allTrue,
+        semantic: semanticList,
       })
     )
   );

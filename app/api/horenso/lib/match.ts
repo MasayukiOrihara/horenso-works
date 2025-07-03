@@ -8,6 +8,8 @@ import {
   supportingPhrasesSpecification,
 } from "../contents/documents";
 import { embeddings } from "@/lib/models";
+import { readJson } from "../../chat/utils";
+import { semanticFilePath } from "@/lib/path";
 
 /** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
 export async function matchAnswerOpenAi({
@@ -15,6 +17,7 @@ export async function matchAnswerOpenAi({
   documents,
   topK,
   allTrue = false,
+  semantic,
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
   let saveAnswerCorrect = false;
@@ -49,38 +52,39 @@ export async function matchAnswerOpenAi({
       }
     }
     // 曖昧マッチング
-    if (bestMatch.metadata.question_id === "2") {
-      const parentId = bestMatch.metadata.parentId;
-      const supportPhrasesMap: Record<string, string[]> = {
-        "1": supportingPhrasesDeadline,
-        "2": supportingPhrasesSpecification,
-        "3": supportingPhrasesQuality,
-      };
+    const parentId = bestMatch.metadata.parentId;
+    // あいまい回答jsonの読み込み
+    let phrases: string[] = [];
+    switch (bestMatch.metadata.question_id) {
+      case "1":
+        phrases = semantic.who[parentId - 1].map((e) => e.answer);
+        break;
+      case "2":
+        phrases = semantic.why[parentId - 1].map((e) => e.answer);
+        break;
+    }
+    if (phrases.length > 0) {
+      const docs = buildSupportDocs(phrases, parentId);
+      const supportVectorStore = await cachedVectorStore(docs);
+      const userEmbedding = await embeddings.embedQuery(userAnswer);
 
-      const phrases = supportPhrasesMap[parentId ?? ""] ?? [];
-      if (phrases.length > 0) {
-        const docs = buildSupportDocs(phrases, parentId);
-        const supportVectorStore = await cachedVectorStore(docs);
-        const userEmbedding = await embeddings.embedQuery(userAnswer);
+      // 最大スコアを取得
+      const maxSimilarity =
+        await supportVectorStore.similaritySearchVectorWithScore(
+          userEmbedding,
+          1
+        );
+      const topScore = maxSimilarity[0]?.[1] ?? 0;
 
-        // 最大スコアを取得
-        const maxSimilarity =
-          await supportVectorStore.similaritySearchVectorWithScore(
-            userEmbedding,
-            1
-          );
-        const topScore = maxSimilarity[0]?.[1] ?? 0;
-
-        console.log("曖昧結果: " + topScore);
-        if (topScore > 0.8) {
-          documents.forEach((d) => {
-            const docParentId = d.metadata.parentId ?? d.metadata.id;
-            if (docParentId === parentId) {
-              d.metadata.isMatched = true;
-              isAnswerCorrect = true;
-            }
-          });
-        }
+      console.log("曖昧結果: " + topScore);
+      if (topScore > 0.8) {
+        documents.forEach((d) => {
+          const docParentId = d.metadata.parentId ?? d.metadata.id;
+          if (docParentId === parentId) {
+            d.metadata.isMatched = true;
+            isAnswerCorrect = true;
+          }
+        });
       }
     }
     console.log(bestMatch);

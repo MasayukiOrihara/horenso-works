@@ -15,17 +15,6 @@ export const whoDocuments: Document[] = [
   },
 ];
 
-// {
-//     pageContent: "上司",
-//     metadata: {
-//       id: "2",
-//       parentId: "1",
-//       question_id: "1",
-//       question: "報連相は誰のためか",
-//       isMatched: false,
-//     },
-//   },
-
 // 質問ドキュメント2: 「納期」「仕様」「品質」
 export const whyDocuments: Document[] = [
   {
