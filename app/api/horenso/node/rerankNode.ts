@@ -1,11 +1,11 @@
 import { Document } from "langchain/document";
+import { BaseMessage } from "@langchain/core/messages";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 
 import * as MSG from "../contents/messages";
 import * as Utils from "../lib/utils";
 import { QAEntry, UsedEntry } from "@/lib/type";
-import { BaseMessage } from "@langchain/core/messages";
 import { qaEntriesFilePath } from "@/lib/path";
 
 type RerankNode = {

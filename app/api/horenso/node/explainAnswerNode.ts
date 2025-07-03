@@ -1,8 +1,8 @@
 import fs from "fs";
 
-import { QAEntry, UsedEntry } from "@/lib/type";
 import * as MSG from "../contents/messages";
 import * as Utils from "../lib/utils";
+import { QAEntry, UsedEntry } from "@/lib/type";
 import { qaEntriesFilePath } from "@/lib/path";
 
 type AnswerNode = {

@@ -1,17 +1,17 @@
 import { Document } from "langchain/document";
+import { BaseMessage } from "@langchain/core/messages";
+import { PromptTemplate } from "@langchain/core/prompts";
 
+import * as MSG from "../contents/messages";
+import * as Utils from "../lib/utils";
+import { matchAnswerOpenAi } from "../lib/match";
 import {
   QAEntry,
   QAMetadata,
   UsedEntry,
   UserAnswerEvaluation,
 } from "@/lib/type";
-import * as MSG from "../contents/messages";
-import * as Utils from "../lib/utils";
-import { BaseMessage } from "@langchain/core/messages";
 import { embeddings, OpenAi } from "@/lib/models";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { matchAnswerOpenAi } from "../lib/match";
 
 type AiNode = {
   messages: BaseMessage[];
