@@ -1,13 +1,23 @@
 import { Document } from "langchain/document";
 
 import * as MSG from "../contents/messages";
+import * as DOC from "../contents/documents";
 import { findMatchStatusChanges } from "../lib/match/match";
 import { UserAnswerEvaluation } from "@/lib/type";
 
+let oldWhoUseDocumentsR = DOC.whoDocuments.map((doc) => ({
+  pageContent: doc.pageContent,
+  metadata: { ...doc.metadata },
+}));
+let oldWhyUseDocumentsR = DOC.whyDocuments.map((doc) => ({
+  pageContent: doc.pageContent,
+  metadata: { ...doc.metadata },
+}));
+
 type HintNode = {
-  isPartialMatch: Document<Record<string, any>>[];
+  whoUseDocuments: Document<Record<string, any>>[];
   whyUseDocuments: Document<Record<string, any>>[];
-  userAnswerData: UserAnswerEvaluation[];
+  userAnswerDatas: UserAnswerEvaluation[];
   step: number;
   aiHint: string;
 };
@@ -18,69 +28,77 @@ type HintNode = {
  * @returns
  */
 export function generateHintNode({
-  isPartialMatch,
+  whoUseDocuments,
   whyUseDocuments,
-  userAnswerData,
+  userAnswerDatas,
   step,
   aiHint,
 }: HintNode) {
-  // 今回正解した差分を見つけ出す（※※ プロンプトの順番の関係上switchに含めずこうしてる、もし最終的にプロンプトの編集をするなら不要かも）
-  const changed = findMatchStatusChanges(isPartialMatch, whyUseDocuments);
+  const contexts = [];
+  contexts.push("# 返答作成の手順\n\n");
+
+  // どっちのドキュメントを参照するか
+  let documents: Document<Record<string, any>>[] = [];
+  let oldDocuments: Document<Record<string, any>>[] = [];
+  switch (step) {
+    case 0:
+      documents = whoUseDocuments; // 今回は使わないけど一応
+      oldDocuments = oldWhoUseDocumentsR;
+      break;
+    case 1:
+      documents = whyUseDocuments;
+      oldDocuments = oldWhyUseDocumentsR;
+      break;
+  }
+
+  // 部分的に正解だった場合、今回正解した差分を見つけ出す
+  const changed = findMatchStatusChanges(oldDocuments, documents);
   console.log("差分: " + changed.map((page) => page.pageContent));
 
-  // プロンプトに含める
-  const contexts = [];
-  if (Object.keys(changed).length > 0) {
+  oldDocuments = documents.map((doc) => ({
+    pageContent: doc.pageContent,
+    metadata: { ...doc.metadata },
+  }));
+
+  // 部分的に正解だったところを解説
+  console.log(userAnswerDatas);
+  const haveChanged = Object.keys(changed).length > 0;
+  if (haveChanged) {
     contexts.push(MSG.BULLET + MSG.PARTIAL_CORRECT_FEEDBACK_PROMPT);
-    for (const page of changed) {
-      for (const data of userAnswerData) {
-        if (page.pageContent === data.currentAnswer && data.isAnswerCorrect) {
-          console.log("部分正解: " + data.userAnswer);
-          contexts.push(data.userAnswer + "\n");
+    for (const doc of changed) {
+      for (const user of userAnswerDatas) {
+        if (doc.metadata.parentId === user.parentId && user.isAnswerCorrect) {
+          console.log("部分正解: " + user.userAnswer);
+          contexts.push(`◎ ${user.userAnswer} \n`);
         }
       }
     }
     contexts.push("\n");
   } else {
+    // 不正解
     contexts.push(MSG.BULLET + MSG.CLEAR_FEEDBACK_PROMPT);
   }
   contexts.push(MSG.BULLET + MSG.COMMENT_ON_ANSWER_PROMPT);
 
-  switch (step) {
-    case 0:
-      console.log("ヒント1: 報連相は誰のため？");
-
-      // プロンプトに含める
-      contexts.push(
-        `ユーザーへの助言: ---------- \n ${aiHint}\n -----------\n`
-      );
-      break;
-    case 1:
-      console.log("ヒント2: なぜリーダーのため？");
-
-      // 現在の正解を報告
-      const count = Object.values(whyUseDocuments).filter(
-        (val) => val.metadata.isMatched === true
-      ).length;
-      contexts.push(MSG.BULLET + MSG.CORRECT_PARTS_LABEL_PROMPT);
-      contexts.push(
-        `正解数 ${count} \n正解した項目: ${whyUseDocuments.map((page) =>
-          page.metadata.isMatched === true ? page.pageContent + ", " : ""
-        )}`
-      );
-      contexts.push("\n\n");
-
-      // プロンプトに含める
-      contexts.push(
-        `ユーザーへの助言: ---------- \n ${aiHint}\n -----------\n`
-      );
-
-      isPartialMatch = whyUseDocuments.map((doc) => ({
-        pageContent: doc.pageContent,
-        metadata: { ...doc.metadata },
-      }));
-      break;
+  // 現在の正解を報告
+  const count = Object.values(documents).filter(
+    (val) => val.metadata.isMatched === true
+  ).length;
+  if (count > 0) {
+    contexts.push(MSG.BULLET + MSG.CORRECT_PARTS_LABEL_PROMPT);
+    contexts.push(
+      `正解数 ${count} / ${
+        Object.values(documents).length
+      } \n正解した項目: ${documents.map((page) =>
+        page.metadata.isMatched === true ? page.pageContent + ", " : ""
+      )}`
+    );
+    contexts.push("\n\n");
   }
+
+  // ヒントをプロンプトに含める
+  const formattedHint = aiHint.replace(/(\r\n|\n|\r|\*)/g, "");
+  contexts.push(`ユーザーへの助言: --- \n ${formattedHint}\n ---\n`);
 
   return { contexts };
 }

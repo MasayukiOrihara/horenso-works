@@ -1,8 +1,5 @@
 import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { v4 as uuidv4 } from "uuid";
-import fs from "fs";
 
 import * as MSG from "../contents/messages";
 import * as Utils from "../lib/utils";
@@ -13,10 +10,9 @@ import {
   UsedEntry,
   UserAnswerEvaluation,
 } from "@/lib/type";
-import { embeddings, jsonParser, OpenAi } from "@/lib/models";
+import { embeddings } from "@/lib/models";
 import { readJson } from "../../chat/utils";
-import { semanticFilePath, timestamp } from "@/lib/path";
-import { judgeSemanticMatch, updateSemanticMatch } from "../lib/match/semantic";
+import { semanticFilePath } from "@/lib/path";
 
 type AiNode = {
   messages: BaseMessage[];
@@ -114,7 +110,7 @@ export async function preprocessAiNode({
       })
     )
   );
-  const userAnswerDatas = matchResults.map((r) => r.userAnswerDatas);
+  const userAnswerDatas = matchResults.map((r) => r.userAnswerDatas).flat();
   const matched = matchResults.map((r) => r.isAnswerCorrect);
   console.log("\n OpenAI Embeddings チェック完了 \n ---");
 

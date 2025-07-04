@@ -151,6 +151,7 @@ export const getRankedResults = (
   const rankedResults: UsedEntry[] = [];
   for (const [bestMatch, score] of results) {
     console.log("score: " + score + ", match: " + bestMatch.pageContent);
+    if (score < 0.7) break;
 
     // 重みづけと選出
     const qual = bestMatch.metadata.quality ?? 0.5;

@@ -103,6 +103,7 @@ export async function matchAnswerOpenAi({
     }
     // 答えの結果をユーザー回答データとして詰め込む
     const data: UserAnswerEvaluation = {
+      parentId: bestMatch.metadata.parentId,
       question_id: bestMatch.metadata.question_id,
       userAnswer: userAnswer,
       currentAnswer: bestMatch.pageContent,
@@ -134,7 +135,7 @@ export async function matchAnswerHuggingFaceAPI(
   userAnswer: string,
   documents: Document[],
   threshold: number,
-  userAnswerData: UserAnswerEvaluation[],
+  userAnswerDatas: UserAnswerEvaluation[],
   allTrue = false
 ) {
   let isAnswerCorrect = false;
@@ -167,13 +168,14 @@ export async function matchAnswerHuggingFaceAPI(
     }
     // 答えの結果を詰め込む
     const data: UserAnswerEvaluation = {
+      parentId: documents[i].metadata.parentId,
       question_id: documents[i].metadata.question_id,
       userAnswer: userAnswer,
       currentAnswer: documents[i].pageContent,
       score: score.toString(),
       isAnswerCorrect: isAnswerCorrect,
     };
-    userAnswerData.push(data);
+    userAnswerDatas.push(data);
   });
 
   // 問題正解判定

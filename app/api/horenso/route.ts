@@ -24,10 +24,6 @@ const whyUseDocuments = DOC.whyDocuments.map((doc) => ({
   pageContent: doc.pageContent,
   metadata: { ...doc.metadata },
 }));
-let isPartialMatch = DOC.whyDocuments.map((doc) => ({
-  pageContent: doc.pageContent,
-  metadata: { ...doc.metadata },
-}));
 
 // デバック用変数
 let globalDebugStep = 0;
@@ -51,7 +47,7 @@ async function setupInitial() {
   return {
     contexts: contexts,
     transition: { ...states },
-    userAnswerData: [], // 初期化
+    userAnswerDatas: [], // 初期化
   };
 }
 
@@ -69,7 +65,7 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
     });
 
   return {
-    userAnswerData: userAnswerDatas,
+    userAnswerDatas: userAnswerDatas,
     matched: matched,
     qaEmbeddings: qaEmbeddings,
     aiHint: getHint,
@@ -106,9 +102,9 @@ async function generateHint(state: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
 
   const { contexts } = generateHintNode({
-    isPartialMatch: isPartialMatch,
+    whoUseDocuments: whoUseDocuments,
     whyUseDocuments: whyUseDocuments,
-    userAnswerData: state.userAnswerData,
+    userAnswerDatas: state.userAnswerDatas,
     step: state.transition.step,
     aiHint: state.aiHint,
   });

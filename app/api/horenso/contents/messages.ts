@@ -19,12 +19,13 @@ export const KEYWORD_EXTRACTION_PROMPT =
 export const CLAIM_EXTRACTION_PROMPT =
   "以下の入力に含まれる文章のうち、主張ごとに区切って抜き出してください。\n各主張は入力からのみ抜き出し、「,」で区切って出力してください。\n抜き出せなかった場合は入力をそのまま出力してください。\n\n入力: {input}\n\n{format_instructions}";
 export const PAST_REPLY_HINT_PROMPT =
-  "以下の過去の返答例を参考にしてください。\n\n";
-export const ANSWER_EXAMPLE_PREFIX_PROMPT = "この回答に対する過去の返答例: \n";
+  "以下の文章は今回のユーザーの発言に近い過去の発言の、過去のAIの返答例です。今回の返答で同じような説明や解説をする場合、この返答例から言い回しや説明の仕方を参考にしてください。\n\n";
+export const ANSWER_EXAMPLE_PREFIX_PROMPT =
+  "今回の回答に近い過去の回答に対する過去の返答例: --- \n";
 export const GUIDED_ANSWER_PROMPT =
   "以下の質問に対して、ユーザー自身が模範解答にたどり着くようなヒントを端的に出力してください。出力時は模範解答を伏せた文章を出力してください。\n\n{question}\n模範解答: {currect_answer}\n\nユーザーの回答: {user_answer}\nヒント: ";
 export const PARTIAL_CORRECT_FEEDBACK_PROMPT =
-  "まず初めに以下は部分正解になるので、正解だったことを伝え、解説をしてください。\n";
+  "まず初めに以下は部分的に正解になるので、正解だったことを伝え、解説をしてください。\n";
 export const CLEAR_FEEDBACK_PROMPT =
   "まず初めにユーザーは答えを外したので、はっきり不正解と出力してください。\n";
 export const COMMENT_ON_ANSWER_PROMPT =

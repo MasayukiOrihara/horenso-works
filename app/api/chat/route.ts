@@ -3,17 +3,9 @@ import * as MESSAGES from "@/lib/messages";
 import { fake, OpenAi } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
-import fs from "fs";
 
-import {
-  logLearn,
-  logMessage,
-  readAddPrompt,
-  readJson,
-  updateEntry,
-} from "./utils";
+import { logLearn, logMessage, readAddPrompt, updateEntry } from "./utils";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import { QAEntry } from "@/lib/type";
 import { POINT_OUT_LOG } from "@/lib/messages";
 import { getBaseUrl, qaEntriesFilePath } from "@/lib/path";
 import { horensoApi, memoryApi } from "./api";

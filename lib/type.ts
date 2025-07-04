@@ -33,6 +33,7 @@ export type MatchAnswerArgs = {
 
 /** ユーザーの回答データを管理する型 */
 export type UserAnswerEvaluation = {
+  parentId: string;
   question_id: string;
   userAnswer: string;
   currentAnswer: string;

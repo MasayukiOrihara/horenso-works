@@ -9,7 +9,7 @@ export const StateAnnotation = Annotation.Root({
   matched: Annotation<boolean[]>(),
   qaEmbeddings: Annotation<[Document<Record<string, any>>, number][]>(),
   aiHint: Annotation<string>(),
-  userAnswerData: Annotation<UserAnswerEvaluation[]>(),
+  userAnswerDatas: Annotation<UserAnswerEvaluation[]>(),
   transition: Annotation<HorensoStates>({
     value: (
       state: HorensoStates = {

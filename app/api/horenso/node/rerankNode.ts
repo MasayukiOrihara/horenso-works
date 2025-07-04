@@ -54,7 +54,9 @@ export function rerankNode({
   usedEntry = rankedResults.sort((a, b) => b.sum - a.sum).slice(0, 2);
   for (const result of usedEntry) {
     console.log("エントリートップ2: " + result.entry.metadata.id);
-    contexts.push(`${result.entry.metadata.hint}\n ***** \n`);
+
+    const response = result.entry.metadata.hint.replace(/(\r\n|\n|\r)/g, "");
+    contexts.push(`${response}\n --- \n`);
   }
   contexts.push("\n");
 

@@ -17,6 +17,7 @@ type AnswerNode = {
  */
 export function explainAnswerNode({ usedEntry, host }: AnswerNode) {
   const contexts = [];
+  contexts.push("# 返答作成の手順\n\n");
   contexts.push(MSG.BULLET + MSG.SUCCESS_MESSAGE_PROMPT);
   contexts.push(MSG.BULLET + MSG.SUMMARY_REQUEST_PROMPT);
 
