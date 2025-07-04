@@ -2,7 +2,6 @@ import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
 
 import * as MSG from "../contents/messages";
-import * as Utils from "../lib/utils";
 import { matchAnswerOpenAi } from "../lib/match/match";
 import {
   QAEntry,
@@ -13,6 +12,12 @@ import {
 import { embeddings } from "@/lib/models";
 import { readJson } from "../../chat/utils";
 import { semanticFilePath } from "@/lib/path";
+import { splitInputLlm } from "../lib/llm/splitInput";
+import { generateHintLlm } from "../lib/llm/generateHint";
+import { sortScore } from "../lib/match/score";
+import { cachedVectorStore } from "../lib/match/vectorStore";
+import { messageToText } from "../lib/utils";
+import { writeQaEntriesQuality } from "../lib/entry";
 
 type AiNode = {
   messages: BaseMessage[];
@@ -37,10 +42,10 @@ export async function preprocessAiNode({
   whyUseDocuments,
 }: AiNode) {
   // ユーザーの答え
-  const userMessage = Utils.messageToText(messages, messages.length - 1);
+  const userMessage = messageToText(messages, messages.length - 1);
 
   // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = Utils.writeQaEntriesQuality(usedEntry, -0.1, host);
+  const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1, host);
   // 埋め込み作成用にデータをマップ
   const qaDocuments: Document<QAMetadata>[] = qaList.map((qa) => ({
     pageContent: qa.userAnswer,
@@ -81,13 +86,13 @@ export async function preprocessAiNode({
 
   /* 答えの分離 と ユーザーの回答を埋め込み */
   const [userAnswer, userEmbedding] = await Promise.all([
-    Utils.splitInputLlm(sepKeywordPrompt, userMessage),
+    splitInputLlm(sepKeywordPrompt, userMessage),
     embeddings.embedQuery(userMessage),
   ]);
   console.log("質問の分離した答え: " + userAnswer);
 
   // ベクトルストア準備 + 比較
-  const vectorStore = await Utils.cachedVectorStore(qaDocuments);
+  const vectorStore = await cachedVectorStore(qaDocuments);
   console.log("QA Listベクトルストア設置完了");
   const qaEmbeddingsPromises = vectorStore.similaritySearchVectorWithScore(
     userEmbedding,
@@ -115,8 +120,8 @@ export async function preprocessAiNode({
   console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
   // ヒントの取得
-  const top = Utils.sortScore(data);
-  const getHintPromises = Utils.generateHintLlm(
+  const top = sortScore(userAnswerDatas);
+  const getHintPromises = generateHintLlm(
     MSG.GUIDED_ANSWER_PROMPT,
     question,
     top

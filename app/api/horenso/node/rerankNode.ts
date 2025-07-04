@@ -4,9 +4,11 @@ import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 
 import * as MSG from "../contents/messages";
-import * as Utils from "../lib/utils";
 import { QAEntry, UsedEntry } from "@/lib/type";
 import { qaEntriesFilePath } from "@/lib/path";
+import { qaEntryData, writeQaEntriesQuality } from "../lib/entry";
+import { messageToText } from "../lib/utils";
+import { getRankedResults } from "../lib/match/score";
 
 type RerankNode = {
   usedEntry: UsedEntry[];
@@ -29,13 +31,13 @@ export function rerankNode({
   qaEmbeddings,
 }: RerankNode) {
   // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = Utils.writeQaEntriesQuality(usedEntry, -0.1, host);
+  const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1, host);
 
   // エントリーデータ蓄積用
   const qaEntryId = uuidv4();
-  const qaEntry: QAEntry = Utils.qaEntryData(
+  const qaEntry: QAEntry = qaEntryData(
     qaEntryId,
-    Utils.messageToText(messages, messages.length - 1),
+    messageToText(messages, messages.length - 1),
     `${step + 1}`
   );
 
@@ -48,7 +50,7 @@ export function rerankNode({
   contexts.push(MSG.ANSWER_EXAMPLE_PREFIX_PROMPT);
 
   // データ取得
-  const rankedResults: UsedEntry[] = Utils.getRankedResults(qaEmbeddings);
+  const rankedResults: UsedEntry[] = getRankedResults(qaEmbeddings);
 
   // sum の高い順に並べて、上位2件を取得
   usedEntry = rankedResults.sort((a, b) => b.sum - a.sum).slice(0, 2);

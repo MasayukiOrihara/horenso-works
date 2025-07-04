@@ -1,9 +1,9 @@
 import fs from "fs";
 
 import * as MSG from "../contents/messages";
-import * as Utils from "../lib/utils";
 import { QAEntry, UsedEntry } from "@/lib/type";
 import { qaEntriesFilePath } from "@/lib/path";
+import { writeQaEntriesQuality } from "../lib/entry";
 
 type AnswerNode = {
   usedEntry: UsedEntry[];
@@ -23,7 +23,7 @@ export function explainAnswerNode({ usedEntry, host }: AnswerNode) {
 
   // ここで使用したエントリーの重みを変更
   if (usedEntry.length != 0) {
-    const qaList: QAEntry[] = Utils.writeQaEntriesQuality(usedEntry, 0.1, host);
+    const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, 0.1, host);
     fs.writeFileSync(qaEntriesFilePath(host), JSON.stringify(qaList, null, 2));
   }
 

@@ -5,11 +5,10 @@ import fs from "fs";
 
 import * as MSG from "../../contents/messages";
 import { embeddings, jsonParser, OpenAi } from "@/lib/models";
-import { readJson } from "@/app/api/chat/utils";
-import { semanticFilePath, timestamp } from "@/lib/path";
+import { timestamp } from "@/lib/path";
 import { SemanticAnswerData, SemanticData } from "@/lib/type";
-import { buildSupportDocs, cachedVectorStore } from "../utils";
 import { DocumentInterface } from "@langchain/core/documents";
+import { cachedVectorStore } from "./vectorStore";
 
 /** ユーザー回答が答えに意味的に近いかLLMに判断させてJSON形式で出力する */
 export const judgeSemanticMatch = async (
@@ -54,7 +53,7 @@ export function updateSemanticMatch(
         answer: semanticJudge.answer,
         reason: semanticJudge.reason,
         metadata: {
-          parentId: semanticJudge.metadata.parentId,
+          parentId: String(semanticJudge.metadata.parentId),
           question_id: question_id,
           timestamp: timestamp,
           source: semanticJudge.metadata.source as "user" | "bot" | "admin", // 型が合うように明示
@@ -121,3 +120,13 @@ export const getMaxScoreSemanticMatch = async (
 
   return 0;
 };
+
+// 例：サポート用フレーズを事前にまとめる
+const buildSupportDocs = (phrases: string[], parentId: string): Document[] =>
+  phrases.map(
+    (text, index) =>
+      new Document({
+        pageContent: text,
+        metadata: { id: `${parentId}_${index}`, parentId },
+      })
+  );

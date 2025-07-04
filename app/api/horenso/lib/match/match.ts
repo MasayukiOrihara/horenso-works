@@ -1,12 +1,8 @@
 import { Document } from "langchain/document";
 
 import { MatchAnswerArgs, UserAnswerEvaluation } from "@/lib/type";
-import { cachedVectorStore } from "../utils";
-import {
-  getMaxScoreSemanticMatch,
-  judgeSemanticMatch,
-  updateSemanticMatch,
-} from "./semantic";
+import * as SEM from "./semantic";
+import { cachedVectorStore } from "./vectorStore";
 
 /** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
 export async function matchAnswerOpenAi({
@@ -51,7 +47,7 @@ export async function matchAnswerOpenAi({
     } else {
       // 曖昧マッチングを行う
       const parentId = bestMatch.metadata.parentId;
-      const topScore = await getMaxScoreSemanticMatch(
+      const topScore = await SEM.getMaxScoreSemanticMatch(
         bestMatch,
         semanticList,
         userAnswer
@@ -70,18 +66,21 @@ export async function matchAnswerOpenAi({
       } else {
         // スコアが下回った場合、調べる
         console.log("解答適正チェック");
-        const semanticJudge = await judgeSemanticMatch(userAnswer, documents);
+        const semanticJudge = await SEM.judgeSemanticMatch(
+          userAnswer,
+          documents
+        );
         console.log(semanticJudge);
+        console.log(bestMatch);
 
         // 比較対象回答と一致しているかの確認
         const checkIdMatch =
-          semanticJudge.metadata.question_id ===
-            bestMatch.metadata.question_id &&
-          semanticJudge.metadata.parentId === bestMatch.metadata.parentId;
+          String(semanticJudge.metadata.parentId) ===
+          bestMatch.metadata.parentId;
         if (semanticJudge && checkIdMatch) {
           console.log("適正あり");
           // jsonの更新
-          const updated = updateSemanticMatch(
+          const updated = SEM.updateSemanticMatch(
             semanticJudge,
             semanticList,
             semanticPath,
