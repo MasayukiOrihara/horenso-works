@@ -101,11 +101,7 @@ export async function matchAnswerOpenAi({
         }
       }
     }
-
-    console.log("対象回答比較結果: ");
-    console.log(bestMatch);
-
-    // 答えの結果を詰め込む
+    // 答えの結果をユーザー回答データとして詰め込む
     const data: UserAnswerEvaluation = {
       question_id: bestMatch.metadata.question_id,
       userAnswer: userAnswer,
@@ -114,9 +110,15 @@ export async function matchAnswerOpenAi({
       isAnswerCorrect: saveAnswerCorrect,
     };
     userAnswerDatas.push(data);
-    console.log("回答データ: ");
-    console.log(data);
-    console.log(`正解判定: ${saveAnswerCorrect}\n ---`);
+
+    // 結果をログへ
+    console.log(
+      `対象回答: "${bestMatch.pageContent}" 対象回答は正解済みか: "${bestMatch.metadata.isMatched}"`
+    );
+    console.log(
+      `ユーザー回答: "${data.userAnswer}" この回答は正解か: "${data.isAnswerCorrect}"`
+    );
+    console.log(`最終正解判定結果: "${saveAnswerCorrect}"\n ---`);
     saveAnswerCorrect = false;
   }
 
