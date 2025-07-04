@@ -17,6 +17,7 @@ export const judgeSemanticMatch = async (
   documents: Document<Record<string, any>>[]
 ) => {
   const question = documents[0].metadata.question;
+  // 問題の回答（ややこしいですが正解が複数の場合、すべての正解（多）×ユーザーの回答（単）で比較してます）
   const currentAnswer = documents
     .map((doc, i) => `${i + 1}. ${doc.pageContent}`)
     .join("\n");
@@ -36,55 +37,55 @@ export const judgeSemanticMatch = async (
 
 /** LLM の出力から semantic-match-answer.jsonを更新する処理 */
 export function updateSemanticMatch(
-  host: string,
-  semanticJudge: Record<string, any>[],
-  step: number
+  semanticJudge: Record<string, any>,
+  semanticList: SemanticAnswerData,
+  semanticPath: string,
+  question_id: string
 ) {
-  // あいまい回答jsonの読み込み
-  const semanticList = readJson(semanticFilePath(host));
+  let updated = false;
   // ※※ semanticJudgeはopenAiに直接出力させたオブジェクトなので取り扱いがかなり怖い
   try {
-    for (const raw of semanticJudge) {
-      if (raw.metadata.parentId && !(raw.metadata.parentId === "")) {
-        const data: SemanticData = {
-          id: uuidv4(),
-          answer: raw.answer,
-          reason: raw.reason,
-          metadata: {
-            parentId: raw.metadata.parentId,
-            question_id: `${step + 1}`,
-            timestamp: timestamp,
-            source: raw.metadata.source as "user" | "bot" | "admin", // 型が合うように明示
-          },
-        };
-        console.log("曖昧回答の出力:");
-        console.log(data);
-        switch (step) {
-          case 0:
-            semanticList.who[raw.metadata.parentId - 1].splice(
-              semanticList.why[raw.metadata.parentId - 1].length,
-              0,
-              data
-            );
-            break;
-          case 1:
-            semanticList.why[raw.metadata.parentId - 1].splice(
-              semanticList.why[raw.metadata.parentId - 1].length,
-              0,
-              data
-            );
-            break;
-        }
+    if (
+      semanticJudge.metadata.parentId &&
+      !(semanticJudge.metadata.parentId === "")
+    ) {
+      const data: SemanticData = {
+        id: uuidv4(),
+        answer: semanticJudge.answer,
+        reason: semanticJudge.reason,
+        metadata: {
+          parentId: semanticJudge.metadata.parentId,
+          question_id: question_id,
+          timestamp: timestamp,
+          source: semanticJudge.metadata.source as "user" | "bot" | "admin", // 型が合うように明示
+        },
+      };
+      console.log("曖昧回答の出力:");
+      console.log(data);
+      switch (question_id) {
+        case "1":
+          semanticList.who[semanticJudge.metadata.parentId - 1].splice(
+            semanticList.why[semanticJudge.metadata.parentId - 1].length,
+            0,
+            data
+          );
+          break;
+        case "2":
+          semanticList.why[semanticJudge.metadata.parentId - 1].splice(
+            semanticList.why[semanticJudge.metadata.parentId - 1].length,
+            0,
+            data
+          );
+          break;
       }
     }
   } catch (error) {
     console.log("semanticList は更新できませんでした。" + error);
+    return updated;
   }
-  fs.writeFileSync(
-    semanticFilePath(host),
-    JSON.stringify(semanticList, null, 2)
-  );
-  // console.dir(semanticList, { depth: null });
+  fs.writeFileSync(semanticPath, JSON.stringify(semanticList, null, 2));
+  updated = true;
+  return updated;
 }
 
 /** あいまい正解表を読み込んでその中で類似度最大スコアを返す */

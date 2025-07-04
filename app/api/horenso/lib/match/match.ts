@@ -2,7 +2,11 @@ import { Document } from "langchain/document";
 
 import { MatchAnswerArgs, UserAnswerEvaluation } from "@/lib/type";
 import { cachedVectorStore } from "../utils";
-import { getMaxScoreSemanticMatch, judgeSemanticMatch } from "./semantic";
+import {
+  getMaxScoreSemanticMatch,
+  judgeSemanticMatch,
+  updateSemanticMatch,
+} from "./semantic";
 
 /** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
 export async function matchAnswerOpenAi({
@@ -11,6 +15,7 @@ export async function matchAnswerOpenAi({
   topK,
   allTrue = false,
   semanticList,
+  semanticPath,
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
   let saveAnswerCorrect = false;
@@ -28,7 +33,6 @@ export async function matchAnswerOpenAi({
 
     // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
     if (score >= 0.78) {
-      saveAnswerCorrect = true;
       for (const doc of documents) {
         if (bestMatch.pageContent === doc.pageContent) {
           // 同じparentIdのフラグ上げる
@@ -43,30 +47,62 @@ export async function matchAnswerOpenAi({
           console.log(bestMatch.pageContent + " : " + doc.metadata.isMatched);
         }
       }
-    }
-    // 曖昧マッチング
-    const parentId = bestMatch.metadata.parentId;
-    const topScore = await getMaxScoreSemanticMatch(
-      bestMatch,
-      semanticList,
-      userAnswer
-    );
-
-    console.log("曖昧結果: " + topScore);
-    if (topScore > 0.8) {
-      documents.forEach((d) => {
-        const docParentId = d.metadata.parentId ?? d.metadata.id;
-        if (docParentId === parentId) {
-          d.metadata.isMatched = true;
-          isAnswerCorrect = true;
-        }
-      });
+      saveAnswerCorrect = true;
     } else {
-      // スコアが下回った場合、調べる
-      const semanticJudge = judgeSemanticMatch(userAnswer, documents);
-      // updateSemanticMatchを個々で使いたいんだけど、結局hostを使わねがならんのか...
+      // 曖昧マッチングを行う
+      const parentId = bestMatch.metadata.parentId;
+      const topScore = await getMaxScoreSemanticMatch(
+        bestMatch,
+        semanticList,
+        userAnswer
+      );
+
+      console.log("曖昧結果: " + topScore);
+      if (topScore > 0.8) {
+        documents.forEach((d) => {
+          const docParentId = d.metadata.parentId ?? d.metadata.id;
+          if (docParentId === parentId) {
+            d.metadata.isMatched = true;
+            isAnswerCorrect = true;
+            saveAnswerCorrect = true;
+          }
+        });
+      } else {
+        // スコアが下回った場合、調べる
+        console.log("解答適正チェック");
+        const semanticJudge = await judgeSemanticMatch(userAnswer, documents);
+        console.log(semanticJudge);
+
+        // 比較対象回答と一致しているかの確認
+        const checkIdMatch =
+          semanticJudge.metadata.question_id ===
+            bestMatch.metadata.question_id &&
+          semanticJudge.metadata.parentId === bestMatch.metadata.parentId;
+        if (semanticJudge && checkIdMatch) {
+          console.log("適正あり");
+          // jsonの更新
+          const updated = updateSemanticMatch(
+            semanticJudge,
+            semanticList,
+            semanticPath,
+            bestMatch.metadata.question_id
+          );
+          // 更新された場合正解とする
+          if (updated) {
+            documents.forEach((d) => {
+              const docParentId = d.metadata.parentId ?? d.metadata.id;
+              if (docParentId === parentId) {
+                d.metadata.isMatched = true;
+                isAnswerCorrect = true;
+                saveAnswerCorrect = true;
+              }
+            });
+          }
+        }
+      }
     }
 
+    console.log("対象回答比較結果: ");
     console.log(bestMatch);
 
     // 答えの結果を詰め込む
@@ -78,6 +114,9 @@ export async function matchAnswerOpenAi({
       isAnswerCorrect: saveAnswerCorrect,
     };
     userAnswerDatas.push(data);
+    console.log("回答データ: ");
+    console.log(data);
+    console.log(`正解判定: ${saveAnswerCorrect}\n ---`);
     saveAnswerCorrect = false;
   }
 

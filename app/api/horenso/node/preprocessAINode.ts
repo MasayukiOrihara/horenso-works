@@ -110,6 +110,7 @@ export async function preprocessAiNode({
         topK: k,
         allTrue: allTrue,
         semanticList: semanticList,
+        semanticPath: semanticFilePath(host),
       })
     )
   );

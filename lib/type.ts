@@ -28,6 +28,7 @@ export type MatchAnswerArgs = {
   topK: number; // 上位からの比較個数
   allTrue?: boolean; // 全問正解で正解とするか
   semanticList: SemanticAnswerData;
+  semanticPath: string;
 };
 
 /** ユーザーの回答データを管理する型 */
