@@ -47,12 +47,13 @@ export async function matchAnswerOpenAi({
     } else {
       // 曖昧マッチングを行う
       const parentId = bestMatch.metadata.parentId;
+      // ※※ この辺で外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
+
       const topScore = await SEM.getMaxScoreSemanticMatch(
         bestMatch,
         semanticList,
         userAnswer
       );
-
       console.log("曖昧結果: " + topScore);
       if (topScore > 0.8) {
         documents.forEach((d) => {

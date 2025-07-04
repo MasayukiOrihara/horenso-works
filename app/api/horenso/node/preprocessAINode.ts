@@ -77,7 +77,7 @@ export async function preprocessAiNode({
       useDocuments = whyUseDocuments;
       k = 3;
       allTrue = true;
-      question = MSG.REPORT_REASON_FOR_LEADER + MSG.THREE_ANSWER;
+      question = MSG.REPORT_REASON_FOR_LEADER;
       currentAnswer = whyUseDocuments
         .map((doc, i) => `${i + 1}. ${doc.pageContent}`)
         .join("\n");
@@ -119,13 +119,10 @@ export async function preprocessAiNode({
   const matched = matchResults.map((r) => r.isAnswerCorrect);
   console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
-  // ヒントの取得
+  // ヒントの取得（正解の場合は処理を飛ばす（※※後で実装））
+  // ※※ 間違った回答の中でスコアが高かったものを取っているが、ユーザーの答え自体は間違っているがその問題は正解しているパターンがあるためそれを除く
   const top = sortScore(userAnswerDatas);
-  const getHintPromises = generateHintLlm(
-    MSG.GUIDED_ANSWER_PROMPT,
-    question,
-    top
-  );
+  const getHintPromises = generateHintLlm(question, top);
 
   const qaEmbeddings = await qaEmbeddingsPromises;
   const getHint = await getHintPromises;
