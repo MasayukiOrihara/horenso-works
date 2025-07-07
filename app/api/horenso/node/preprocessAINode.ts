@@ -62,15 +62,11 @@ export async function preprocessAiNode({
   let k = 1;
   let allTrue = false;
   let question = "";
-  let currentAnswer = "";
   switch (step) {
     case 0:
       sepKeywordPrompt = MSG.KEYWORD_EXTRACTION_PROMPT;
       useDocuments = whoUseDocuments;
       question = MSG.FOR_REPORT_COMMUNICATION;
-      currentAnswer = whoUseDocuments
-        .map((doc, i) => `${i + 1}. ${doc.pageContent}`)
-        .join("\n");
       break;
     case 1:
       sepKeywordPrompt = MSG.CLAIM_EXTRACTION_PROMPT;
@@ -78,9 +74,6 @@ export async function preprocessAiNode({
       k = 3;
       allTrue = true;
       question = MSG.REPORT_REASON_FOR_LEADER;
-      currentAnswer = whyUseDocuments
-        .map((doc, i) => `${i + 1}. ${doc.pageContent}`)
-        .join("\n");
       break;
   }
 

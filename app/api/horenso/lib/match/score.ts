@@ -60,7 +60,7 @@ export const sortScore = (
 
   // すべて不正解の userAnswer を抽出
   const allIncorrectUserAnswers = Array.from(grouped.entries())
-    .filter(([_, group]) => group.every((item) => !item.isAnswerCorrect))
+    .filter(([, group]) => group.every((item) => !item.isAnswerCorrect))
     .map(([userAnswer]) => userAnswer);
 
   // 未正解の parentId を抽出

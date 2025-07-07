@@ -112,7 +112,7 @@ export async function POST(req: Request) {
 
     // 履歴メッセージの加工
     const conversation = [];
-    for (let message of results.messages) {
+    for (const message of results.messages) {
       const content = String(message.content).replace(/\r?\n/g, "");
 
       switch (message.getType()) {

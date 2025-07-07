@@ -1,5 +1,4 @@
 import { StateGraph } from "@langchain/langgraph";
-import { v4 as uuidv4 } from "uuid";
 
 import { UsedEntry } from "@/lib/type";
 import * as DOC from "./contents/documents";

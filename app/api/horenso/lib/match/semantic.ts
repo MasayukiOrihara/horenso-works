@@ -11,7 +11,6 @@ import {
   SemanticAnswerData,
   SemanticAnswerEntry,
 } from "@/lib/type";
-import { DocumentInterface } from "@langchain/core/documents";
 import { cachedVectorStore } from "./vectorStore";
 
 /** ユーザー回答が答えに意味的に近いかLLMに判断させてJSON形式で出力する */
