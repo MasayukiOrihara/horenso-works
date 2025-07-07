@@ -83,10 +83,10 @@ export const MessageAi = () => {
 
   return (
     <div className="w-full my-2 bg-white">
-      <div className="w-full h-32 border-4 border-black border-double rounded p-2 text-blue-300 overflow-y-auto">
+      <div className="w-full h-72 border-4 border-black border-double rounded p-2 text-blue-300 overflow-y-auto">
         {currentAiCommentMessage && (
           <div className="p-1" key={currentAiCommentMessage.id}>
-            <span className="text-zinc-800">
+            <span className="text-zinc-800 whitespace-pre-wrap">
               {currentAiCommentMessage.content}
             </span>
           </div>
