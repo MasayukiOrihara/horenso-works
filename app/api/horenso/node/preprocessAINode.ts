@@ -119,13 +119,20 @@ export async function preprocessAiNode({
   console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
   // ヒントの取得（正解の場合は処理を飛ばす（※※後で実装））
-  // ※※ 間違った回答の中でスコアが高かったものを取っているが、ユーザーの答え自体は間違っているがその問題は正解しているパターンがあるためそれを除く
-  const top = sortScore(userAnswerDatas);
-  const getHintPromises = generateHintLlm(question, top);
+  const tempIsCorrect = matched.some((result) => result === true);
+  console.log(matched);
+  let qaEmbeddings: [Document<Record<string, any>>, number][] = [];
+  let getHint: string = "";
+  if (!tempIsCorrect) {
+    const top = sortScore(userAnswerDatas, useDocuments);
+    console.log("ヒントを出すのに参照するユーザーの答え");
+    console.log(top);
+    const getHintPromises = generateHintLlm(question, top, useDocuments);
 
-  const qaEmbeddings = await qaEmbeddingsPromises;
-  const getHint = await getHintPromises;
-  console.log("質問1のヒント: \n" + getHint);
+    qaEmbeddings = await qaEmbeddingsPromises;
+    getHint = await getHintPromises;
+    console.log("質問1のヒント: \n" + getHint);
+  }
 
   return { userAnswerDatas, matched, qaEmbeddings, getHint };
 }

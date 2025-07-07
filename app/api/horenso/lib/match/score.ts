@@ -38,11 +38,38 @@ export const getRankedResults = (
   return rankedResults;
 };
 
-/** データをスコア順に並べ替える */
-export const sortScore = (data: UserAnswerEvaluation[]) => {
+/** 余分なデータフィルターし、スコア順に並べ替える */
+export const sortScore = (
+  data: UserAnswerEvaluation[],
+  documents: Document<Record<string, any>>[]
+) => {
+  // userAnswerごとにグループ化
+  const grouped = new Map<string, UserAnswerEvaluation[]>();
+
+  for (const item of data) {
+    if (!grouped.has(item.userAnswer)) {
+      grouped.set(item.userAnswer, []);
+    }
+    grouped.get(item.userAnswer)!.push(item);
+  }
+
+  // すべて不正解の userAnswer を抽出
+  const allIncorrectUserAnswers = Array.from(grouped.entries())
+    .filter(([_, group]) => group.every((item) => !item.isAnswerCorrect))
+    .map(([userAnswer]) => userAnswer);
+
+  // 未正解の parentId を抽出
+  const incorrectParentId = documents
+    .filter((item) => item.metadata.isMatched === false)
+    .map((item) => item.metadata.parentId);
+
   return data
     .slice()
     .sort((a, b) => Number(b.score) - Number(a.score))
-    .filter((item) => item.isAnswerCorrect === false)
+    .filter(
+      (item) =>
+        allIncorrectUserAnswers.includes(item.userAnswer) &&
+        incorrectParentId.includes(item.parentId)
+    )
     .slice(0, 1);
 };
