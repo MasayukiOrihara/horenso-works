@@ -102,7 +102,6 @@ export async function preprocessAiNode({
   /* 正解チェック(OpenAi埋め込みモデル使用) */
   // あいまい回答jsonの読み込み
   const semanticList = readJson(semanticFilePath(host));
-  const data: UserAnswerEvaluation[] = [];
   const matchResults = await Promise.all(
     userAnswer.map((answer) =>
       matchAnswerOpenAi({

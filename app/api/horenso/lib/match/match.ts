@@ -192,12 +192,12 @@ export async function matchAnswerHuggingFaceAPI(
  * @returns
  */
 export function findMatchStatusChanges(before: Document[], after: Document[]) {
-  return after.filter((afterItem) => {
-    const beforeItem = before.find(
-      (b) => b.metadata.id === afterItem.metadata.id
+  return before.filter((beforeItem) => {
+    const afterItem = after.find(
+      (a) => a.metadata.parentId === beforeItem.metadata.parentId
     );
     return (
-      beforeItem &&
+      afterItem &&
       beforeItem.metadata.isMatched !== afterItem.metadata.isMatched
     );
   });

@@ -5,11 +5,11 @@ import * as DOC from "../contents/documents";
 import { findMatchStatusChanges } from "../lib/match/match";
 import { UserAnswerEvaluation } from "@/lib/type";
 
-let oldWhoUseDocumentsR = DOC.whoDocuments.map((doc) => ({
+let oldWhoUseDocuments = DOC.whoDocuments.map((doc) => ({
   pageContent: doc.pageContent,
   metadata: { ...doc.metadata },
 }));
-let oldWhyUseDocumentsR = DOC.whyDocuments.map((doc) => ({
+let oldWhyUseDocuments = DOC.whyDocuments.map((doc) => ({
   pageContent: doc.pageContent,
   metadata: { ...doc.metadata },
 }));
@@ -43,37 +43,69 @@ export function generateHintNode({
   switch (step) {
     case 0:
       documents = whoUseDocuments; // 今回は使わないけど一応
-      oldDocuments = oldWhoUseDocumentsR;
+      oldDocuments = oldWhoUseDocuments;
       break;
     case 1:
       documents = whyUseDocuments;
-      oldDocuments = oldWhyUseDocumentsR;
+      oldDocuments = oldWhyUseDocuments;
       break;
   }
 
   // 部分的に正解だった場合、今回正解した差分を見つけ出す
   const changed = findMatchStatusChanges(oldDocuments, documents);
-  console.log("差分: " + changed.map((page) => page.pageContent));
+  console.log("差分:");
+  console.log(changed);
 
-  oldDocuments = documents.map((doc) => ({
+  // ローカルドキュメントにコピー
+  const copiedDocuments = documents.map((doc) => ({
     pageContent: doc.pageContent,
     metadata: { ...doc.metadata },
   }));
+  switch (step) {
+    case 0:
+      oldWhoUseDocuments = copiedDocuments;
+      break;
+    case 1:
+      oldWhyUseDocuments = copiedDocuments;
+      break;
+  }
 
-  // 部分的に正解だったところを解説
-  console.log(userAnswerDatas);
   const haveChanged = Object.keys(changed).length > 0;
+  const hasAnyMatch = userAnswerDatas.some(
+    (doc) => doc.isAnswerCorrect === true
+  );
   if (haveChanged) {
+    // 部分的に正解だったところを解説
     contexts.push(MSG.BULLET + MSG.PARTIAL_CORRECT_FEEDBACK_PROMPT);
     for (const doc of changed) {
       for (const user of userAnswerDatas) {
         if (doc.metadata.parentId === user.parentId && user.isAnswerCorrect) {
-          console.log("部分正解: " + user.userAnswer);
-          contexts.push(`◎ ${user.userAnswer} \n`);
+          contexts.push(
+            `ユーザー回答: ${user.userAnswer}, 答え: ${doc.pageContent} \n`
+          );
         }
       }
     }
     contexts.push("\n");
+  } else if (!haveChanged && hasAnyMatch) {
+    // 部分的に正解だが、すでに正解だった場合
+    contexts.push(
+      MSG.BULLET +
+        "以下のユーザー回答は部分的に正解ですが、すでにその項目は正解済みだったことを伝えてください。"
+    );
+    for (const doc of documents) {
+      for (const user of userAnswerDatas) {
+        if (
+          doc.metadata.isMatched &&
+          doc.metadata.parentId === user.parentId &&
+          user.isAnswerCorrect
+        ) {
+          contexts.push(
+            `ユーザー回答: ${user.userAnswer}, 答え: ${doc.pageContent} \n`
+          );
+        }
+      }
+    }
   } else {
     // 不正解
     contexts.push(MSG.BULLET + MSG.CLEAR_FEEDBACK_PROMPT);
