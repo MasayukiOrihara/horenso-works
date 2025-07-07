@@ -29,32 +29,35 @@ export async function matchAnswerOpenAi({
     topK
   );
   for (const [bestMatch, score] of similarityResults) {
-    console.log("score: " + score + ", match: " + bestMatch.pageContent);
+    const bestDocument = bestMatch as Document<HorensoMetadata>;
+    console.log("score: " + score + ", match: " + bestDocument.pageContent);
 
     // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
     if (score >= 0.78) {
       for (const doc of documents) {
-        if (bestMatch.pageContent === doc.pageContent) {
+        if (bestDocument.pageContent === doc.pageContent) {
           // 同じparentIdのフラグ上げる
-          const bestParentId =
-            bestMatch.metadata.parentId ?? bestMatch.metadata.id;
+          const bestParentId = bestDocument.metadata.parentId;
           documents.map((d) => {
             const parentId = d.metadata.parentId;
             if (bestParentId === parentId) d.metadata.isMatched = true;
           });
           isAnswerCorrect = true;
 
-          console.log(bestMatch.pageContent + " : " + doc.metadata.isMatched);
+          console.log(
+            bestDocument.pageContent + " : " + doc.metadata.isMatched
+          );
         }
       }
       saveAnswerCorrect = true;
     } else {
       // 曖昧マッチングを行う
-      const parentId = bestMatch.metadata.parentId;
+      const parentId = bestDocument.metadata.parentId;
+
       // ※※ この辺で外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
 
       const topScore = await SEM.getMaxScoreSemanticMatch(
-        bestMatch,
+        bestDocument,
         semanticList,
         userAnswer
       );
@@ -76,12 +79,12 @@ export async function matchAnswerOpenAi({
           documents
         );
         console.log(semanticJudge);
-        console.log(bestMatch);
+        console.log(bestDocument);
 
         // 比較対象回答と一致しているかの確認
         const checkIdMatch =
           String(semanticJudge.metadata.parentId) ===
-          bestMatch.metadata.parentId;
+          bestDocument.metadata.parentId;
         if (semanticJudge && checkIdMatch) {
           console.log("適正あり");
           // jsonの更新
@@ -89,7 +92,7 @@ export async function matchAnswerOpenAi({
             semanticJudge,
             semanticList,
             semanticPath,
-            bestMatch.metadata.question_id
+            bestDocument.metadata.question_id
           );
           // 更新された場合正解とする
           if (updated) {
@@ -107,10 +110,10 @@ export async function matchAnswerOpenAi({
     }
     // 答えの結果をユーザー回答データとして詰め込む
     const data: UserAnswerEvaluation = {
-      parentId: bestMatch.metadata.parentId,
-      question_id: bestMatch.metadata.question_id,
+      parentId: bestDocument.metadata.parentId,
+      question_id: bestDocument.metadata.question_id,
       userAnswer: userAnswer,
-      currentAnswer: bestMatch.pageContent,
+      currentAnswer: bestDocument.pageContent,
       score: score.toString(),
       isAnswerCorrect: saveAnswerCorrect,
     };
@@ -118,7 +121,7 @@ export async function matchAnswerOpenAi({
 
     // 結果をログへ
     console.log(
-      `対象回答: "${bestMatch.pageContent}" 対象回答は正解済みか: "${bestMatch.metadata.isMatched}"`
+      `対象回答: "${bestDocument.pageContent}" 対象回答は正解済みか: "${bestDocument.metadata.isMatched}"`
     );
     console.log(
       `ユーザー回答: "${data.userAnswer}" この回答は正解か: "${data.isAnswerCorrect}"`

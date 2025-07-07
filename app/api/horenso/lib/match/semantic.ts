@@ -96,13 +96,13 @@ export function updateSemanticMatch(
 
 /** あいまい正解表を読み込んでその中で類似度最大スコアを返す */
 export const getMaxScoreSemanticMatch = async (
-  similarity: DocumentInterface<Record<string, any>>,
+  similarity: Document<HorensoMetadata>,
   semanticList: SemanticAnswerData,
   userAnswer: string
 ) => {
   // あいまい回答jsonの読み込み
   let phrases: string[] = [];
-  const id = similarity.metadata.parentId;
+  const id = Number(similarity.metadata.parentId);
   switch (similarity.metadata.question_id) {
     case "1":
       phrases = semanticList.who[id - 1].map((e) => e.answer);

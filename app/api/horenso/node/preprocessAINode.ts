@@ -118,10 +118,10 @@ export async function preprocessAiNode({
   const matched = matchResults.map((r) => r.isAnswerCorrect);
   console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
-  // ヒントの取得（正解の場合は処理を飛ばす（※※後で実装））
+  // ヒントの取得
   const tempIsCorrect = matched.some((result) => result === true);
   console.log(matched);
-  let qaEmbeddings: [Document<Record<string, any>>, number][] = [];
+  let qaEmbeddings: [Document<QADocumentMetadata>, number][] = [];
   let getHint: string = "";
   if (!tempIsCorrect) {
     const top = sortScore(userAnswerDatas, useDocuments);
@@ -129,8 +129,8 @@ export async function preprocessAiNode({
     console.log(top);
     const getHintPromises = generateHintLlm(question, top, useDocuments);
 
-    qaEmbeddings = await qaEmbeddingsPromises;
-    console.log(qaEmbeddings);
+    const rawQaEmbeddings = await qaEmbeddingsPromises;
+    qaEmbeddings = rawQaEmbeddings as [Document<QADocumentMetadata>, number][];
     getHint = await getHintPromises;
     console.log("質問1のヒント: \n" + getHint);
   }

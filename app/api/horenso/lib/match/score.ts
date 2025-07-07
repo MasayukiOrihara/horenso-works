@@ -1,11 +1,15 @@
 import { Document } from "langchain/document";
 
-import { HorensoMetadata, UsedEntry, UserAnswerEvaluation } from "@/lib/type";
+import {
+  HorensoMetadata,
+  QADocumentMetadata,
+  UsedEntry,
+  UserAnswerEvaluation,
+} from "@/lib/type";
 
 /** データに重みづけしたスコアを計算して出力 */
 export const getRankedResults = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  results: [Document<Record<string, any>>, number][]
+  results: [Document<QADocumentMetadata>, number][]
 ) => {
   const rankedResults: UsedEntry[] = [];
   for (const [bestMatch, score] of results) {

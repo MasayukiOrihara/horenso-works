@@ -1,13 +1,17 @@
 import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 import { Document } from "langchain/document";
 
-import { HorensoStates, UserAnswerEvaluation } from "@/lib/type";
+import {
+  HorensoStates,
+  QADocumentMetadata,
+  UserAnswerEvaluation,
+} from "@/lib/type";
 
 /** グラフ内の状態を司るアノテーション */
 export const StateAnnotation = Annotation.Root({
   contexts: Annotation<string[]>(),
   matched: Annotation<boolean[]>(),
-  qaEmbeddings: Annotation<[Document<Record<string, any>>, number][]>(),
+  qaEmbeddings: Annotation<[Document<QADocumentMetadata>, number][]>(),
   aiHint: Annotation<string>(),
   userAnswerDatas: Annotation<UserAnswerEvaluation[]>(),
   transition: Annotation<HorensoStates>({
