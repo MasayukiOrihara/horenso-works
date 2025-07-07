@@ -6,14 +6,18 @@ import fs from "fs";
 import * as MSG from "../../contents/messages";
 import { embeddings, jsonParser, OpenAi } from "@/lib/models";
 import { timestamp } from "@/lib/path";
-import { SemanticAnswerData, SemanticData } from "@/lib/type";
+import {
+  HorensoMetadata,
+  SemanticAnswerData,
+  SemanticAnswerEntry,
+} from "@/lib/type";
 import { DocumentInterface } from "@langchain/core/documents";
 import { cachedVectorStore } from "./vectorStore";
 
 /** ユーザー回答が答えに意味的に近いかLLMに判断させてJSON形式で出力する */
 export const judgeSemanticMatch = async (
   userAnswer: string,
-  documents: Document<Record<string, any>>[]
+  documents: Document<HorensoMetadata>[]
 ) => {
   const question = documents[0].metadata.question;
   // 問題の回答（ややこしいですが正解が複数の場合、すべての正解（多）×ユーザーの回答（単）で比較してます）
@@ -48,7 +52,7 @@ export function updateSemanticMatch(
       semanticJudge.metadata.parentId &&
       !(semanticJudge.metadata.parentId === "")
     ) {
-      const data: SemanticData = {
+      const data: SemanticAnswerEntry = {
         id: uuidv4(),
         answer: semanticJudge.answer,
         reason: semanticJudge.reason,

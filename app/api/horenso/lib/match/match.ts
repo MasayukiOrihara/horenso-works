@@ -1,6 +1,10 @@
 import { Document } from "langchain/document";
 
-import { MatchAnswerArgs, UserAnswerEvaluation } from "@/lib/type";
+import {
+  HorensoMetadata,
+  MatchAnswerArgs,
+  UserAnswerEvaluation,
+} from "@/lib/type";
 import * as SEM from "./semantic";
 import { cachedVectorStore } from "./vectorStore";
 
@@ -35,7 +39,7 @@ export async function matchAnswerOpenAi({
           const bestParentId =
             bestMatch.metadata.parentId ?? bestMatch.metadata.id;
           documents.map((d) => {
-            const parentId = d.metadata.parentId ?? d.metadata.id;
+            const parentId = d.metadata.parentId;
             if (bestParentId === parentId) d.metadata.isMatched = true;
           });
           isAnswerCorrect = true;
@@ -57,7 +61,7 @@ export async function matchAnswerOpenAi({
       console.log("曖昧結果: " + topScore);
       if (topScore > 0.8) {
         documents.forEach((d) => {
-          const docParentId = d.metadata.parentId ?? d.metadata.id;
+          const docParentId = d.metadata.parentId;
           if (docParentId === parentId) {
             d.metadata.isMatched = true;
             isAnswerCorrect = true;
@@ -90,7 +94,7 @@ export async function matchAnswerOpenAi({
           // 更新された場合正解とする
           if (updated) {
             documents.forEach((d) => {
-              const docParentId = d.metadata.parentId ?? d.metadata.id;
+              const docParentId = d.metadata.parentId;
               if (docParentId === parentId) {
                 d.metadata.isMatched = true;
                 isAnswerCorrect = true;
@@ -133,7 +137,7 @@ export async function matchAnswerOpenAi({
 /** HuggingFaceのAPIを使用して類似度を計算する関数（※※※未調整） */
 export async function matchAnswerHuggingFaceAPI(
   userAnswer: string,
-  documents: Document[],
+  documents: Document<HorensoMetadata>[],
   threshold: number,
   userAnswerDatas: UserAnswerEvaluation[],
   allTrue = false
@@ -191,7 +195,10 @@ export async function matchAnswerHuggingFaceAPI(
  * @param after
  * @returns
  */
-export function findMatchStatusChanges(before: Document[], after: Document[]) {
+export function findMatchStatusChanges(
+  before: Document<HorensoMetadata>[],
+  after: Document<HorensoMetadata>[]
+) {
   return before.filter((beforeItem) => {
     const afterItem = after.find(
       (a) => a.metadata.parentId === beforeItem.metadata.parentId

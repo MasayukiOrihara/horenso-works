@@ -2,13 +2,13 @@ import { Document } from "langchain/document";
 
 import * as DOC from "../contents/documents";
 import * as MSG from "../contents/messages";
-import { HorensoStates } from "@/lib/type";
+import { HorensoMetadata, HorensoStates } from "@/lib/type";
 
 type StateNode = {
   states: HorensoStates;
   transition: HorensoStates;
-  whoUseDocuments: Document<Record<string, any>>[];
-  whyUseDocuments: Document<Record<string, any>>[];
+  whoUseDocuments: Document<HorensoMetadata>[];
+  whyUseDocuments: Document<HorensoMetadata>[];
 };
 
 export function saveFinishStateNode({

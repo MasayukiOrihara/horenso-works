@@ -4,6 +4,7 @@ import { BaseMessage } from "@langchain/core/messages";
 import * as MSG from "../contents/messages";
 import { matchAnswerOpenAi } from "../lib/match/match";
 import {
+  HorensoMetadata,
   QAEntry,
   QAMetadata,
   UsedEntry,
@@ -24,8 +25,8 @@ type AiNode = {
   usedEntry: UsedEntry[];
   step: number;
   host: string;
-  whoUseDocuments: Document<Record<string, any>>[];
-  whyUseDocuments: Document<Record<string, any>>[];
+  whoUseDocuments: Document<HorensoMetadata>[];
+  whyUseDocuments: Document<HorensoMetadata>[];
 };
 
 /**
@@ -58,7 +59,7 @@ export async function preprocessAiNode({
 
   // 使用するプロンプト
   let sepKeywordPrompt = "";
-  let useDocuments: Document[] = [];
+  let useDocuments: Document<HorensoMetadata>[] = [];
   let k = 1;
   let allTrue = false;
   let question = "";

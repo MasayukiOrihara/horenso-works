@@ -1,5 +1,6 @@
 import { Document } from "langchain/document";
-import { UsedEntry, UserAnswerEvaluation } from "@/lib/type";
+
+import { HorensoMetadata, UsedEntry, UserAnswerEvaluation } from "@/lib/type";
 
 /** データに重みづけしたスコアを計算して出力 */
 export const getRankedResults = (
@@ -41,7 +42,7 @@ export const getRankedResults = (
 /** 余分なデータフィルターし、スコア順に並べ替える */
 export const sortScore = (
   data: UserAnswerEvaluation[],
-  documents: Document<Record<string, any>>[]
+  documents: Document<HorensoMetadata>[]
 ) => {
   // userAnswerごとにグループ化
   const grouped = new Map<string, UserAnswerEvaluation[]>();

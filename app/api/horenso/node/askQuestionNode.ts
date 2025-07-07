@@ -1,10 +1,11 @@
 import { Document } from "langchain/document";
 
 import * as MSG from "../contents/messages";
+import { HorensoMetadata } from "@/lib/type";
 
 type QuestionNode = {
   step: number;
-  whyUseDocuments: Document<Record<string, any>>[];
+  whyUseDocuments: Document<HorensoMetadata>[];
 };
 
 export function askQuestionNode({ step, whyUseDocuments }: QuestionNode) {

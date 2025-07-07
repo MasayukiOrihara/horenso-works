@@ -3,7 +3,7 @@ import { Document } from "langchain/document";
 import * as MSG from "../contents/messages";
 import * as DOC from "../contents/documents";
 import { findMatchStatusChanges } from "../lib/match/match";
-import { UserAnswerEvaluation } from "@/lib/type";
+import { HorensoMetadata, UserAnswerEvaluation } from "@/lib/type";
 
 let oldWhoUseDocuments = DOC.whoDocuments.map((doc) => ({
   pageContent: doc.pageContent,
@@ -15,8 +15,8 @@ let oldWhyUseDocuments = DOC.whyDocuments.map((doc) => ({
 }));
 
 type HintNode = {
-  whoUseDocuments: Document<Record<string, any>>[];
-  whyUseDocuments: Document<Record<string, any>>[];
+  whoUseDocuments: Document<HorensoMetadata>[];
+  whyUseDocuments: Document<HorensoMetadata>[];
   userAnswerDatas: UserAnswerEvaluation[];
   step: number;
   aiHint: string;
@@ -38,8 +38,8 @@ export function generateHintNode({
   contexts.push("# 返答作成の手順\n\n");
 
   // どっちのドキュメントを参照するか
-  let documents: Document<Record<string, any>>[] = [];
-  let oldDocuments: Document<Record<string, any>>[] = [];
+  let documents: Document<HorensoMetadata>[] = [];
+  let oldDocuments: Document<HorensoMetadata>[] = [];
   switch (step) {
     case 0:
       documents = whoUseDocuments; // 今回は使わないけど一応

@@ -24,7 +24,7 @@ export type MemorizingProps = {
 /** 正解判定で使う型 */
 export type MatchAnswerArgs = {
   userAnswer: string; // 比較対象になる答え
-  documents: Document[]; // 質問ドキュメント
+  documents: Document<HorensoMetadata>[]; // 質問ドキュメント
   topK: number; // 上位からの比較個数
   allTrue?: boolean; // 全問正解で正解とするか
   semanticList: SemanticAnswerData;
@@ -42,6 +42,14 @@ export type UserAnswerEvaluation = {
 };
 
 /** エントリーデータを取り扱う型 */
+export type QAMetadata = {
+  hint: string;
+  id: string;
+  timestamp: string;
+  quality: number;
+  question_id?: string;
+  source?: "user" | "admin" | "bot";
+};
 export type QAEntry = {
   id: string;
   userAnswer: string;
@@ -54,15 +62,6 @@ export type QAEntry = {
     source?: "user" | "admin" | "bot";
   };
 };
-export type QAMetadata = {
-  hint: string;
-  id: string;
-  timestamp: string;
-  quality: number;
-  question_id?: string;
-  source?: "user" | "admin" | "bot";
-};
-
 export type UsedEntry = { entry: Document; sum: number };
 
 /** semantic で使う型 */
@@ -72,7 +71,7 @@ type SemanticMetadata = {
   timestamp: string;
   source: "user" | "admin" | "bot";
 };
-type SemanticAnswerEntry = {
+export type SemanticAnswerEntry = {
   id: string;
   answer: string;
   reason: string;
@@ -83,14 +82,9 @@ export type SemanticAnswerData = {
   why: SemanticAnswerEntry[][];
 };
 
-export type SemanticData = {
-  id: string;
-  answer: string;
-  reason: string;
-  metadata: {
-    parentId: string;
-    question_id: string;
-    timestamp: string; // ISO形式の日時
-    source: "admin" | "user" | "bot"; // 必要に応じてenum化も可能
-  };
+export type HorensoMetadata = {
+  parentId: string;
+  question_id: string;
+  question: string;
+  isMatched: boolean;
 };

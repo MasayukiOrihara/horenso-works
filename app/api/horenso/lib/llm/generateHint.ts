@@ -1,15 +1,14 @@
-import { Document } from "langchain/document";
 import { PromptTemplate } from "@langchain/core/prompts";
 
 import { sonnet, strParser } from "@/lib/models";
-import { UserAnswerEvaluation } from "@/lib/type";
+import { HorensoDocument, UserAnswerEvaluation } from "@/lib/type";
 import { GUIDED_ANSWER_PROMPT } from "../../contents/messages";
 
 /** LLMを利用して答えを導くヒントを生成する */
 export const generateHintLlm = async (
   question: string,
   top: UserAnswerEvaluation[],
-  documents: Document<Record<string, any>>[]
+  documents: HorensoDocument[]
 ) => {
   // もし top が空なら未正解の部分からヒントを選出する
   const incorrectAnswer = documents.filter(

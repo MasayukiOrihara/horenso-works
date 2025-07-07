@@ -1,5 +1,6 @@
-import { HorensoStates } from "@/lib/type";
 import { Document } from "langchain/document";
+
+import { HorensoMetadata, HorensoStates } from "@/lib/type";
 import {
   FOR_REPORT_COMMUNICATION,
   REPORT_REASON_FOR_LEADER,
@@ -7,7 +8,7 @@ import {
 } from "./messages";
 
 // 質問ドキュメント1
-export const whoDocuments: Document[] = [
+export const whoDocuments: Document<HorensoMetadata>[] = [
   {
     pageContent: "リーダー",
     metadata: {
@@ -16,12 +17,11 @@ export const whoDocuments: Document[] = [
       question: FOR_REPORT_COMMUNICATION,
       isMatched: false,
     },
-    id: "1-1",
   },
 ];
 
 // 質問ドキュメント2: 「納期」「仕様」「品質」
-export const whyDocuments: Document[] = [
+export const whyDocuments: Document<HorensoMetadata>[] = [
   {
     pageContent: "納期や期限を守るために早めの情報共有が必要",
     metadata: {
@@ -30,7 +30,6 @@ export const whyDocuments: Document[] = [
       question: REPORT_REASON_FOR_LEADER + THREE_ANSWER,
       isMatched: false,
     },
-    id: "1-1",
   },
   {
     pageContent:
@@ -41,7 +40,6 @@ export const whyDocuments: Document[] = [
       question: REPORT_REASON_FOR_LEADER + THREE_ANSWER,
       isMatched: false,
     },
-    id: "2-1",
   },
   {
     pageContent: "品質を保証しバグを未然に防ぐ",
@@ -51,7 +49,6 @@ export const whyDocuments: Document[] = [
       question: REPORT_REASON_FOR_LEADER + THREE_ANSWER,
       isMatched: false,
     },
-    id: "3-1",
   },
 ];
 
