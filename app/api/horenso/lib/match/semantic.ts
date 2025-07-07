@@ -28,6 +28,7 @@ export const judgeSemanticMatch = async (
   const prompt = PromptTemplate.fromTemplate(
     MSG.JUDGE_ANSWER_SEMANTIC_MATCH_PROMPT
   );
+  // ※※ semanticJudgeはopenAiに直接出力させたオブジェクトなので取り扱いがかなり怖い
   const semanticJudge = await prompt.pipe(OpenAi).pipe(jsonParser).invoke({
     question: question,
     current_answer: currentAnswer,
@@ -35,49 +36,51 @@ export const judgeSemanticMatch = async (
     format_instructions: jsonParser.getFormatInstructions(),
   });
 
-  return semanticJudge;
+  const data: SemanticAnswerEntry = {
+    id: uuidv4(),
+    answer: semanticJudge.answer,
+    reason: semanticJudge.reason,
+    metadata: {
+      parentId: String(semanticJudge.metadata.parentId),
+      question_id: "",
+      timestamp: timestamp,
+      source: semanticJudge.metadata.source as "user" | "bot" | "admin", // 型が合うように明示
+    },
+  };
+  console.log("曖昧回答の出力:");
+  console.log(data);
+
+  return data;
 };
 
 /** LLM の出力から semantic-match-answer.jsonを更新する処理 */
 export function updateSemanticMatch(
-  semanticJudge: Record<string, any>,
+  semanticJudge: SemanticAnswerEntry,
   semanticList: SemanticAnswerData,
   semanticPath: string,
   question_id: string
 ) {
   let updated = false;
-  // ※※ semanticJudgeはopenAiに直接出力させたオブジェクトなので取り扱いがかなり怖い
   try {
     if (
       semanticJudge.metadata.parentId &&
       !(semanticJudge.metadata.parentId === "")
     ) {
-      const data: SemanticAnswerEntry = {
-        id: uuidv4(),
-        answer: semanticJudge.answer,
-        reason: semanticJudge.reason,
-        metadata: {
-          parentId: String(semanticJudge.metadata.parentId),
-          question_id: question_id,
-          timestamp: timestamp,
-          source: semanticJudge.metadata.source as "user" | "bot" | "admin", // 型が合うように明示
-        },
-      };
-      console.log("曖昧回答の出力:");
-      console.log(data);
+      const parentId = Number(semanticJudge.metadata.parentId);
+      semanticJudge.metadata.question_id = question_id;
       switch (question_id) {
         case "1":
-          semanticList.who[semanticJudge.metadata.parentId - 1].splice(
-            semanticList.why[semanticJudge.metadata.parentId - 1].length,
+          semanticList.who[parentId - 1].splice(
+            semanticList.why[parentId - 1].length,
             0,
-            data
+            semanticJudge
           );
           break;
         case "2":
-          semanticList.why[semanticJudge.metadata.parentId - 1].splice(
-            semanticList.why[semanticJudge.metadata.parentId - 1].length,
+          semanticList.why[parentId - 1].splice(
+            semanticList.why[parentId - 1].length,
             0,
-            data
+            semanticJudge
           );
           break;
       }

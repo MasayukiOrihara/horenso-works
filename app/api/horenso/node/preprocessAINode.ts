@@ -5,10 +5,9 @@ import * as MSG from "../contents/messages";
 import { matchAnswerOpenAi } from "../lib/match/match";
 import {
   HorensoMetadata,
+  QADocumentMetadata,
   QAEntry,
-  QAMetadata,
   UsedEntry,
-  UserAnswerEvaluation,
 } from "@/lib/type";
 import { embeddings } from "@/lib/models";
 import { readJson } from "../../chat/utils";
@@ -48,7 +47,7 @@ export async function preprocessAiNode({
   // 既存データを読み込む（なければ空配列）
   const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1, host);
   // 埋め込み作成用にデータをマップ
-  const qaDocuments: Document<QAMetadata>[] = qaList.map((qa) => ({
+  const qaDocuments: Document<QADocumentMetadata>[] = qaList.map((qa) => ({
     pageContent: qa.userAnswer,
     metadata: {
       hint: qa.hint,
@@ -131,6 +130,7 @@ export async function preprocessAiNode({
     const getHintPromises = generateHintLlm(question, top, useDocuments);
 
     qaEmbeddings = await qaEmbeddingsPromises;
+    console.log(qaEmbeddings);
     getHint = await getHintPromises;
     console.log("質問1のヒント: \n" + getHint);
   }

@@ -7,7 +7,7 @@ import { LangChainAdapter } from "ai";
 import { logLearn, logMessage, readAddPrompt, updateEntry } from "./utils";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { POINT_OUT_LOG } from "@/lib/messages";
-import { getBaseUrl, qaEntriesFilePath } from "@/lib/path";
+import { getBaseUrl } from "@/lib/path";
 import { horensoApi, memoryApi } from "./api";
 
 // 外部フラグ
