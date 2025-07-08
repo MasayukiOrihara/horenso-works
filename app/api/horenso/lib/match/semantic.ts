@@ -102,14 +102,15 @@ export const getMaxScoreSemanticMatch = async (
   // あいまい回答jsonの読み込み
   let phrases: string[] = [];
   const id = Number(similarity.metadata.parentId);
-  console.log(semanticList);
-  switch (similarity.metadata.question_id) {
-    case "1":
-      phrases = semanticList.who[id - 1].map((e) => e.answer);
-      break;
-    case "2":
-      phrases = semanticList.why[id - 1].map((e) => e.answer);
-      break;
+  if (Array.isArray(semanticList) && semanticList.length > 0) {
+    switch (similarity.metadata.question_id) {
+      case "1":
+        phrases = semanticList.who[id - 1].map((e) => e.answer);
+        break;
+      case "2":
+        phrases = semanticList.why[id - 1].map((e) => e.answer);
+        break;
+    }
   }
   if (phrases.length > 0) {
     const docs = buildSupportDocs(phrases, String(id));
@@ -122,7 +123,6 @@ export const getMaxScoreSemanticMatch = async (
         userEmbedding,
         1
       );
-    console.log(maxSimilarity);
     return maxSimilarity[0]?.[1] ?? 0;
   }
 
