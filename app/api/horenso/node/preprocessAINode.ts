@@ -11,7 +11,7 @@ import {
 } from "@/lib/type";
 import { embeddings } from "@/lib/models";
 import { readJson } from "../../chat/utils";
-import { semanticFilePath } from "@/lib/path";
+import { notCrrectFilePath, semanticFilePath } from "@/lib/path";
 import { splitInputLlm } from "../lib/llm/splitInput";
 import { generateHintLlm } from "../lib/llm/generateHint";
 import { sortScore } from "../lib/match/score";
@@ -97,6 +97,7 @@ export async function preprocessAiNode({
   /* 正解チェック(OpenAi埋め込みモデル使用) */
   // あいまい回答jsonの読み込み
   const semanticList = readJson(semanticFilePath(host));
+  const notCorrectList = readJson(notCrrectFilePath(host));
   const matchResults = await Promise.all(
     userAnswer.map((answer) =>
       matchAnswerOpenAi({
@@ -107,6 +108,7 @@ export async function preprocessAiNode({
         shouldValidate: shouldValidate,
         semanticList: semanticList,
         semanticPath: semanticFilePath(host),
+        notCorrectList: notCorrectList,
       })
     )
   );

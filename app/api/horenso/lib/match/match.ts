@@ -17,6 +17,7 @@ export async function matchAnswerOpenAi({
   shouldValidate = true,
   semanticList,
   semanticPath,
+  notCorrectList,
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
   let saveAnswerCorrect = false;
@@ -54,58 +55,66 @@ export async function matchAnswerOpenAi({
     } else {
       // 曖昧マッチングを行う
       const parentId = bestDocument.metadata.parentId;
-
-      // ※※ この辺で外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
-
-      const topScore = await SEM.getMaxScoreSemanticMatch(
+      // 外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
+      const worstScore = await SEM.getMaxScoreSemanticMatch(
         bestDocument,
-        semanticList,
+        notCorrectList,
         userAnswer
       );
-      console.log("曖昧結果: " + topScore);
-      if (topScore > 0.8) {
-        documents.forEach((d) => {
-          const docParentId = d.metadata.parentId;
-          if (docParentId === parentId) {
-            d.metadata.isMatched = true;
-            isAnswerCorrect = true;
-            saveAnswerCorrect = true;
-          }
-        });
+      if (worstScore > 0.8) {
+        console.log("worstScore: " + worstScore);
       } else {
-        if (shouldValidate) {
-          // スコアが下回った場合、調べる
-          console.log("解答適正チェック");
-          const semanticJudge = await SEM.judgeSemanticMatch(
-            userAnswer,
-            documents
-          );
-          console.log(semanticJudge);
-          console.log(bestDocument);
-
-          // 比較対象回答と一致しているかの確認
-          const checkIdMatch =
-            String(semanticJudge.metadata.parentId) ===
-            bestDocument.metadata.parentId;
-          if (semanticJudge && checkIdMatch) {
-            console.log("適正あり");
-            // jsonの更新
-            const updated = SEM.updateSemanticMatch(
-              semanticJudge,
-              semanticList,
-              semanticPath,
-              bestDocument.metadata.question_id
+        // 曖昧リストから検索し最大値スコアを取得
+        const topScore = await SEM.getMaxScoreSemanticMatch(
+          bestDocument,
+          semanticList,
+          userAnswer
+        );
+        console.log("曖昧結果: " + topScore);
+        if (topScore > 0.8) {
+          documents.forEach((d) => {
+            const docParentId = d.metadata.parentId;
+            if (docParentId === parentId) {
+              d.metadata.isMatched = true;
+              isAnswerCorrect = true;
+              saveAnswerCorrect = true;
+            }
+          });
+        } else {
+          if (shouldValidate) {
+            // スコアが下回った場合、調べる
+            console.log("解答適正チェック");
+            const semanticJudge = await SEM.judgeSemanticMatch(
+              userAnswer,
+              documents
             );
-            // 更新された場合正解とする
-            if (updated) {
-              documents.forEach((d) => {
-                const docParentId = d.metadata.parentId;
-                if (docParentId === parentId) {
-                  d.metadata.isMatched = true;
-                  isAnswerCorrect = true;
-                  saveAnswerCorrect = true;
-                }
-              });
+            console.log(semanticJudge);
+            console.log(bestDocument);
+
+            // 比較対象回答と一致しているかの確認
+            const checkIdMatch =
+              String(semanticJudge.metadata.parentId) ===
+              bestDocument.metadata.parentId;
+            if (semanticJudge && checkIdMatch) {
+              console.log("適正あり");
+              // jsonの更新
+              const updated = SEM.updateSemanticMatch(
+                semanticJudge,
+                semanticList,
+                semanticPath,
+                bestDocument.metadata.question_id
+              );
+              // 更新された場合正解とする
+              if (updated) {
+                documents.forEach((d) => {
+                  const docParentId = d.metadata.parentId;
+                  if (docParentId === parentId) {
+                    d.metadata.isMatched = true;
+                    isAnswerCorrect = true;
+                    saveAnswerCorrect = true;
+                  }
+                });
+              }
             }
           }
         }

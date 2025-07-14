@@ -30,6 +30,7 @@ export type MatchAnswerArgs = {
   shouldValidate?: boolean; // 適正チェックを行うかどうかのフラグ
   semanticList: SemanticAnswerData;
   semanticPath: string;
+  notCorrectList: SemanticAnswerData;
 };
 
 /** ユーザーの回答データを管理する型 */

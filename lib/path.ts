@@ -35,6 +35,17 @@ export const semanticFilePath = (host: string) => {
   }
 };
 
+// not-correct.json のファイルパス
+export const notCrrectFilePath = (host: string) => {
+  if (host?.includes("vercel")) {
+    // vercel
+    return path.join("/tmp", "not-correct.json");
+  } else {
+    // ローカル
+    return path.join(process.cwd(), "public", "semantic", "not-correct.json");
+  }
+};
+
 function toJSTISOString(date = new Date()) {
   const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000); // UTC+9
   return jstDate.toISOString().replace("Z", "+09:00");

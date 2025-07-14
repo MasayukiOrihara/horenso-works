@@ -1,0 +1,58 @@
+{
+  "who": [
+    [
+      {
+        "id": "xxx",
+        "answer": "自分",
+        "reason": "",
+        "metadata": {
+          "parentId": "1",
+          "question_id": "1",
+          "timestamp": "2025-07-14T09:20:01.438+09:00",
+          "source": "admin"
+        }
+      }
+    ]
+  ],
+  "why": [
+    [
+      {
+        "id": "xxx",
+        "answer": "hogehoge",
+        "reason": "",
+        "metadata": {
+          "parentId": "1",
+          "question_id": "2",
+          "timestamp": "2025-07-03T14:20:00.000+09:00",
+          "source": "admin"
+        }
+      }
+    ],
+    [
+      {
+        "id": "xxx",
+        "answer": "hogehoge",
+        "reason": "",
+        "metadata": {
+          "parentId": "2",
+          "question_id": "2",
+          "timestamp": "2025-07-03T14:20:00.000+09:00",
+          "source": "admin"
+        }
+      }
+    ],
+    [
+      {
+        "id": "xxx",
+        "answer": "hogehoge",
+        "reason": "",
+        "metadata": {
+          "parentId": "3",
+          "question_id": "2",
+          "timestamp": "2025-07-03T14:20:00.000+09:00",
+          "source": "admin"
+        }
+      }
+    ]
+  ]
+}
