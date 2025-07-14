@@ -1,6 +1,6 @@
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
-import { SideMenu } from "@/components/side-menu";
+import { Header } from "@/components/parts/header";
+import { Footer } from "@/components/parts/footer";
+import { SideMenu } from "@/components/parts/side-menu";
 import { SubPage } from "@/components/sub-page";
 import { Navi } from "@/components/navi-header";
 import { StartButton } from "@/components/start-button";

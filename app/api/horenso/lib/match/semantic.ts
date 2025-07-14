@@ -100,17 +100,23 @@ export const getMaxScoreSemanticMatch = async (
   userAnswer: string
 ) => {
   // あいまい回答jsonの読み込み
-  let phrases: string[] = [];
+  let phrases: { id: string; answer: string }[] = [];
   const id = Number(similarity.metadata.parentId);
   switch (similarity.metadata.question_id) {
     case "1":
       if (Array.isArray(semanticList.who) && semanticList.who.length > 0) {
-        phrases = semanticList.who[id - 1].map((e) => e.answer);
+        phrases = semanticList.who[id - 1].map((e) => ({
+          id: e.id,
+          answer: e.answer,
+        }));
       }
       break;
     case "2":
       if (Array.isArray(semanticList.why) && semanticList.why.length > 0) {
-        phrases = semanticList.why[id - 1].map((e) => e.answer);
+        phrases = semanticList.why[id - 1].map((e) => ({
+          id: e.id,
+          answer: e.answer,
+        }));
       }
       break;
   }
@@ -126,18 +132,46 @@ export const getMaxScoreSemanticMatch = async (
         userEmbedding,
         1
       );
-    return maxSimilarity[0]?.[1] ?? 0;
+    const score = maxSimilarity[0]?.[1] ?? 0;
+    const semanticId = maxSimilarity[0]?.[0].metadata.id ?? "";
+    return { id: semanticId, score: score };
   }
 
-  return 0;
+  return { id: "", score: 0 };
 };
 
 // 例：サポート用フレーズを事前にまとめる
-const buildSupportDocs = (phrases: string[], parentId: string): Document[] =>
+const buildSupportDocs = (
+  phrases: { id: string; answer: string }[],
+  parentId: string
+): Document[] =>
   phrases.map(
-    (text, index) =>
+    (phrases) =>
       new Document({
-        pageContent: text,
-        metadata: { id: `${parentId}_${index}`, parentId },
+        pageContent: phrases.answer,
+        metadata: { id: phrases.id, parentId },
       })
   );
+
+/** リスト ID から理由を検索 */
+export const getSemanticMatchReason = (
+  similarity: Document<HorensoMetadata>,
+  semanticList: SemanticAnswerData,
+  semanticId: string
+) => {
+  const id = Number(similarity.metadata.parentId);
+  let item;
+  switch (similarity.metadata.question_id) {
+    case "1":
+      if (Array.isArray(semanticList.who) && semanticList.who.length > 0) {
+        item = semanticList.who[id - 1].find((d) => d.id === semanticId);
+      }
+      break;
+    case "2":
+      if (Array.isArray(semanticList.why) && semanticList.why.length > 0) {
+        item = semanticList.why[id - 1].find((d) => d.id === semanticId);
+      }
+      break;
+  }
+  return item?.reason ?? "";
+};

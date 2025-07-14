@@ -4,8 +4,9 @@ import { MessageProvider } from "./messages/message-provider";
 import { MessageInput } from "./messages/message-input";
 import { MessageAi } from "./messages/message-ai";
 import { SCREEN } from "./screen";
-import { Debuglog } from "./debuglog";
+import { Debuglog } from "./debug/debuglog";
 import { useSwitches } from "./provider/switch-provider";
+import { CurrentCheck } from "./debug/currentCheck";
 
 export const SubPage: React.FC = () => {
   const { learnOn } = useSwitches();
@@ -20,6 +21,7 @@ export const SubPage: React.FC = () => {
         <div>
           <MessageInput />
         </div>
+        <CurrentCheck />
       </div>
     </MessageProvider>
   );

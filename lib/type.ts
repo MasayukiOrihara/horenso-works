@@ -36,11 +36,13 @@ export type MatchAnswerArgs = {
 /** ユーザーの回答データを管理する型 */
 export type UserAnswerEvaluation = {
   parentId: string;
-  question_id: string;
-  userAnswer: string;
-  currentAnswer: string;
-  score: string;
-  isAnswerCorrect: boolean;
+  question_id: string; // 問題番号
+  userAnswer: string; // ユーザーの答え
+  currentAnswer: string; // 正答
+  score: string; // 類似性のスコア
+  semanticId?: string; // あいまい正解リストでのID
+  semanticReason?: string; // あいまい正解リストでの理由
+  isAnswerCorrect: boolean; // 正解だったかどうか
 };
 
 /** エントリーデータを取り扱う型 */

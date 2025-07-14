@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
-import { useUserMessages } from "./messages/message-provider";
-import { Button } from "./ui/button";
-import { useSwitches } from "./provider/switch-provider";
+import { useUserMessages } from "../messages/message-provider";
+import { Button } from "../ui/button";
+import { useSwitches } from "../provider/switch-provider";
 
 let message = "";
 

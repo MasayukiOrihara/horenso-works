@@ -189,7 +189,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const userMessage = body.userMessage;
 
-    const { host } = getBaseUrl(req);
+    const { host, baseUrl } = getBaseUrl(req);
     globalHost = host;
     globalDebugStep = Number(req.headers.get("step")) ?? 0;
 
@@ -205,6 +205,20 @@ export async function POST(req: Request) {
     );
     console.log(result.contexts);
     const aiText = result.contexts.join("");
+
+    // ユーザー答えデータの管理
+    const sendUserAnswerData = result.userAnswerDatas.filter(
+      (item) => item.isAnswerCorrect === true
+    );
+    await fetch(baseUrl + "/api/userAnswerData", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.ACCESS_TOKEN}`, // vercel用
+      },
+      body: JSON.stringify({ sendUserAnswerData }),
+    });
 
     console.log("🈡 報連相ワーク ターン終了");
 

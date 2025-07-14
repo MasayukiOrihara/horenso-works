@@ -35,6 +35,8 @@ export async function matchAnswerOpenAi({
     console.log("score: " + score + ", match: " + bestDocument.pageContent);
 
     // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
+    let semanticId = "";
+    let semanticReason = "";
     if (score >= 0.78) {
       for (const doc of documents) {
         if (bestDocument.pageContent === doc.pageContent) {
@@ -56,7 +58,7 @@ export async function matchAnswerOpenAi({
       // 曖昧マッチングを行う
       const parentId = bestDocument.metadata.parentId;
       // 外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
-      const worstScore = await SEM.getMaxScoreSemanticMatch(
+      const { score: worstScore } = await SEM.getMaxScoreSemanticMatch(
         bestDocument,
         notCorrectList,
         userAnswer
@@ -65,11 +67,12 @@ export async function matchAnswerOpenAi({
         console.log("worstScore: " + worstScore);
       } else {
         // 曖昧リストから検索し最大値スコアを取得
-        const topScore = await SEM.getMaxScoreSemanticMatch(
-          bestDocument,
-          semanticList,
-          userAnswer
-        );
+        const { id: topId, score: topScore } =
+          await SEM.getMaxScoreSemanticMatch(
+            bestDocument,
+            semanticList,
+            userAnswer
+          );
         console.log("曖昧結果: " + topScore);
         if (topScore > 0.8) {
           documents.forEach((d) => {
@@ -78,6 +81,12 @@ export async function matchAnswerOpenAi({
               d.metadata.isMatched = true;
               isAnswerCorrect = true;
               saveAnswerCorrect = true;
+              semanticId = topId;
+              semanticReason = SEM.getSemanticMatchReason(
+                bestDocument,
+                semanticList,
+                topId
+              );
             }
           });
         } else {
@@ -112,6 +121,12 @@ export async function matchAnswerOpenAi({
                     d.metadata.isMatched = true;
                     isAnswerCorrect = true;
                     saveAnswerCorrect = true;
+                    semanticId = semanticJudge.id;
+                    semanticReason = SEM.getSemanticMatchReason(
+                      bestDocument,
+                      semanticList,
+                      semanticJudge.id
+                    );
                   }
                 });
               }
@@ -127,6 +142,8 @@ export async function matchAnswerOpenAi({
       userAnswer: userAnswer,
       currentAnswer: bestDocument.pageContent,
       score: score.toString(),
+      semanticId: semanticId,
+      semanticReason: semanticReason,
       isAnswerCorrect: saveAnswerCorrect,
     };
     userAnswerDatas.push(data);
