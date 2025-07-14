@@ -102,16 +102,19 @@ export const getMaxScoreSemanticMatch = async (
   // あいまい回答jsonの読み込み
   let phrases: string[] = [];
   const id = Number(similarity.metadata.parentId);
-  if (Array.isArray(semanticList) && semanticList.length > 0) {
-    switch (similarity.metadata.question_id) {
-      case "1":
+  switch (similarity.metadata.question_id) {
+    case "1":
+      if (Array.isArray(semanticList.who) && semanticList.who.length > 0) {
         phrases = semanticList.who[id - 1].map((e) => e.answer);
-        break;
-      case "2":
+      }
+      break;
+    case "2":
+      if (Array.isArray(semanticList.why) && semanticList.why.length > 0) {
         phrases = semanticList.why[id - 1].map((e) => e.answer);
-        break;
-    }
+      }
+      break;
   }
+
   if (phrases.length > 0) {
     const docs = buildSupportDocs(phrases, String(id));
     const supportVectorStore = await cachedVectorStore(docs);

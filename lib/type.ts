@@ -27,6 +27,7 @@ export type MatchAnswerArgs = {
   documents: Document<HorensoMetadata>[]; // 質問ドキュメント
   topK: number; // 上位からの比較個数
   allTrue?: boolean; // 全問正解で正解とするか
+  shouldValidate?: boolean; // 適正チェックを行うかどうかのフラグ
   semanticList: SemanticAnswerData;
   semanticPath: string;
 };

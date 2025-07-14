@@ -1,6 +1,6 @@
 import { LangSmithClient } from "@/lib/clients";
 import * as MESSAGES from "@/lib/messages";
-import { fake, OpenAi } from "@/lib/models";
+import { fake, OpenAi4oMini } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
 
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
     const prompt = PromptTemplate.fromTemplate(template);
 
     // ストリーミング応答を取得
-    const stream = await prompt.pipe(OpenAi).stream({
+    const stream = await prompt.pipe(OpenAi4oMini).stream({
       chat_history: memoryData,
       user_message: userMessage,
       ai_message: aiMessage,

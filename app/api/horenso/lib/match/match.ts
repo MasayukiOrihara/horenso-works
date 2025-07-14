@@ -14,6 +14,7 @@ export async function matchAnswerOpenAi({
   documents,
   topK,
   allTrue = false,
+  shouldValidate = true,
   semanticList,
   semanticPath,
 }: MatchAnswerArgs) {
@@ -72,38 +73,40 @@ export async function matchAnswerOpenAi({
           }
         });
       } else {
-        // スコアが下回った場合、調べる
-        console.log("解答適正チェック");
-        const semanticJudge = await SEM.judgeSemanticMatch(
-          userAnswer,
-          documents
-        );
-        console.log(semanticJudge);
-        console.log(bestDocument);
-
-        // 比較対象回答と一致しているかの確認
-        const checkIdMatch =
-          String(semanticJudge.metadata.parentId) ===
-          bestDocument.metadata.parentId;
-        if (semanticJudge && checkIdMatch) {
-          console.log("適正あり");
-          // jsonの更新
-          const updated = SEM.updateSemanticMatch(
-            semanticJudge,
-            semanticList,
-            semanticPath,
-            bestDocument.metadata.question_id
+        if (shouldValidate) {
+          // スコアが下回った場合、調べる
+          console.log("解答適正チェック");
+          const semanticJudge = await SEM.judgeSemanticMatch(
+            userAnswer,
+            documents
           );
-          // 更新された場合正解とする
-          if (updated) {
-            documents.forEach((d) => {
-              const docParentId = d.metadata.parentId;
-              if (docParentId === parentId) {
-                d.metadata.isMatched = true;
-                isAnswerCorrect = true;
-                saveAnswerCorrect = true;
-              }
-            });
+          console.log(semanticJudge);
+          console.log(bestDocument);
+
+          // 比較対象回答と一致しているかの確認
+          const checkIdMatch =
+            String(semanticJudge.metadata.parentId) ===
+            bestDocument.metadata.parentId;
+          if (semanticJudge && checkIdMatch) {
+            console.log("適正あり");
+            // jsonの更新
+            const updated = SEM.updateSemanticMatch(
+              semanticJudge,
+              semanticList,
+              semanticPath,
+              bestDocument.metadata.question_id
+            );
+            // 更新された場合正解とする
+            if (updated) {
+              documents.forEach((d) => {
+                const docParentId = d.metadata.parentId;
+                if (docParentId === parentId) {
+                  d.metadata.isMatched = true;
+                  isAnswerCorrect = true;
+                  saveAnswerCorrect = true;
+                }
+              });
+            }
           }
         }
       }

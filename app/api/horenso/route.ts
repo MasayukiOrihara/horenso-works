@@ -1,4 +1,4 @@
-import { StateGraph } from "@langchain/langgraph";
+import { MemorySaver, StateGraph } from "@langchain/langgraph";
 
 import { UsedEntry } from "@/lib/type";
 import * as DOC from "./contents/documents";
@@ -180,7 +180,9 @@ const workflow = new StateGraph(StateAnnotation)
   .addEdge("ask", "save")
   .addEdge("save", "__end__");
 
-const app = workflow.compile();
+// 記憶の追加
+const memory = new MemorySaver();
+const app = workflow.compile({ checkpointer: memory });
 
 export async function POST(req: Request) {
   try {
@@ -194,9 +196,13 @@ export async function POST(req: Request) {
     console.log("🏁 報連相ワーク ターン開始");
 
     // langgraph
-    const result = await app.invoke({
-      messages: userMessage,
-    });
+    const config = { configurable: { thread_id: "abc123" } };
+    const result = await app.invoke(
+      {
+        messages: userMessage,
+      },
+      config
+    );
     console.log(result.contexts);
     const aiText = result.contexts.join("");
 

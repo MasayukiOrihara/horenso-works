@@ -24,10 +24,17 @@ export const OpenAi = new ChatOpenAI({
   tags: ["Horenso-works"],
 });
 // opebAIモデル（4o-mini）
-export const openAi4oMini = new ChatOpenAI({
+export const OpenAi4oMini = new ChatOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   model: "gpt-4o-mini",
-  temperature: 0.4,
+  temperature: 0.7,
+  tags: ["Horenso-works"],
+});
+// opebAIモデル（4.1-mini）
+export const OpenAi4_1Mini = new ChatOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  model: "gpt-4.1-mini",
+  temperature: 0.2, // 要約タスク
   tags: ["Horenso-works"],
 });
 

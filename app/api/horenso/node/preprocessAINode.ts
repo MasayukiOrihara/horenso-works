@@ -61,12 +61,14 @@ export async function preprocessAiNode({
   let useDocuments: Document<HorensoMetadata>[] = [];
   let k = 1;
   let allTrue = false;
+  let shouldValidate = true;
   let question = "";
   switch (step) {
     case 0:
       sepKeywordPrompt = MSG.KEYWORD_EXTRACTION_PROMPT;
       useDocuments = whoUseDocuments;
       question = MSG.FOR_REPORT_COMMUNICATION;
+      shouldValidate = false;
       break;
     case 1:
       sepKeywordPrompt = MSG.CLAIM_EXTRACTION_PROMPT;
@@ -102,6 +104,7 @@ export async function preprocessAiNode({
         documents: useDocuments,
         topK: k,
         allTrue: allTrue,
+        shouldValidate: shouldValidate,
         semanticList: semanticList,
         semanticPath: semanticFilePath(host),
       })
