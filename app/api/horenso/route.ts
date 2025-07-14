@@ -210,7 +210,7 @@ export async function POST(req: Request) {
     const sendUserAnswerData = result.userAnswerDatas.filter(
       (item) => item.isAnswerCorrect === true
     );
-    await fetch(baseUrl + "/api/userAnswerData", {
+    await fetch(baseUrl + "/api/user-answer-data", {
       method: "POST",
       credentials: "include",
       headers: {

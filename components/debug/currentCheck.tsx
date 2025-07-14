@@ -27,7 +27,7 @@ export const CurrentCheck: React.FC = () => {
     const isStreaming = oldAiState === "streaming"; // 前の状態が"streaming"
     if (haveChanged && isStreaming) {
       const fetchData = async () => {
-        const res = await fetch("/api/userAnswerData", {
+        const res = await fetch("/api/user-answer-data", {
           method: "GET",
           headers: {
             Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
@@ -47,10 +47,17 @@ export const CurrentCheck: React.FC = () => {
     userAnswerData.filter((item) => item.semanticId !== id);
   };
 
-  const handleDeleteNo = (id: string) => {
+  const handleDeleteNo = async (id: string) => {
     setDeletedIds((prev) => [...prev, id]);
     userAnswerData.filter((item) => item.semanticId !== id);
-    // この辺にフロントから呼び出してjsonファイル編集
+    // jsonファイル編集(削除)
+    await fetch(`/api/semantic-match-json/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    });
   };
 
   return (
@@ -83,7 +90,9 @@ export const CurrentCheck: React.FC = () => {
                       yes
                     </Button>
                     <Button
-                      onClick={() => handleDeleteNo(data.semanticId!)}
+                      onClick={async () =>
+                        await handleDeleteNo(data.semanticId!)
+                      }
                       variant={"check"}
                       className=""
                     >
