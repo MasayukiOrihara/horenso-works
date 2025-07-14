@@ -35,7 +35,6 @@ export async function POST(req: Request) {
  */
 export async function GET() {
   try {
-    console.log(userAnswerDatas);
     return Response.json(userAnswerDatas, {
       status: 200,
     });
