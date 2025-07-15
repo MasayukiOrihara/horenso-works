@@ -41,9 +41,9 @@ export async function preprocessAiNode({
   whoUseDocuments,
   whyUseDocuments,
 }: AiNode) {
+  /* ⓪ 使う変数の準備  */
   // ユーザーの答え
   const userMessage = messageToText(messages, messages.length - 1);
-
   // 既存データを読み込む（なければ空配列）
   const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1, host);
   // 埋め込み作成用にデータをマップ
@@ -55,6 +55,9 @@ export async function preprocessAiNode({
       ...qa.metadata,
     },
   }));
+  // あいまい回答jsonの読み込み
+  const semanticList = readJson(semanticFilePath(host));
+  const notCorrectList = readJson(notCrrectFilePath(host));
 
   // 使用するプロンプト
   let sepKeywordPrompt = "";
@@ -79,55 +82,44 @@ export async function preprocessAiNode({
       break;
   }
 
-  /* 答えの分離 と ユーザーの回答を埋め込み */
-  const [userAnswer, userEmbedding] = await Promise.all([
+  /* ① 答えの分離 と ユーザーの回答を埋め込み とベクターストア作成 */
+  const [userAnswer, userEmbedding, vectorStore] = await Promise.all([
     splitInputLlm(sepKeywordPrompt, userMessage),
     embeddings.embedQuery(userMessage),
+    cachedVectorStore(qaDocuments),
   ]);
   console.log("質問の分離した答え: " + userAnswer);
 
-  // ベクトルストア準備 + 比較
-  const vectorStore = await cachedVectorStore(qaDocuments);
-  console.log("QA Listベクトルストア設置完了");
-  const qaEmbeddingsPromises = vectorStore.similaritySearchVectorWithScore(
-    userEmbedding,
-    5
-  );
-
-  /* 正解チェック(OpenAi埋め込みモデル使用) */
-  // あいまい回答jsonの読み込み
-  const semanticList = readJson(semanticFilePath(host));
-  const notCorrectList = readJson(notCrrectFilePath(host));
-  const matchResults = await Promise.all(
-    userAnswer.map((answer) =>
-      matchAnswerOpenAi({
-        userAnswer: answer,
-        documents: useDocuments,
-        topK: k,
-        allTrue: allTrue,
-        shouldValidate: shouldValidate,
-        semanticList: semanticList,
-        semanticPath: semanticFilePath(host),
-        notCorrectList: notCorrectList,
-      })
-    )
-  );
+  /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
+  const [matchResults, rawQaEmbeddings] = await Promise.all([
+    Promise.all(
+      userAnswer.map((answer) =>
+        matchAnswerOpenAi({
+          userAnswer: answer,
+          documents: useDocuments,
+          topK: k,
+          allTrue: allTrue,
+          shouldValidate: shouldValidate,
+          semanticList: semanticList,
+          semanticPath: semanticFilePath(host),
+          notCorrectList: notCorrectList,
+        })
+      )
+    ),
+    vectorStore.similaritySearchVectorWithScore(userEmbedding, 5),
+  ]);
   const userAnswerDatas = matchResults.map((r) => r.userAnswerDatas).flat();
   const matched = matchResults.map((r) => r.isAnswerCorrect);
   console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
-  // ヒントの取得
+  /* ③ ヒントの取得（正解していたときは飛ばす） */
   const tempIsCorrect = matched.some((result) => result === true);
-  console.log(matched);
   let qaEmbeddings: [Document<QADocumentMetadata>, number][] = [];
   let getHint: string = "";
   if (!tempIsCorrect) {
     const top = sortScore(userAnswerDatas, useDocuments);
-    console.log("ヒントを出すのに参照するユーザーの答え");
-    console.log(top);
     const getHintPromises = generateHintLlm(question, top, useDocuments);
 
-    const rawQaEmbeddings = await qaEmbeddingsPromises;
     qaEmbeddings = rawQaEmbeddings as [Document<QADocumentMetadata>, number][];
     getHint = await getHintPromises;
     console.log("質問1のヒント: \n" + getHint);

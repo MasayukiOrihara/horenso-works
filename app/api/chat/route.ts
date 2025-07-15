@@ -69,8 +69,8 @@ export async function POST(req: Request) {
         MESSAGES.DEVELOPMENT_WORK_EXPLANATION + MESSAGES.QUESTION_WHO_ASKING;
     } else {
       // 報連相ワークAPI呼び出し
-      const res = await horensoApi(baseUrl, step, userMessage);
-      const apiBody = await res.json();
+      const horensoGraph = await horensoApi(baseUrl, step, userMessage);
+      const apiBody = await horensoGraph.json();
       aiMessage = apiBody.text;
       qaEntryId = apiBody.qaEntryId;
 
@@ -83,6 +83,7 @@ export async function POST(req: Request) {
         aiMessage = aiMessage + "\n\n" + MESSAGES.FINISH_MESSAGE;
       }
     }
+
     // 過去履歴の同期
     const memoryResponse = await memoryResponsePromise;
     const memoryData = await memoryResponse.json();
