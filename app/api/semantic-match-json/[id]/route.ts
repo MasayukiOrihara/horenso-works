@@ -17,10 +17,10 @@ export async function DELETE(
 
   try {
     const { host } = getBaseUrl(req);
-    const filePath = semanticFilePath(host);
+    const filePath = semanticFilePath();
 
     // データ取得
-    const list: SemanticAnswerData = readJson(semanticFilePath(host));
+    const list: SemanticAnswerData = readJson(semanticFilePath());
 
     // フィルターして上書き
     const newWho: SemanticAnswerEntry[][] = list.who.map((innerArray) =>

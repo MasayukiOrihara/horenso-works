@@ -20,6 +20,7 @@ import { messageToText } from "../lib/utils";
 import { writeQaEntriesQuality } from "../lib/entry";
 import { pushLog } from "../lib/log/logBuffer";
 import { judgeTalk } from "../lib/llm/judgeTalk";
+import { getShouldValidateApi } from "@/lib/api/serverApi";
 
 type AiNode = {
   messages: BaseMessage[];
@@ -59,20 +60,22 @@ export async function preprocessAiNode({
   // あいまい回答jsonの読み込み
   const semanticList = readJson(semanticFilePath());
   const notCorrectList = readJson(notCrrectFilePath());
+  const readShouldValidate = await getShouldValidateApi();
+  console.log(readShouldValidate);
 
   // 使用するプロンプト
   let sepKeywordPrompt = "";
   let useDocuments: Document<HorensoMetadata>[] = [];
   let k = 1;
   let allTrue = false;
-  let shouldValidate = true;
+  let shouldValidate = false;
   let question = "";
   switch (step) {
     case 0:
       sepKeywordPrompt = MSG.KEYWORD_EXTRACTION_PROMPT;
       useDocuments = whoUseDocuments;
       question = MSG.FOR_REPORT_COMMUNICATION;
-      shouldValidate = false;
+      shouldValidate = readShouldValidate.who ?? false;
       break;
     case 1:
       sepKeywordPrompt = MSG.CLAIM_EXTRACTION_PROMPT;
@@ -80,6 +83,7 @@ export async function preprocessAiNode({
       k = 3;
       allTrue = true;
       question = MSG.REPORT_REASON_FOR_LEADER;
+      shouldValidate = readShouldValidate.why ?? true;
       break;
   }
 

@@ -7,6 +7,7 @@ import {
 } from "@/lib/type";
 import * as SEM from "./semantic";
 import { cachedVectorStore } from "./vectorStore";
+import { semanticFilePath } from "@/lib/path";
 
 /** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
 export async function matchAnswerOpenAi({
@@ -21,6 +22,7 @@ export async function matchAnswerOpenAi({
   let isAnswerCorrect = false;
   let saveAnswerCorrect = false;
   const userAnswerDatas: UserAnswerEvaluation[] = [];
+  const semanticPath = semanticFilePath();
 
   // ベクトルストア準備
   const vectorStore = await cachedVectorStore(documents);
@@ -109,6 +111,7 @@ export async function matchAnswerOpenAi({
               const updated = SEM.updateSemanticMatch(
                 semanticJudge,
                 semanticList,
+                semanticPath,
                 bestDocument.metadata.question_id
               );
               // 更新された場合正解とする

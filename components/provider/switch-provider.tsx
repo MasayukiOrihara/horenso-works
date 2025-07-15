@@ -9,6 +9,12 @@ type SwitchContextType = {
   setLearnOn: (value: boolean) => void;
   addPromptOn: boolean;
   setAddPromptOn: (value: boolean) => void;
+  checkOn: boolean;
+  setCheckOn: (value: boolean) => void;
+  shouldVidateOn: { who: boolean; why: boolean };
+  setShouldVidateOn: React.Dispatch<
+    React.SetStateAction<{ who: boolean; why: boolean }>
+  >;
   inputTag: string;
   setInputTag: (value: string) => void;
 };
@@ -26,6 +32,11 @@ export const SwitchProvider = ({ children }: { children: ReactNode }) => {
   const [memoryOn, setMemoryOn] = useState(true);
   const [learnOn, setLearnOn] = useState(false);
   const [addPromptOn, setAddPromptOn] = useState(false);
+  const [checkOn, setCheckOn] = useState(true);
+  const [shouldVidateOn, setShouldVidateOn] = useState<{
+    who: boolean;
+    why: boolean;
+  }>({ who: false, why: true });
   const [inputTag, setInputTag] = useState("");
 
   return (
@@ -37,6 +48,10 @@ export const SwitchProvider = ({ children }: { children: ReactNode }) => {
         setLearnOn,
         addPromptOn,
         setAddPromptOn,
+        checkOn,
+        setCheckOn,
+        shouldVidateOn,
+        setShouldVidateOn,
         inputTag,
         setInputTag,
       }}

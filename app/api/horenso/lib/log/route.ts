@@ -3,9 +3,15 @@ import { flushLogs } from "./logBuffer";
 export async function GET() {
   const encoder = new TextEncoder();
 
+  let controllerRef: ReadableStreamDefaultController<string> | null = null;
+  let closed = false;
+  let interval: NodeJS.Timeout;
+
   const stream = new ReadableStream({
     async start(controller) {
-      const interval = setInterval(() => {
+      controllerRef = controller;
+      interval = setInterval(() => {
+        if (closed) return;
         const logs = flushLogs(); // 新着ログのみ
         for (const log of logs) {
           controller.enqueue(encoder.encode(`data: ${log}\n\n`));
@@ -14,9 +20,28 @@ export async function GET() {
 
       // 5分後に自動終了（オプション）
       setTimeout(() => {
-        clearInterval(interval);
-        controller.close();
+        if (!closed && controllerRef) {
+          closed = true;
+          clearInterval(interval);
+          try {
+            controllerRef.close();
+          } catch (e) {
+            console.warn("Already closed:", e);
+          }
+        }
       }, 1000 * 60 * 5);
+    },
+
+    cancel() {
+      if (!closed && controllerRef) {
+        closed = true;
+        clearInterval(interval);
+        try {
+          controllerRef.close(); // 念のための二重確認
+        } catch (e) {
+          console.warn("Already closed in cancel:", e);
+        }
+      }
     },
   });
 

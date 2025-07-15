@@ -56,10 +56,10 @@ export const judgeSemanticMatch = async (
 export function updateSemanticMatch(
   semanticJudge: SemanticAnswerEntry,
   semanticList: SemanticAnswerData,
+  semanticPath: string,
   question_id: string
 ) {
   let updated = false;
-  const semanticPath = semanticFilePath();
   try {
     if (
       semanticJudge.metadata.parentId &&

@@ -92,3 +92,8 @@ export type HorensoMetadata = {
   question: string;
   isMatched: boolean;
 };
+
+export type ShouldValidate = {
+  who: boolean;
+  why: boolean;
+};

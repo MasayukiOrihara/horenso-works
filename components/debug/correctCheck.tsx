@@ -13,7 +13,7 @@ import {
 /**
  * 前ターンに正解を出したユーザーの答えは正しいのか問うUI
  */
-export const CurrentCheck: React.FC = () => {
+export const CorrectCheck: React.FC = () => {
   const { aiState } = useUserMessages();
   const [oldAiState, setOldAiState] = useState("");
   const [deletedIds, setDeletedIds] = useState<string[]>([]);

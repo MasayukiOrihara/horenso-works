@@ -1,4 +1,4 @@
-import { getBaseUrl, notCrrectFilePath, semanticFilePath } from "@/lib/path";
+import { notCrrectFilePath, semanticFilePath } from "@/lib/path";
 import { SemanticAnswerData } from "@/lib/type";
 import { readJson } from "@/app/api/chat/utils";
 import { updateSemanticMatch } from "@/app/api/horenso/lib/match/semantic";
@@ -16,9 +16,8 @@ export async function POST(
   const semanticId = params.id;
 
   try {
-    const { host } = getBaseUrl(req);
-    const semanticListUrl = semanticFilePath(host);
-    const notCorrectUrl = notCrrectFilePath(host);
+    const semanticListUrl = semanticFilePath();
+    const notCorrectUrl = notCrrectFilePath();
 
     // データ取得
     const semanticList: SemanticAnswerData = readJson(semanticListUrl);
