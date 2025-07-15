@@ -5,9 +5,10 @@ import { useUserMessages } from "../messages/message-provider";
 import { UserAnswerEvaluation } from "@/lib/type";
 import { Button } from "../ui/button";
 import {
+  getUserAnswerDataApi,
   semanticMatchJsonDeleteAPI,
   semanticMatchJsonMoveAPI,
-} from "@/lib/api";
+} from "@/lib/api/api";
 
 export const CurrentCheck: React.FC = () => {
   const { aiState } = useUserMessages();
@@ -31,13 +32,7 @@ export const CurrentCheck: React.FC = () => {
     const isStreaming = oldAiState === "streaming"; // 前の状態が"streaming"
     if (haveChanged && isStreaming) {
       const fetchData = async () => {
-        const res = await fetch("/api/user-answer-data", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const res = await getUserAnswerDataApi();
         const json = await res.json();
         setUserAnswerData(json);
         setDeletedIds([]);

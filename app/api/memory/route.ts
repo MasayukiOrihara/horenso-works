@@ -9,6 +9,9 @@ import {
 import { OpenAi4_1Mini } from "@/lib/models";
 import { MEMORY_SUMMARY_PROMPT, MEMORY_UPDATE_PROMPT } from "./contents";
 
+// メッセージ履歴
+const conversation: string[] = [];
+
 /** メッセージを挿入する処理 */
 async function insartMessages(state: typeof GraphAnnotation.State) {
   console.log("📩 insart messages");
@@ -104,7 +107,7 @@ export async function POST(req: Request) {
     const results = await app.invoke({ messages: previousMessage }, config);
 
     // 履歴メッセージの加工
-    const conversation = [];
+    conversation.length = 0; // 初期化
     for (const message of results.messages) {
       const content = String(message.content).replace(/\r?\n/g, "");
 
@@ -120,6 +123,33 @@ export async function POST(req: Request) {
       }
     }
 
+    return new Response(JSON.stringify(conversation), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "Unknown error occurred" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+/**
+ * 会話履歴要約API
+ * @param req
+ * @returns
+ */
+export async function GET() {
+  try {
+    // 既存の会話履歴を返す
     return new Response(JSON.stringify(conversation), {
       status: 200,
       headers: { "Content-Type": "application/json" },

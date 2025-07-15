@@ -29,7 +29,6 @@ export type MatchAnswerArgs = {
   allTrue?: boolean; // 全問正解で正解とするか
   shouldValidate?: boolean; // 適正チェックを行うかどうかのフラグ
   semanticList: SemanticAnswerData;
-  semanticPath: string;
   notCorrectList: SemanticAnswerData;
 };
 

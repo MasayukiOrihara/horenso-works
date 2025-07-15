@@ -12,7 +12,6 @@ import { getRankedResults } from "../lib/match/score";
 
 type RerankNode = {
   usedEntry: UsedEntry[];
-  host: string;
   messages: BaseMessage[];
   step: number;
   qaEmbeddings: [Document<QADocumentMetadata>, number][];
@@ -25,13 +24,12 @@ type RerankNode = {
  */
 export function rerankNode({
   usedEntry,
-  host,
   messages,
   step,
   qaEmbeddings,
 }: RerankNode) {
   // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1, host);
+  const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1);
 
   // エントリーデータ蓄積用
   const qaEntryId = uuidv4();
@@ -43,7 +41,7 @@ export function rerankNode({
 
   // 新しいエントリを追加 + 上書き保存（整形付き）
   qaList.push(qaEntry);
-  fs.writeFileSync(qaEntriesFilePath(host), JSON.stringify(qaList, null, 2));
+  fs.writeFileSync(qaEntriesFilePath(), JSON.stringify(qaList, null, 2));
 
   const contexts = [];
   contexts.push(MSG.BULLET + MSG.PAST_REPLY_HINT_PROMPT);

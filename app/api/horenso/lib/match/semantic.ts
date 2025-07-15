@@ -5,7 +5,7 @@ import fs from "fs";
 
 import * as MSG from "../../contents/messages";
 import { embeddings, jsonParser, OpenAi } from "@/lib/models";
-import { timestamp } from "@/lib/path";
+import { semanticFilePath, timestamp } from "@/lib/path";
 import {
   HorensoMetadata,
   SemanticAnswerData,
@@ -56,10 +56,10 @@ export const judgeSemanticMatch = async (
 export function updateSemanticMatch(
   semanticJudge: SemanticAnswerEntry,
   semanticList: SemanticAnswerData,
-  semanticPath: string,
   question_id: string
 ) {
   let updated = false;
+  const semanticPath = semanticFilePath();
   try {
     if (
       semanticJudge.metadata.parentId &&

@@ -31,8 +31,6 @@ let globalDebugStep = 0;
 let globalQaEntryId = "";
 // ヒントに使ったエントリーデータ(次のターンも使いまわす)
 let globalUsedEntry: UsedEntry[] = [];
-// 起動しているホスト
-let globalHost = "";
 
 /**
  * langGraphのノード群
@@ -59,7 +57,6 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
       messages: state.messages,
       usedEntry: globalUsedEntry,
       step: state.transition.step,
-      host: globalHost,
       whoUseDocuments: whoUseDocuments,
       whyUseDocuments: whyUseDocuments,
     });
@@ -87,7 +84,6 @@ async function rerank(state: typeof StateAnnotation.State) {
 
   const { qaEntryId, usedEntry, contexts } = rerankNode({
     usedEntry: globalUsedEntry,
-    host: globalHost,
     messages: state.messages,
     step: state.transition.step,
     qaEmbeddings: state.qaEmbeddings,
@@ -125,10 +121,7 @@ async function askQuestion(state: typeof StateAnnotation.State) {
 async function explainAnswer(state: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
 
-  const { contexts } = explainAnswerNode({
-    usedEntry: globalUsedEntry,
-    host: globalHost,
-  });
+  const { contexts } = explainAnswerNode(globalUsedEntry);
   return { contexts: [...state.contexts, ...contexts] };
 }
 
@@ -189,12 +182,10 @@ export async function POST(req: Request) {
     const body = await req.json();
     const userMessage = body.userMessage;
 
-    const { host, baseUrl } = getBaseUrl(req);
-    globalHost = host;
     globalDebugStep = Number(req.headers.get("step")) ?? 0;
+    const { baseUrl } = getBaseUrl(req);
 
     console.log("🏁 報連相ワーク ターン開始");
-
     // langgraph
     const config = { configurable: { thread_id: "abc123" } };
     const result = await app.invoke(

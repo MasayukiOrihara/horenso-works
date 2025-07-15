@@ -7,7 +7,7 @@ import path from "path";
 
 import { QAEntry } from "@/lib/type";
 import * as Path from "@/lib/path";
-import { qaEntriesFilePath } from "@/lib/path";
+import { getBaseUrl, qaEntriesFilePath } from "@/lib/path";
 
 // ダミーデータ
 const initial: QAEntry = {
@@ -43,7 +43,7 @@ const logShort = (msg: string, max = 30) => {
 };
 
 /** これまでの会話を記憶 */
-export async function logMessage(host: string, message: BaseMessage) {
+export async function logMessage(message: BaseMessage) {
   console.log("会話を記憶中...");
 
   // テキストの整形
@@ -57,11 +57,11 @@ export async function logMessage(host: string, message: BaseMessage) {
   logShort("書き出す内容: \n" + result);
 
   // 書き出し
-  await writeTextFile(host, Path.memoryFilePath, result);
+  await writeTextFile(Path.memoryFilePath, result);
 }
 
 /** 講師の指摘から学ぶ */
-export async function logLearn(host: string, learnText: string) {
+export async function logLearn(learnText: string) {
   console.log("タグ付き入力で会話を指摘可能...");
 
   switch (true) {
@@ -69,7 +69,7 @@ export async function logLearn(host: string, learnText: string) {
       console.log("エントリーの入力");
 
       // 既存データを読み込む（なければ空配列）
-      const qaList: QAEntry[] = readJson(Path.qaEntriesFilePath(host));
+      const qaList: QAEntry[] = readJson(Path.qaEntriesFilePath());
 
       // timestampが最大のもの（最新）を探す
       const latestEntry = qaList.reduce(
@@ -94,12 +94,10 @@ export async function logLearn(host: string, learnText: string) {
 
       // 上書き保存（整形付き）
       fs.writeFileSync(
-        Path.qaEntriesFilePath(host),
+        Path.qaEntriesFilePath(),
         JSON.stringify(qaList, null, 2)
       );
-      const entryFinishLog = `✅ エントリーデータを ${Path.qaEntriesFilePath(
-        host
-      )} に更新しました`;
+      const entryFinishLog = `✅ エントリーデータを ${Path.qaEntriesFilePath()} に更新しました`;
       console.log(entryFinishLog);
 
       return entryFinishLog;
@@ -109,7 +107,7 @@ export async function logLearn(host: string, learnText: string) {
       // プロンプトに追加
       const result = " - " + learnText.replace("【プロンプト】", "") + "\n";
       // 指摘をファイルに書き出し
-      await writeTextFile(host, Path.learnFilePath, result);
+      await writeTextFile(Path.learnFilePath, result);
 
       const promptFinishLog = `✅ 指摘内容を ${Path.learnFileName} に保存しました。\n`;
       return promptFinishLog;
@@ -181,7 +179,9 @@ async function saveVercelText(fileName: string, writeText: string) {
 }
 
 // ローカル or vercelにtxtファイル書き出し
-const writeTextFile = async (host: string, path: string, result: string) => {
+const writeTextFile = async (path: string, result: string) => {
+  const { host } = getBaseUrl();
+
   // ファイル書き出し
   if (host?.includes("localhost")) {
     // ローカル
@@ -207,9 +207,9 @@ export const readJson = (path: string) => {
 };
 
 /* エントリーの更新関数 */
-export function updateEntry(host: string, qaEntryId: string, text: string) {
+export function updateEntry(qaEntryId: string, text: string) {
   // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = readJson(qaEntriesFilePath(host));
+  const qaList: QAEntry[] = readJson(qaEntriesFilePath());
 
   // 値の更新
   const updated = qaList.map((qa) =>
@@ -224,8 +224,6 @@ export function updateEntry(host: string, qaEntryId: string, text: string) {
       : qa
   );
   // 上書き保存（整形付き）
-  fs.writeFileSync(qaEntriesFilePath(host), JSON.stringify(updated, null, 2));
-  console.log(
-    `✅ エントリーデータを ${qaEntriesFilePath(host)} に更新しました`
-  );
+  fs.writeFileSync(qaEntriesFilePath(), JSON.stringify(updated, null, 2));
+  console.log(`✅ エントリーデータを ${qaEntriesFilePath()} に更新しました`);
 }

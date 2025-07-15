@@ -8,7 +8,7 @@ import { logLearn, logMessage, readAddPrompt, updateEntry } from "./utils";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { POINT_OUT_LOG } from "@/lib/messages";
 import { getBaseUrl } from "@/lib/path";
-import { horensoApi, memoryApi } from "./api";
+import { postHorensoGraphApi, postMemoryApi } from "../../../lib/api/serverApi";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -23,11 +23,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const messages = body.messages ?? [];
-    const { host, baseUrl } = getBaseUrl(req);
+    const { baseUrl } = getBaseUrl(req);
+    console.log(baseUrl);
     const getBoolHeader = (key: string) => req.headers.get(key) === "true";
 
     // 過去の履歴
-    const memoryResponsePromise = memoryApi(baseUrl, messages);
+    const memoryResponsePromise = postMemoryApi(messages);
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
 
@@ -35,13 +36,13 @@ export async function POST(req: Request) {
       // メッセージ保存: フロントエンドから記憶設定を取得
       const humanMessage = new HumanMessage(userMessage);
       if (getBoolHeader("memoryOn")) {
-        await logMessage(host, humanMessage);
+        await logMessage(humanMessage);
       }
     }
 
     // 指摘の取得: フロントエンドから指摘設定を取得
     if (getBoolHeader("learnOn")) {
-      const log = await logLearn(host, userMessage);
+      const log = await logLearn(userMessage);
       console.log("指摘終了\n");
 
       // 定型文を吐いて会話を抜ける
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
         MESSAGES.DEVELOPMENT_WORK_EXPLANATION + MESSAGES.QUESTION_WHO_ASKING;
     } else {
       // 報連相ワークAPI呼び出し
-      const horensoGraph = await horensoApi(baseUrl, step, userMessage);
+      const horensoGraph = await postHorensoGraphApi(step, userMessage);
       const apiBody = await horensoGraph.json();
       aiMessage = apiBody.text;
       qaEntryId = apiBody.qaEntryId;
@@ -136,12 +137,12 @@ export async function POST(req: Request) {
         // メッセージ保存: フロントエンドから記憶設定を取得
         const aiMessage = new AIMessage(fullText);
         if (getBoolHeader("memoryOn")) {
-          await logMessage(host, aiMessage);
+          await logMessage(aiMessage);
         }
 
         // 今回のエントリーにメッセージを追記
         if (!(qaEntryId === "")) {
-          updateEntry(host, qaEntryId, fullText);
+          updateEntry(qaEntryId, fullText);
         }
         controller.close();
       },

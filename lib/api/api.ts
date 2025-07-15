@@ -23,3 +23,13 @@ export async function semanticMatchJsonDeleteAPI(id: string) {
     },
   });
 }
+
+export async function getUserAnswerDataApi() {
+  return await fetch("/api/user-answer-data", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+  });
+}

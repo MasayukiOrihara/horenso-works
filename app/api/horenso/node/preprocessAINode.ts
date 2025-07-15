@@ -11,7 +11,7 @@ import {
 } from "@/lib/type";
 import { embeddings } from "@/lib/models";
 import { readJson } from "../../chat/utils";
-import { notCrrectFilePath, semanticFilePath } from "@/lib/path";
+import { getBaseUrl, notCrrectFilePath, semanticFilePath } from "@/lib/path";
 import { splitInputLlm } from "../lib/llm/splitInput";
 import { generateHintLlm } from "../lib/llm/generateHint";
 import { sortScore } from "../lib/match/score";
@@ -19,12 +19,12 @@ import { cachedVectorStore } from "../lib/match/vectorStore";
 import { messageToText } from "../lib/utils";
 import { writeQaEntriesQuality } from "../lib/entry";
 import { pushLog } from "../lib/log/logBuffer";
+import { judgeTalk } from "../lib/llm/judgeTalk";
 
 type AiNode = {
   messages: BaseMessage[];
   usedEntry: UsedEntry[];
   step: number;
-  host: string;
   whoUseDocuments: Document<HorensoMetadata>[];
   whyUseDocuments: Document<HorensoMetadata>[];
 };
@@ -38,7 +38,6 @@ export async function preprocessAiNode({
   messages,
   usedEntry,
   step,
-  host,
   whoUseDocuments,
   whyUseDocuments,
 }: AiNode) {
@@ -47,7 +46,7 @@ export async function preprocessAiNode({
   // ユーザーの答え
   const userMessage = messageToText(messages, messages.length - 1);
   // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1, host);
+  const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1);
   // 埋め込み作成用にデータをマップ
   const qaDocuments: Document<QADocumentMetadata>[] = qaList.map((qa) => ({
     pageContent: qa.userAnswer,
@@ -58,8 +57,8 @@ export async function preprocessAiNode({
     },
   }));
   // あいまい回答jsonの読み込み
-  const semanticList = readJson(semanticFilePath(host));
-  const notCorrectList = readJson(notCrrectFilePath(host));
+  const semanticList = readJson(semanticFilePath());
+  const notCorrectList = readJson(notCrrectFilePath());
 
   // 使用するプロンプト
   let sepKeywordPrompt = "";
@@ -86,12 +85,15 @@ export async function preprocessAiNode({
 
   /* ① 答えの分離 と ユーザーの回答を埋め込み とベクターストア作成 */
   pushLog("回答の確認中です...");
-  const [userAnswer, userEmbedding, vectorStore] = await Promise.all([
-    splitInputLlm(sepKeywordPrompt, userMessage),
-    embeddings.embedQuery(userMessage),
-    cachedVectorStore(qaDocuments),
-  ]);
+  const [userAnswer, userEmbedding, vectorStore, judgeResoult] =
+    await Promise.all([
+      splitInputLlm(sepKeywordPrompt, userMessage),
+      embeddings.embedQuery(userMessage),
+      cachedVectorStore(qaDocuments),
+      judgeTalk(userMessage),
+    ]);
   console.log("質問の分離した答え: " + userAnswer);
+  console.log("会話: " + judgeResoult);
 
   /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
   pushLog("正解チェックを行っています...");
@@ -105,7 +107,6 @@ export async function preprocessAiNode({
           allTrue: allTrue,
           shouldValidate: shouldValidate,
           semanticList: semanticList,
-          semanticPath: semanticFilePath(host),
           notCorrectList: notCorrectList,
         })
       )

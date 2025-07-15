@@ -16,7 +16,6 @@ export async function matchAnswerOpenAi({
   allTrue = false,
   shouldValidate = true,
   semanticList,
-  semanticPath,
   notCorrectList,
 }: MatchAnswerArgs) {
   let isAnswerCorrect = false;
@@ -110,7 +109,6 @@ export async function matchAnswerOpenAi({
               const updated = SEM.updateSemanticMatch(
                 semanticJudge,
                 semanticList,
-                semanticPath,
                 bestDocument.metadata.question_id
               );
               // 更新された場合正解とする
