@@ -4,6 +4,10 @@ import { motion } from "framer-motion";
 import { useUserMessages } from "../messages/message-provider";
 import { UserAnswerEvaluation } from "@/lib/type";
 import { Button } from "../ui/button";
+import {
+  semanticMatchJsonDeleteAPI,
+  semanticMatchJsonMoveAPI,
+} from "@/lib/api";
 
 export const CurrentCheck: React.FC = () => {
   const { aiState } = useUserMessages();
@@ -50,14 +54,12 @@ export const CurrentCheck: React.FC = () => {
   const handleDeleteNo = async (id: string) => {
     setDeletedIds((prev) => [...prev, id]);
     userAnswerData.filter((item) => item.semanticId !== id);
-    // jsonファイル編集(削除)
-    await fetch(`/api/semantic-match-json/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    });
+
+    // 記述を不正解リストに移動
+    const result = await semanticMatchJsonMoveAPI(id);
+    if (result.success) {
+      await semanticMatchJsonDeleteAPI(id);
+    }
   };
 
   return (
