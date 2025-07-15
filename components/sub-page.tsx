@@ -7,6 +7,7 @@ import { SCREEN } from "./screen";
 import { Debuglog } from "./debug/debuglog";
 import { useSwitches } from "./provider/switch-provider";
 import { CurrentCheck } from "./debug/currentCheck";
+import LogViewer from "./debug/logViewer";
 
 export const SubPage: React.FC = () => {
   const { learnOn } = useSwitches();
@@ -16,7 +17,7 @@ export const SubPage: React.FC = () => {
         <div>
           {learnOn && <Debuglog />}
           <SCREEN />
-          <MessageAi />
+          <LogViewer />
         </div>
         <div>
           <MessageInput />

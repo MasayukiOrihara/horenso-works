@@ -18,6 +18,7 @@ import { sortScore } from "../lib/match/score";
 import { cachedVectorStore } from "../lib/match/vectorStore";
 import { messageToText } from "../lib/utils";
 import { writeQaEntriesQuality } from "../lib/entry";
+import { pushLog } from "../lib/log/logBuffer";
 
 type AiNode = {
   messages: BaseMessage[];
@@ -42,6 +43,7 @@ export async function preprocessAiNode({
   whyUseDocuments,
 }: AiNode) {
   /* ⓪ 使う変数の準備  */
+  pushLog("データの準備中です...");
   // ユーザーの答え
   const userMessage = messageToText(messages, messages.length - 1);
   // 既存データを読み込む（なければ空配列）
@@ -83,6 +85,7 @@ export async function preprocessAiNode({
   }
 
   /* ① 答えの分離 と ユーザーの回答を埋め込み とベクターストア作成 */
+  pushLog("回答の確認中です...");
   const [userAnswer, userEmbedding, vectorStore] = await Promise.all([
     splitInputLlm(sepKeywordPrompt, userMessage),
     embeddings.embedQuery(userMessage),
@@ -91,6 +94,7 @@ export async function preprocessAiNode({
   console.log("質問の分離した答え: " + userAnswer);
 
   /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
+  pushLog("正解チェックを行っています...");
   const [matchResults, rawQaEmbeddings] = await Promise.all([
     Promise.all(
       userAnswer.map((answer) =>
@@ -113,6 +117,7 @@ export async function preprocessAiNode({
   console.log("\n OpenAI Embeddings チェック完了 \n ---");
 
   /* ③ ヒントの取得（正解していたときは飛ばす） */
+  pushLog("ヒントの準備中です...");
   const tempIsCorrect = matched.some((result) => result === true);
   let qaEmbeddings: [Document<QADocumentMetadata>, number][] = [];
   let getHint: string = "";

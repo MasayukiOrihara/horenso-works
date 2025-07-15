@@ -36,7 +36,7 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
   return assistantMessages[assistantMessages.length - 1];
 }
 
-export const MessageAi = () => {
+export const MessageAi = ({ logs }: { logs: string[] }) => {
   const { userMessages, setAiMessage, currentUserMessage, setAiState } =
     useUserMessages();
   const { memoryOn, learnOn, addPromptOn } = useSwitches();
@@ -49,6 +49,7 @@ export const MessageAi = () => {
     debug,
     step
   );
+  const lastLog = logs[logs.length - 1] ?? "回答 チェック中...";
 
   // システムの開始状態を管理
   const hasRun = useRef(false);
@@ -94,7 +95,7 @@ export const MessageAi = () => {
         {status === "submitted" && (
           <div className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg mb-2 mx-8">
             <LoaderCircleIcon className="animate-spin h-6 w-6 text-gray-400" />
-            <span className="text-gray-400">回答 確認中...</span>
+            <span className="text-gray-400">{lastLog}</span>
           </div>
         )}
       </div>
