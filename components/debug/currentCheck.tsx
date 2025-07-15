@@ -10,6 +10,9 @@ import {
   semanticMatchJsonMoveAPI,
 } from "@/lib/api/api";
 
+/**
+ * 前ターンに正解を出したユーザーの答えは正しいのか問うUI
+ */
 export const CurrentCheck: React.FC = () => {
   const { aiState } = useUserMessages();
   const [oldAiState, setOldAiState] = useState("");

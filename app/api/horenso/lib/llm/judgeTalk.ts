@@ -15,7 +15,10 @@ export const judgeTalk = async (input: string) => {
     USER_QUESTION_LABEL_PROMPT +
     FOR_REPORT_COMMUNICATION +
     `以下の入力対して、ユーザーの入力意図を推測し出力してください。
-    続けてその入力に対する回答を出力してください。
+    入力意図の出力は以下の分類から選択してください。
+    
+    入力意図の分類: 回答 | 質問 | 冗談 | その他
+    ※ その他を選択した場合は理由と新たに分けるとしたら分類を出力してください。
     
     Current conversation: ---
     {chat_history}

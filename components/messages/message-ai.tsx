@@ -49,7 +49,7 @@ export const MessageAi = ({ logs }: { logs: string[] }) => {
     debug,
     step
   );
-  const lastLog = logs[logs.length - 1] ?? "回答 チェック中...";
+  const lastLog = logs[logs.length - 1] ?? "AI を呼び出し中...";
 
   // システムの開始状態を管理
   const hasRun = useRef(false);
