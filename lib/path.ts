@@ -61,8 +61,14 @@ export const named = timestamp.slice(0, 10);
 export const memoryFileName = `memory-${named}.txt`;
 export const memoryFilePath = path.join(
   process.cwd(),
+  "public",
   "memory",
   memoryFileName
 );
 export const learnFileName = `learn-${named}.txt`;
-export const learnFilePath = path.join(process.cwd(), "learn", learnFileName);
+export const learnFilePath = path.join(
+  process.cwd(),
+  "public",
+  "learn",
+  learnFileName
+);

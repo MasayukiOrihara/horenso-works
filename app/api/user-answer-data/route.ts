@@ -3,7 +3,7 @@ import { UserAnswerEvaluation } from "@/lib/type";
 let userAnswerDatas: UserAnswerEvaluation[] = [];
 
 /**
- * userAnswerDataをやり取りするAPI
+ * userAnswerData をフロントとやり取りするための API
  * @param req
  * @returns
  */

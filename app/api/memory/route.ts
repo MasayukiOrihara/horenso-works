@@ -7,6 +7,7 @@ import {
 } from "@langchain/langgraph";
 
 import { OpenAi4_1Mini } from "@/lib/models";
+import { MEMORY_SUMMARY_PROMPT, MEMORY_UPDATE_PROMPT } from "./contents";
 
 /** メッセージを挿入する処理 */
 async function insartMessages(state: typeof GraphAnnotation.State) {
