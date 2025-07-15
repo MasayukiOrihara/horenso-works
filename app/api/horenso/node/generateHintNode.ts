@@ -4,6 +4,7 @@ import * as MSG from "../contents/messages";
 import * as DOC from "../contents/documents";
 import { findMatchStatusChanges } from "../lib/match/match";
 import { HorensoMetadata, UserAnswerEvaluation } from "@/lib/type";
+import { judgeTalk } from "../lib/llm/judgeTalk";
 
 let oldWhoUseDocuments = DOC.whoDocuments.map((doc) => ({
   pageContent: doc.pageContent,
@@ -20,6 +21,7 @@ type HintNode = {
   userAnswerDatas: UserAnswerEvaluation[];
   step: number;
   aiHint: string;
+  talkJudge: string;
 };
 
 /**
@@ -33,6 +35,7 @@ export function generateHintNode({
   userAnswerDatas,
   step,
   aiHint,
+  talkJudge,
 }: HintNode) {
   const contexts = [];
   contexts.push("# 返答作成の手順\n\n");
@@ -50,6 +53,11 @@ export function generateHintNode({
       oldDocuments = oldWhyUseDocuments;
       break;
   }
+
+  // 会話糸の分離
+  const match = talkJudge.match(/入力意図の分類:\s*(質問|回答|冗談|その他)/);
+  const category = match ? match[1] : "";
+  console.log("入力意図の分類: " + category);
 
   // 部分的に正解だった場合、今回正解した差分を見つけ出す
   const changed = findMatchStatusChanges(oldDocuments, documents);
@@ -70,46 +78,66 @@ export function generateHintNode({
       break;
   }
 
-  const haveChanged = Object.keys(changed).length > 0;
-  const hasAnyMatch = userAnswerDatas.some(
-    (doc) => doc.isAnswerCorrect === true
-  );
-  if (haveChanged) {
-    // 部分的に正解だったところを解説
-    contexts.push(MSG.BULLET + MSG.PARTIAL_CORRECT_FEEDBACK_PROMPT);
-    for (const doc of changed) {
-      for (const user of userAnswerDatas) {
-        if (doc.metadata.parentId === user.parentId && user.isAnswerCorrect) {
-          contexts.push(
-            `ユーザー回答: ${user.userAnswer}, 答え: ${doc.pageContent} \n`
-          );
+  // 会話の種類次第で反応を変える
+  switch (category) {
+    case "質問":
+      contexts.push(
+        MSG.BULLET + "まず初めにユーザーの質問に回答してください。\n"
+      );
+      break;
+    case "冗談":
+      contexts.push(
+        MSG.BULLET + "まず初めにその冗談にのってあげてください。\n"
+      );
+      break;
+    case "回答":
+    default:
+      const haveChanged = Object.keys(changed).length > 0;
+      const hasAnyMatch = userAnswerDatas.some(
+        (doc) => doc.isAnswerCorrect === true
+      );
+      if (haveChanged) {
+        // 部分的に正解だったところを解説
+        contexts.push(MSG.BULLET + MSG.PARTIAL_CORRECT_FEEDBACK_PROMPT);
+        for (const doc of changed) {
+          for (const user of userAnswerDatas) {
+            if (
+              doc.metadata.parentId === user.parentId &&
+              user.isAnswerCorrect
+            ) {
+              contexts.push(
+                `ユーザー回答: ${user.userAnswer}, 答え: ${doc.pageContent} \n`
+              );
+            }
+          }
         }
-      }
-    }
-    contexts.push("\n");
-  } else if (!haveChanged && hasAnyMatch) {
-    // 部分的に正解だが、すでに正解だった場合
-    contexts.push(
-      MSG.BULLET +
-        "以下のユーザー回答は部分的に正解ですが、すでにその項目は正解済みだったことを伝えてください。"
-    );
-    for (const doc of documents) {
-      for (const user of userAnswerDatas) {
-        if (
-          doc.metadata.isMatched &&
-          doc.metadata.parentId === user.parentId &&
-          user.isAnswerCorrect
-        ) {
-          contexts.push(
-            `ユーザー回答: ${user.userAnswer}, 答え: ${doc.pageContent} \n`
-          );
+        contexts.push("\n");
+      } else if (!haveChanged && hasAnyMatch) {
+        // 部分的に正解だが、すでに正解だった場合
+        contexts.push(
+          MSG.BULLET +
+            "以下のユーザー回答は部分的に正解ですが、すでにその項目は正解済みだったことを伝えてください。"
+        );
+        for (const doc of documents) {
+          for (const user of userAnswerDatas) {
+            if (
+              doc.metadata.isMatched &&
+              doc.metadata.parentId === user.parentId &&
+              user.isAnswerCorrect
+            ) {
+              contexts.push(
+                `ユーザー回答: ${user.userAnswer}\n質問の正解: ${doc.pageContent} \n`
+              );
+            }
+          }
         }
+      } else {
+        // 不正解
+        contexts.push(MSG.BULLET + MSG.CLEAR_FEEDBACK_PROMPT);
       }
-    }
-  } else {
-    // 不正解
-    contexts.push(MSG.BULLET + MSG.CLEAR_FEEDBACK_PROMPT);
+      break;
   }
+
   contexts.push(MSG.BULLET + MSG.COMMENT_ON_ANSWER_PROMPT);
 
   // 現在の正解を報告

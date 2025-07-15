@@ -94,10 +94,10 @@ export async function preprocessAiNode({
       splitInputLlm(sepKeywordPrompt, userMessage),
       embeddings.embedQuery(userMessage),
       cachedVectorStore(qaDocuments),
-      judgeTalk(userMessage),
+      judgeTalk(userMessage, question),
     ]);
   console.log("質問の分離した答え: " + userAnswer);
-  console.log("会話: " + judgeResoult);
+  console.log(judgeResoult);
 
   /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
   pushLog("正解チェックを行っています...");
@@ -135,5 +135,5 @@ export async function preprocessAiNode({
     console.log("質問1のヒント: \n" + getHint);
   }
 
-  return { userAnswerDatas, matched, qaEmbeddings, getHint };
+  return { userAnswerDatas, matched, qaEmbeddings, getHint, judgeResoult };
 }

@@ -52,7 +52,7 @@ async function setupInitial() {
 async function preprocessAI(state: typeof StateAnnotation.State) {
   console.log("🧠 AI 準備ノード");
 
-  const { userAnswerDatas, matched, qaEmbeddings, getHint } =
+  const { userAnswerDatas, matched, qaEmbeddings, getHint, judgeResoult } =
     await preprocessAiNode({
       messages: state.messages,
       usedEntry: globalUsedEntry,
@@ -66,6 +66,7 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
     matched: matched,
     qaEmbeddings: qaEmbeddings,
     aiHint: getHint,
+    talkJudge: judgeResoult,
   };
 }
 
@@ -103,6 +104,7 @@ async function generateHint(state: typeof StateAnnotation.State) {
     userAnswerDatas: state.userAnswerDatas,
     step: state.transition.step,
     aiHint: state.aiHint,
+    talkJudge: state.talkJudge,
   });
 
   return { contexts: [...state.contexts, ...contexts] };

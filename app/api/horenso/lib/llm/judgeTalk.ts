@@ -9,11 +9,11 @@ import {
 import { getMemoryApi } from "@/lib/api/serverApi";
 
 /** 会話からユーザーの意図を推測する */
-export const judgeTalk = async (input: string) => {
+export const judgeTalk = async (input: string, question: string) => {
   const template =
     INSTRUCTOR_INTRO_MESSAGE_PROMPT +
     USER_QUESTION_LABEL_PROMPT +
-    FOR_REPORT_COMMUNICATION +
+    question +
     `以下の入力対して、ユーザーの入力意図を推測し出力してください。
     入力意図の出力は以下の分類から選択してください。
     
