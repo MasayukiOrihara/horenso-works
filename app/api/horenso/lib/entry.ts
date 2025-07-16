@@ -1,6 +1,6 @@
 import { readJson } from "../../chat/utils";
 import { QAEntry, UsedEntry } from "@/lib/type";
-import { getBaseUrl, qaEntriesFilePath, timestamp } from "@/lib/path";
+import { qaEntriesFilePath, timestamp } from "@/lib/path";
 
 /** 使用したデータからqualityの値を更新する */
 export function writeQaEntriesQuality(
@@ -8,7 +8,6 @@ export function writeQaEntriesQuality(
   qual: number
 ) {
   // 既存データを読み込む（なければ空配列）
-  const { host } = getBaseUrl();
 
   const qaList: QAEntry[] = readJson(qaEntriesFilePath());
 

@@ -1,6 +1,5 @@
 import { getBaseUrl } from "@/lib/path";
 import { BaseMessage } from "@langchain/core/messages";
-import { UserAnswerEvaluation } from "../type";
 
 /* 報連相ワークAPI */
 export const postHorensoGraphApi = async (

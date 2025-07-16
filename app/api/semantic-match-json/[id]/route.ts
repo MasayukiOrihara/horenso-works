@@ -1,4 +1,4 @@
-import { getBaseUrl, semanticFilePath } from "@/lib/path";
+import { semanticFilePath } from "@/lib/path";
 import fs from "fs/promises";
 import { readJson } from "../../chat/utils";
 import { SemanticAnswerData, SemanticAnswerEntry } from "@/lib/type";
@@ -16,7 +16,6 @@ export async function DELETE(
   const semanticId = params.id;
 
   try {
-    const { host } = getBaseUrl(req);
     const filePath = semanticFilePath();
 
     // データ取得

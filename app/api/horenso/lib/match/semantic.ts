@@ -5,7 +5,7 @@ import fs from "fs";
 
 import * as MSG from "../../contents/messages";
 import { embeddings, jsonParser, OpenAi } from "@/lib/models";
-import { semanticFilePath, timestamp } from "@/lib/path";
+import { timestamp } from "@/lib/path";
 import {
   HorensoMetadata,
   SemanticAnswerData,

@@ -4,7 +4,6 @@ import * as MSG from "../contents/messages";
 import * as DOC from "../contents/documents";
 import { findMatchStatusChanges } from "../lib/match/match";
 import { HorensoMetadata, UserAnswerEvaluation } from "@/lib/type";
-import { judgeTalk } from "../lib/llm/judgeTalk";
 
 let oldWhoUseDocuments = DOC.whoDocuments.map((doc) => ({
   pageContent: doc.pageContent,
@@ -32,9 +31,8 @@ const JOKE_RESPONSE_INSTRUCTION =
 const ALREADY_ANSWERED_NOTICE =
   "以下のユーザー回答は部分的に正解ですが、すでにその項目は正解済みだったことを伝えてください。\n";
 
-const userAnswerTemplate = (userAnswer: string) =>
-  `ユーザー回答: ${userAnswer}`;
-const correctAnswerTemplate = (correct: string) => `質問の正解: ${correct}`;
+const userAnswerTemplate = (userAnswer: string, correct: string) =>
+  `ユーザー回答: ${userAnswer}\n質問の正解: ${correct}\n --- \n`;
 const hintSubmitTemplate = (hint: string) =>
   `ユーザーへの助言: --- \n ${hint}\n ---\n`;
 
@@ -124,9 +122,7 @@ export function generateHintNode({
               user.isAnswerCorrect
             ) {
               contexts.push(
-                `${userAnswerTemplate(
-                  user.userAnswer
-                )}\n${correctAnswerTemplate(doc.pageContent)}`
+                userAnswerTemplate(user.userAnswer, doc.pageContent)
               );
             }
           }
@@ -144,9 +140,7 @@ export function generateHintNode({
               user.isAnswerCorrect
             ) {
               contexts.push(
-                `${userAnswerTemplate(
-                  user.userAnswer
-                )}\n${correctAnswerTemplate(doc.pageContent)}`
+                userAnswerTemplate(user.userAnswer, doc.pageContent)
               );
             }
           }

@@ -11,7 +11,7 @@ import {
 } from "@/lib/type";
 import { embeddings } from "@/lib/models";
 import { readJson } from "../../chat/utils";
-import { getBaseUrl, notCrrectFilePath, semanticFilePath } from "@/lib/path";
+import { notCrrectFilePath, semanticFilePath } from "@/lib/path";
 import { splitInputLlm } from "../lib/llm/splitInput";
 import { generateHintLlm } from "../lib/llm/generateHint";
 import { sortScore } from "../lib/match/score";
