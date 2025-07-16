@@ -24,6 +24,28 @@ type HintNode = {
   talkJudge: string;
 };
 
+const ANSWER_STEP = "# 返答作成の手順\n\n";
+const ANSWER_INSTRUCTION_PROMPT =
+  "まず初めにユーザーの質問に回答してください。ただし現在講師として投げかけた質問の答えに関しては回答せず、ヒントを参考に回答してください。\n";
+const JOKE_RESPONSE_INSTRUCTION =
+  "まず初めにその冗談にのってあげてください。\n";
+const ALREADY_ANSWERED_NOTICE =
+  "以下のユーザー回答は部分的に正解ですが、すでにその項目は正解済みだったことを伝えてください。\n";
+
+const userAnswerTemplate = (userAnswer: string) =>
+  `ユーザー回答: ${userAnswer}`;
+const correctAnswerTemplate = (correct: string) => `質問の正解: ${correct}`;
+const hintSubmitTemplate = (hint: string) =>
+  `ユーザーへの助言: --- \n ${hint}\n ---\n`;
+
+const matchedSummaryMessage = (
+  count: number,
+  total: number,
+  matchedItems: string[]
+): string => {
+  return `正解数 ${count} / ${total}\n正解した項目: ${matchedItems.join(", ")}`;
+};
+
 /**
  * ヒントを付与するノード
  * @param param0
@@ -38,7 +60,7 @@ export function generateHintNode({
   talkJudge,
 }: HintNode) {
   const contexts = [];
-  contexts.push("# 返答作成の手順\n\n");
+  contexts.push(ANSWER_STEP);
 
   // どっちのドキュメントを参照するか
   let documents: Document<HorensoMetadata>[] = [];
@@ -81,14 +103,10 @@ export function generateHintNode({
   // 会話の種類次第で反応を変える
   switch (category) {
     case "質問":
-      contexts.push(
-        MSG.BULLET + "まず初めにユーザーの質問に回答してください。\n"
-      );
+      contexts.push(MSG.BULLET + ANSWER_INSTRUCTION_PROMPT);
       break;
     case "冗談":
-      contexts.push(
-        MSG.BULLET + "まず初めにその冗談にのってあげてください。\n"
-      );
+      contexts.push(MSG.BULLET + JOKE_RESPONSE_INSTRUCTION);
       break;
     case "回答":
     default:
@@ -106,7 +124,9 @@ export function generateHintNode({
               user.isAnswerCorrect
             ) {
               contexts.push(
-                `ユーザー回答: ${user.userAnswer}, 答え: ${doc.pageContent} \n`
+                `${userAnswerTemplate(
+                  user.userAnswer
+                )}\n${correctAnswerTemplate(doc.pageContent)}`
               );
             }
           }
@@ -114,10 +134,8 @@ export function generateHintNode({
         contexts.push("\n");
       } else if (!haveChanged && hasAnyMatch) {
         // 部分的に正解だが、すでに正解だった場合
-        contexts.push(
-          MSG.BULLET +
-            "以下のユーザー回答は部分的に正解ですが、すでにその項目は正解済みだったことを伝えてください。"
-        );
+
+        contexts.push(MSG.BULLET + ALREADY_ANSWERED_NOTICE);
         for (const doc of documents) {
           for (const user of userAnswerDatas) {
             if (
@@ -126,7 +144,9 @@ export function generateHintNode({
               user.isAnswerCorrect
             ) {
               contexts.push(
-                `ユーザー回答: ${user.userAnswer}\n質問の正解: ${doc.pageContent} \n`
+                `${userAnswerTemplate(
+                  user.userAnswer
+                )}\n${correctAnswerTemplate(doc.pageContent)}`
               );
             }
           }
@@ -146,19 +166,23 @@ export function generateHintNode({
   ).length;
   if (count > 0) {
     contexts.push(MSG.BULLET + MSG.CORRECT_PARTS_LABEL_PROMPT);
+
+    const matchedPages = documents.filter((page) => page.metadata.isMatched);
+    const matchedContents = matchedPages.map((page) => page.pageContent);
     contexts.push(
-      `正解数 ${count} / ${
-        Object.values(documents).length
-      } \n正解した項目: ${documents.map((page) =>
-        page.metadata.isMatched === true ? page.pageContent + ", " : ""
-      )}`
+      matchedSummaryMessage(
+        matchedPages.length,
+        documents.length,
+        matchedContents
+      )
     );
     contexts.push("\n\n");
   }
 
   // ヒントをプロンプトに含める
+  contexts.push(MSG.BULLET + MSG.USER_ADVICE_PROMPT);
   const formattedHint = aiHint.replace(/(\r\n|\n|\r|\*)/g, "");
-  contexts.push(`ユーザーへの助言: --- \n ${formattedHint}\n ---\n`);
+  contexts.push(hintSubmitTemplate(formattedHint));
 
   return { contexts };
 }

@@ -96,7 +96,9 @@ export async function preprocessAiNode({
       cachedVectorStore(qaDocuments),
       judgeTalk(userMessage, question),
     ]);
-  console.log("質問の分離した答え: " + userAnswer);
+  console.log("質問の分離した答え: ");
+  console.log(userAnswer);
+  console.log(" --- ");
   console.log(judgeResoult);
 
   /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
@@ -120,6 +122,8 @@ export async function preprocessAiNode({
   const userAnswerDatas = matchResults.map((r) => r.userAnswerDatas).flat();
   const matched = matchResults.map((r) => r.isAnswerCorrect);
   console.log("\n OpenAI Embeddings チェック完了 \n ---");
+  console.log("ユーザーの答えデータ");
+  console.log(userAnswerDatas);
 
   /* ③ ヒントの取得（正解していたときは飛ばす） */
   pushLog("ヒントの準備中です...");

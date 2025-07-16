@@ -2,7 +2,7 @@ import fs from "fs";
 
 import * as MSG from "../contents/messages";
 import { QAEntry, UsedEntry } from "@/lib/type";
-import { getBaseUrl, qaEntriesFilePath } from "@/lib/path";
+import { qaEntriesFilePath } from "@/lib/path";
 import { writeQaEntriesQuality } from "../lib/entry";
 
 /**

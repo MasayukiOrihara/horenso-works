@@ -9,6 +9,9 @@ import * as SEM from "./semantic";
 import { cachedVectorStore } from "./vectorStore";
 import { semanticFilePath } from "@/lib/path";
 
+// スコアの閾値
+const SCORE_BORDER = 0.82;
+
 /** 答えを判定して正解かどうかを返す関数（openAIのembeddingsを使用） */
 export async function matchAnswerOpenAi({
   userAnswer,
@@ -64,7 +67,7 @@ export async function matchAnswerOpenAi({
         notCorrectList,
         userAnswer
       );
-      if (worstScore > 0.8) {
+      if (worstScore > SCORE_BORDER) {
         console.log("worstScore: " + worstScore);
       } else {
         // 曖昧リストから検索し最大値スコアを取得
@@ -75,7 +78,7 @@ export async function matchAnswerOpenAi({
             userAnswer
           );
         console.log("曖昧結果: " + topScore);
-        if (topScore > 0.8) {
+        if (topScore > SCORE_BORDER) {
           documents.forEach((d) => {
             const docParentId = d.metadata.parentId;
             if (docParentId === parentId) {

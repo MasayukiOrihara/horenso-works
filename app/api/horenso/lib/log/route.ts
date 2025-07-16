@@ -1,11 +1,28 @@
 import { flushLogs } from "./logBuffer";
 
+/**
+ * クライアントに対して、0.5秒ごとに新着ログを送り続ける。
+ * @returns
+ */
 export async function GET() {
+  // 文字列を変換するエンコーダ
   const encoder = new TextEncoder();
 
   let controllerRef: ReadableStreamDefaultController<string> | null = null;
   let closed = false;
   let interval: NodeJS.Timeout;
+
+  function safeClose() {
+    if (!closed && controllerRef) {
+      closed = true;
+      clearInterval(interval);
+      try {
+        controllerRef.close();
+      } catch (e) {
+        console.warn("Already closed:", e);
+      }
+    }
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -14,34 +31,17 @@ export async function GET() {
         if (closed) return;
         const logs = flushLogs(); // 新着ログのみ
         for (const log of logs) {
+          // SSEの仕様に従った形式。
           controller.enqueue(encoder.encode(`data: ${log}\n\n`));
         }
       }, 500); // 0.5秒ごとにログをチェック
 
       // 5分後に自動終了（オプション）
-      setTimeout(() => {
-        if (!closed && controllerRef) {
-          closed = true;
-          clearInterval(interval);
-          try {
-            controllerRef.close();
-          } catch (e) {
-            console.warn("Already closed:", e);
-          }
-        }
-      }, 1000 * 60 * 5);
+      setTimeout(safeClose, 1000 * 60 * 5);
     },
 
     cancel() {
-      if (!closed && controllerRef) {
-        closed = true;
-        clearInterval(interval);
-        try {
-          controllerRef.close(); // 念のための二重確認
-        } catch (e) {
-          console.warn("Already closed in cancel:", e);
-        }
-      }
+      safeClose();
     },
   });
 
