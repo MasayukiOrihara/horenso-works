@@ -90,6 +90,7 @@ export type HorensoMetadata = {
   parentId: string;
   question_id: string;
   question: string;
+  answerLeakWords?: string[];
   isMatched: boolean;
 };
 

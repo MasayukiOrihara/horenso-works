@@ -173,8 +173,16 @@ export function generateHintNode({
     contexts.push("\n\n");
   }
 
+  // 禁止ワードの作成
+  const leakWord =
+    documents
+      .filter((page) => !page.metadata.isMatched)
+      .map((page) => page.metadata.answerLeakWords)
+      .join(",") ?? "";
+
   // ヒントをプロンプトに含める
   contexts.push(MSG.BULLET + MSG.USER_ADVICE_PROMPT);
+  contexts.push(`${leakWord}\n\n`);
   const formattedHint = aiHint.replace(/(\r\n|\n|\r|\*)/g, "");
   contexts.push(hintSubmitTemplate(formattedHint));
 

@@ -11,7 +11,10 @@ export default function LogViewer() {
     const eventSource = new EventSource("/api/horenso/lib/log");
 
     eventSource.onmessage = (event) => {
-      setLogs((prev) => [...prev, event.data]);
+      setLogs((prev) => {
+        const nextLogs = [...prev, event.data];
+        return nextLogs.slice(-10);
+      });
     };
 
     eventSource.onerror = () => {
