@@ -1,25 +1,13 @@
 import { LangSmithClient } from "@/lib/clients";
-import * as MESSAGES from "@/lib/messages";
-import {
-  fake,
-  haiku3_5_sentence,
-  OpenAi4_1Mini,
-  OpenAi4oMini,
-  strParser,
-} from "@/lib/models";
+import * as MSG from "./messages";
+import { fake, OpenAi4oMini } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
 
 import { logLearn, logMessage, readAddPrompt, updateEntry } from "./utils";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import { POINT_OUT_LOG } from "@/lib/messages";
 import { getBaseUrl } from "@/lib/path";
 import { postHorensoGraphApi, postMemoryApi } from "../../../lib/api/serverApi";
-import {
-  FOR_REPORT_COMMUNICATION,
-  REPORT_REASON_FOR_LEADER,
-  THREE_ANSWER,
-} from "../horenso/contents/messages";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -57,7 +45,7 @@ export async function POST(req: Request) {
       console.log("指摘終了\n");
 
       // 定型文を吐いて会話を抜ける
-      const outputText = `${POINT_OUT_LOG}\n${log}\n\nブラウザを再読み込みしてください。`;
+      const outputText = MSG.POINT_OUT_LOG.replace("{log}", log);
       return LangChainAdapter.toDataStreamResponse(await fake(outputText));
     }
 
@@ -69,22 +57,28 @@ export async function POST(req: Request) {
     }
 
     // 始動時の状態判定
-    let aiMessage = "";
+    const aiMessages = [];
     let qaEntryId = "";
     horensoContenue = true;
     if (horensoContenue && !oldHorensoContenue && !getBoolHeader("debug")) {
       // 初回AIメッセージ
+      console.log("🚪 初回のルート");
       oldHorensoContenue = true;
 
-      console.log("🏁 始めの会話");
-      // ※※ 加藤さんから初めの会話例をもらったので、それをベースに作成していく
-      aiMessage =
-        MESSAGES.DEVELOPMENT_WORK_EXPLANATION + MESSAGES.QUESTION_WHO_ASKING;
+      // 開発の解説と問題の提示
+
+      aiMessages.push(
+        MSG.REPHRASE_WITH_LOGIC_PRESERVED.replace(
+          "{sentence}",
+          MSG.INTRO_TO_DEV_WORK
+        )
+      );
+      aiMessages.push(MSG.QUESTION_WHO_ASKING);
     } else {
       // 報連相ワークAPI呼び出し
       const horensoGraph = await postHorensoGraphApi(step, userMessage);
       const apiBody = await horensoGraph.json();
-      aiMessage = apiBody.text;
+      aiMessages.push(apiBody.text);
       qaEntryId = apiBody.qaEntryId;
 
       // 終了時の状態判定
@@ -95,7 +89,7 @@ export async function POST(req: Request) {
         horensoContenue = false;
         // ※※ 加藤さんから閉めの会話例をもらうので、それをベースに作成していく
         // ※※ 現行のシステムだとグラフ内で終わりのプロンプトを導き出してるが、どうするかはあとで決める
-        aiMessage = aiMessage + "\n\n" + MESSAGES.FINISH_MESSAGE;
+        aiMessages.push(MSG.FINISH_MESSAGE);
       }
     }
 
@@ -107,29 +101,19 @@ export async function POST(req: Request) {
     const promptVariables = {
       chat_history: memoryData,
       user_message: userMessage,
-      ai_message: aiMessage,
+      ai_message: aiMessages.join("\n\n"),
     };
-
-    // 追加プロンプトの読み込み
-    let add = "";
-    if (getBoolHeader("addPromptOn")) {
-      add = await readAddPrompt();
-      console.log("追加プロンプト: \n" + add);
-
-      add = "\n\n" + add; // 整形
-    }
 
     // プロンプト読み込み
     const load = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
-    const template = load.manifest.kwargs.template + add;
+    const addPrompt = getBoolHeader("addPromptOn")
+      ? "\n" + (await readAddPrompt())
+      : "";
+    const template = load.manifest.kwargs.template + addPrompt;
     const prompt = PromptTemplate.fromTemplate(template);
 
     // ストリーミング応答を取得
-    const stream = await prompt.pipe(OpenAi4oMini).stream({
-      chat_history: memoryData,
-      user_message: userMessage,
-      ai_message: aiMessage,
-    });
+    const stream = await prompt.pipe(OpenAi4oMini).stream(promptVariables);
 
     const fullPrompt = await prompt.format(promptVariables);
     console.log("=== 送信するプロンプト全文 ===");
