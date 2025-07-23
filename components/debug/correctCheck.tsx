@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { v4 as uuidv4 } from "uuid";
 
 import { useUserMessages } from "../messages/message-provider";
 import { UserAnswerEvaluation } from "@/lib/type";
@@ -66,7 +67,7 @@ export const CorrectCheck: React.FC = () => {
       {userAnswerData &&
         userAnswerData.map((data, index) => (
           <motion.div
-            key={data.semanticId}
+            key={data.semanticId + uuidv4()}
             className="text-sm text-zinc-500 bg-blue-200 mb-2 px-4 py-2 rounded"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
