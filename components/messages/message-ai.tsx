@@ -2,7 +2,6 @@ import { useChat } from "@ai-sdk/react";
 import { useUserMessages } from "./message-provider";
 import { useEffect, useRef } from "react";
 import { UIMessage } from "ai";
-import { LoaderCircleIcon } from "lucide-react";
 import { useSwitches } from "../provider/switch-provider";
 import { useStartButton } from "../provider/start-button-provider";
 
@@ -36,7 +35,7 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
   return assistantMessages[assistantMessages.length - 1];
 }
 
-export const MessageAi = ({ logs }: { logs: string[] }) => {
+export const MessageAi = () => {
   const { userMessages, setAiMessage, currentUserMessage, setAiState } =
     useUserMessages();
   const { memoryOn, learnOn, addPromptOn } = useSwitches();
@@ -49,16 +48,6 @@ export const MessageAi = ({ logs }: { logs: string[] }) => {
     debug,
     step
   );
-  const lastLog = logs[logs.length - 1] ?? "AI を呼び出し中...";
-
-  // システムの開始状態を管理
-  const hasRun = useRef(false);
-
-  // ユーザーメッセージの送信
-  useEffect(() => {
-    if (userMessages.length === 0) return;
-    append({ role: "user", content: currentUserMessage });
-  }, [userMessages]);
 
   // システムの開始処理
   useEffect(() => {
@@ -69,36 +58,28 @@ export const MessageAi = ({ logs }: { logs: string[] }) => {
     }
   }, [started]);
 
+  // システムの開始状態を管理
+  const hasRun = useRef(false);
   // 直近のメッセージを取得
   const currentAiCommentMessage = getLatestAssistantMessage(messages);
 
-  // 待機状況
+  // ユーザーメッセージの送信
   useEffect(() => {
-    setAiState(status);
+    if (userMessages.length === 0) return;
+    append({ role: "user", content: currentUserMessage });
+  }, [userMessages]);
 
-    // Aimessageの取得
-    if (status === "ready" && messages.length != 0) {
+  // Aimessage の送信
+  useEffect(() => {
+    if (messages.length != 0 && currentAiCommentMessage) {
       setAiMessage(currentAiCommentMessage.content);
     }
+  }, [messages]);
+
+  // 待機状況の送信
+  useEffect(() => {
+    setAiState(status);
   }, [status]);
 
-  return (
-    <div className="w-full my-2 bg-white">
-      <div className="w-full h-72 border-4 border-black border-double rounded p-2 text-blue-300 overflow-y-auto">
-        {currentAiCommentMessage && (
-          <div className="p-1" key={currentAiCommentMessage.id}>
-            <span className="text-zinc-800 whitespace-pre-wrap">
-              {currentAiCommentMessage.content}
-            </span>
-          </div>
-        )}
-        {status === "submitted" && (
-          <div className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg mb-2 mx-8">
-            <LoaderCircleIcon className="animate-spin h-6 w-6 text-gray-400" />
-            <span className="text-gray-400">{lastLog}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return null;
 };

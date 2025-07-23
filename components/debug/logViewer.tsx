@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { MessageAi } from "../messages/message-ai";
 
+type Props = {
+  onSend: (log: string[]) => void;
+};
+
 /**
  * サーバー側から出力されるログを表示する
  */
-export default function LogViewer() {
+export const LogViewer: React.FC<Props> = ({ onSend }) => {
   const [logs, setLogs] = useState<string[]>([]);
 
   useEffect(() => {
@@ -12,8 +16,8 @@ export default function LogViewer() {
 
     eventSource.onmessage = (event) => {
       setLogs((prev) => {
-        const nextLogs = [...prev, event.data];
-        return nextLogs.slice(-10);
+        const nextLogs = [...prev, event.data].slice(-10);
+        return nextLogs;
       });
     };
 
@@ -26,9 +30,10 @@ export default function LogViewer() {
     };
   }, []);
 
-  return (
-    <div>
-      <MessageAi logs={logs} />
-    </div>
-  );
-}
+  // 送信
+  useEffect(() => {
+    onSend(logs);
+  }, [logs]);
+
+  return null;
+};
