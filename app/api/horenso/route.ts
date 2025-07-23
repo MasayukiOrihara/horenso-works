@@ -55,7 +55,6 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
   const { userAnswerDatas, matched, qaEmbeddings, getHint, judgeResoult } =
     await preprocessAiNode({
       messages: state.messages,
-      usedEntry: globalUsedEntry,
       step: state.transition.step,
       whoUseDocuments: whoUseDocuments,
       whyUseDocuments: whyUseDocuments,

@@ -19,6 +19,7 @@ export function explainAnswerNode(usedEntry: UsedEntry[]) {
 
   // ここで使用したエントリーの重みを変更
   if (usedEntry.length != 0) {
+    // 正解だったため過去回答の有用性を上げる
     const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, 0.1);
     fs.writeFileSync(qaEntriesFilePath(), JSON.stringify(qaList, null, 2));
   }

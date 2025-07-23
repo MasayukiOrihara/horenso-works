@@ -9,7 +9,8 @@ import {
 
 /** データに重みづけしたスコアを計算して出力 */
 export const getRankedResults = (
-  results: [Document<QADocumentMetadata>, number][]
+  results: [Document<QADocumentMetadata>, number][],
+  step: number
 ) => {
   const rankedResults: UsedEntry[] = [];
   for (const [bestMatch, score] of results) {

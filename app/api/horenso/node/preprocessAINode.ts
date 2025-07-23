@@ -11,20 +11,22 @@ import {
 } from "@/lib/type";
 import { embeddings } from "@/lib/models";
 import { readJson } from "../../chat/utils";
-import { notCrrectFilePath, semanticFilePath } from "@/lib/path";
+import {
+  notCrrectFilePath,
+  qaEntriesFilePath,
+  semanticFilePath,
+} from "@/lib/path";
 import { splitInputLlm } from "../lib/llm/splitInput";
 import { generateHintLlm } from "../lib/llm/generateHint";
 import { sortScore } from "../lib/match/score";
 import { cachedVectorStore } from "../lib/match/vectorStore";
 import { messageToText } from "../lib/utils";
-import { writeQaEntriesQuality } from "../lib/entry";
 import { pushLog } from "../lib/log/logBuffer";
 import { judgeTalk } from "../lib/llm/judgeTalk";
 import { getShouldValidateApi } from "@/lib/api/serverApi";
 
 type AiNode = {
   messages: BaseMessage[];
-  usedEntry: UsedEntry[];
   step: number;
   whoUseDocuments: Document<HorensoMetadata>[];
   whyUseDocuments: Document<HorensoMetadata>[];
@@ -37,7 +39,6 @@ type AiNode = {
  */
 export async function preprocessAiNode({
   messages,
-  usedEntry,
   step,
   whoUseDocuments,
   whyUseDocuments,
@@ -47,16 +48,18 @@ export async function preprocessAiNode({
   // ユーザーの答え
   const userMessage = messageToText(messages, messages.length - 1);
   // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1);
+  const qaList: QAEntry[] = readJson(qaEntriesFilePath());
   // 埋め込み作成用にデータをマップ
-  const qaDocuments: Document<QADocumentMetadata>[] = qaList.map((qa) => ({
-    pageContent: qa.userAnswer,
-    metadata: {
-      hint: qa.hint,
-      id: qa.id,
-      ...qa.metadata,
-    },
-  }));
+  const qaDocuments: Document<QADocumentMetadata>[] = qaList
+    .filter((qa) => qa.metadata.question_id === String(step + 1))
+    .map((qa) => ({
+      pageContent: qa.userAnswer,
+      metadata: {
+        hint: qa.hint,
+        id: qa.id,
+        ...qa.metadata,
+      },
+    }));
   // あいまい回答jsonの読み込み
   const semanticList = readJson(semanticFilePath());
   const notCorrectList = readJson(notCrrectFilePath());
