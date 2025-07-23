@@ -139,5 +139,6 @@ export async function preprocessAiNode({
     console.log("質問1のヒント: \n" + getHint);
   }
 
+  pushLog("返答の生成中です...");
   return { userAnswerDatas, matched, qaEmbeddings, getHint, judgeResoult };
 }
