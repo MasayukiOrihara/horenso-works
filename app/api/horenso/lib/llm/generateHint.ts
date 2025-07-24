@@ -24,7 +24,7 @@ export const generateHintLlm = async (
 
   const template = GUIDED_ANSWER_PROMPT;
   const prompt = PromptTemplate.fromTemplate(template);
-  const getHint = await prompt.pipe(OpenAi4_1Mini).pipe(strParser).invoke({
+  const getHint = await prompt.pipe(sonnet).pipe(strParser).invoke({
     question: question,
     currect_answer: correctAnswer,
     user_answer: userAnswer,

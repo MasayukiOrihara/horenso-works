@@ -25,6 +25,10 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
   };
   const handlePrev = () => {
     if (page > 0) setPage(page - 1);
+    // 表示済み
+    if (!seenPages.includes(page)) {
+      setSeenPages((prev) => [...prev, page]);
+    }
   };
 
   // ページの初期化
@@ -49,6 +53,9 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
 
   // 文字列を固定
   const currentText = useMemo(() => lines[page], [lines, page]);
+  // ページネーションのボタン制限
+  const cantUseButton =
+    lines.length === 0 || (lines.length === 0 && aiState === "streaming");
 
   return (
     <div className="w-full my-2">
@@ -79,16 +86,17 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
         {/* 左ボタン */}
         <button
           onClick={handlePrev}
-          disabled={
-            (page === 0 && lines.length === 0) ||
-            (lines.length === 0 && aiState === "streaming")
-          }
+          disabled={page === 0 || cantUseButton}
           className="px-4 py-2 w-[20%] border-y-6 border-l-6 border-black border-double rounded-md rounded-r-none hover:cursor-pointer hover:opacity-60 disabled:cursor-auto disabled:opacity-40"
         >
           ◀
         </button>
         {/* 真ん中要素 */}
-        <div className="w-full h-full mx-1 px-4 py-2 border-6 border-black border-double">
+        <div
+          className={`w-full h-full mx-1 px-4 py-2 border-6 border-double border-black ${
+            cantUseButton ? "opacity-40" : "opacity-100"
+          }`}
+        >
           <div className="flex my-1 m-auto w-fit gap-1">
             {Array.from({ length: lines.length }).map((_, i) => {
               const isSeen = seenPages.includes(i);
@@ -109,16 +117,20 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
         {/* 右ボタン */}
         <button
           onClick={handleNext}
-          disabled={
-            lines.length === 0 ||
-            (lines.length === 0 && aiState === "streaming")
-          }
-          className="px-4 py-2 w-[20%] border-y-6 border-r-6 border-black border-double rounded-md rounded-l-none hover:cursor-pointer hover:opacity-60 disabled:cursor-auto disabled:opacity-40"
+          disabled={cantUseButton}
+          className="relative px-4 py-2 w-[20%] border-y-6 border-r-6 border-black border-double rounded-md rounded-l-none hover:cursor-pointer hover:opacity-60 disabled:cursor-auto disabled:opacity-40"
         >
           {page === lines.length - 1 ? (
             <ChevronsLeft className="w-6 h-6" />
           ) : (
             "▶"
+          )}
+          {cantUseButton ||
+          seenPages.length === lines.length ||
+          seenPages.length === lines.length - 1 ? (
+            <></>
+          ) : (
+            <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-[100%] w-[100%] rounded bg-zinc-400 opacity-0 animate-pulse"></span>
           )}
         </button>
       </div>
