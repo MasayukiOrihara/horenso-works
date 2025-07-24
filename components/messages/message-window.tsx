@@ -1,7 +1,6 @@
+import { Dialog } from "../window/dialog";
 import { useUserMessages } from "./message-provider";
 import { useEffect, useRef, useState } from "react";
-
-import { Dialog } from "./Dialog";
 
 export const MessageWindow = () => {
   const { aiMessage, aiState } = useUserMessages();

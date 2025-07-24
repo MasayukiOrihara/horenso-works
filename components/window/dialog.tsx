@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LoaderCircleIcon } from "lucide-react";
 import { ChevronsLeft } from "lucide-react";
-import { useUserMessages } from "./message-provider";
-import { LogViewer } from "../debug/logViewer";
+import { useUserMessages } from "../messages/message-provider";
+import { LogViewer } from "./logViewer";
+import { Typewriter } from "./typewriter";
 
 export const Dialog = ({ lines }: { lines: string[] }) => {
   const [logs, setLogs] = useState<string[]>([]);
@@ -46,14 +47,21 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
     "text-purple-500",
   ];
 
+  // 文字列を固定
+  const currentText = useMemo(() => lines[page], [lines, page]);
+
   return (
     <div className="w-full my-2">
       {/* メッセージウィンドウ */}
       <div className=" bg-white w-full h-44 border-6 border-black border-double rounded-md p-2 overflow-y-auto">
-        {lines && (
+        {lines?.[page] && (
           <div className="p-1">
             <span className="text-zinc-800 whitespace-pre-wrap">
-              {lines[page]}
+              {seenPages.includes(page) ? (
+                currentText
+              ) : (
+                <Typewriter text={currentText} speed={30} />
+              )}
             </span>
           </div>
         )}
