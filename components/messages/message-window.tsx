@@ -43,7 +43,7 @@ export const MessageWindow = () => {
       setLines([]);
       previousRef.current = "";
     }
-  }, [aiState]);
+  }, [aiState, aiMessage]);
 
   return (
     <div>

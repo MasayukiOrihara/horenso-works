@@ -24,7 +24,7 @@ export function Typewriter({ text, speed = 100 }: Props) {
 
     let isCancelled = false;
     const typeNext = () => {
-      let index = indexRef.current;
+      const index = indexRef.current;
       if (isCancelled) return;
 
       // 出力

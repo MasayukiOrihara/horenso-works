@@ -36,8 +36,7 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 }
 
 export const MessageAi = () => {
-  const { userMessages, setAiMessage, currentUserMessage, setAiState } =
-    useUserMessages();
+  const { setAiMessage, currentUserMessage, setAiState } = useUserMessages();
   const { memoryOn, learnOn, addPromptOn } = useSwitches();
   const { started, debug, step } = useStartButton();
   const { messages, status, append } = useMyChat(
@@ -48,38 +47,45 @@ export const MessageAi = () => {
     debug,
     step
   );
-
-  // システムの開始処理
+  // append の状態を固定する
+  const appendRef = useRef(append);
   useEffect(() => {
-    // 初回の実行処理
-    if (started && !hasRun.current) {
-      hasRun.current = true;
-      append({ role: "user", content: "研修よろしくお願いします。" });
-    }
-  }, [started]);
+    appendRef.current = append;
+  }, [append]);
 
   // システムの開始状態を管理
   const hasRun = useRef(false);
   // 直近のメッセージを取得
   const currentAiCommentMessage = getLatestAssistantMessage(messages);
 
+  // システムの開始処理
+  useEffect(() => {
+    // 初回の実行処理
+    if (started && !hasRun.current) {
+      hasRun.current = true;
+      appendRef.current({
+        role: "user",
+        content: "研修よろしくお願いします。",
+      });
+    }
+  }, [started]);
+
   // ユーザーメッセージの送信
   useEffect(() => {
-    if (userMessages.length === 0) return;
-    append({ role: "user", content: currentUserMessage });
-  }, [userMessages]);
+    if (!currentUserMessage) return;
+    appendRef.current({ role: "user", content: currentUserMessage });
+  }, [currentUserMessage]);
 
   // Aimessage の送信
   useEffect(() => {
-    if (messages.length != 0 && currentAiCommentMessage) {
-      setAiMessage(currentAiCommentMessage.content);
-    }
-  }, [messages]);
+    if (!currentAiCommentMessage) return;
+    setAiMessage(currentAiCommentMessage.content);
+  }, [currentAiCommentMessage, setAiMessage]);
 
   // 待機状況の送信
   useEffect(() => {
     setAiState(status);
-  }, [status]);
+  }, [status, setAiState]);
 
   return null;
 };

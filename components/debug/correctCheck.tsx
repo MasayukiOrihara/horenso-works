@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { v4 as uuidv4 } from "uuid";
 
@@ -16,7 +16,6 @@ import {
  */
 export const CorrectCheck: React.FC = () => {
   const { aiState } = useUserMessages();
-  const [oldAiState, setOldAiState] = useState("");
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [userAnswerData, setUserAnswerData] = useState<UserAnswerEvaluation[]>(
     []
@@ -25,15 +24,16 @@ export const CorrectCheck: React.FC = () => {
   /**
    * ストリーミングが終わったタイミングで userAnswerData を取得する
    */
+  const oldAiStateRef = useRef("");
   useEffect(() => {
     // プログラム開始直後
-    if (oldAiState === "") {
-      setOldAiState(aiState);
+    if (oldAiStateRef.current === "") {
+      oldAiStateRef.current = aiState;
       return;
     }
 
-    const haveChanged = !(oldAiState === aiState); // 前回から状態変化した
-    const isStreaming = oldAiState === "streaming"; // 前の状態が"streaming"
+    const haveChanged = oldAiStateRef.current !== aiState; // 前回から状態変化した
+    const isStreaming = oldAiStateRef.current === "streaming"; // 前の状態が"streaming"
     if (haveChanged && isStreaming) {
       const fetchData = async () => {
         const res = await getUserAnswerDataApi();
@@ -43,7 +43,7 @@ export const CorrectCheck: React.FC = () => {
       };
       fetchData();
     }
-    setOldAiState(aiState);
+    oldAiStateRef.current = aiState;
   }, [aiState]);
 
   // 削除をはいと答えた時の動作

@@ -58,7 +58,7 @@ export function rerankNode({
   contexts.push(MSG.ANSWER_EXAMPLE_PREFIX_PROMPT);
 
   // データ取得
-  const rankedResults: UsedEntry[] = getRankedResults(qaEmbeddings, step);
+  const rankedResults: UsedEntry[] = getRankedResults(qaEmbeddings);
 
   // sum の高い順に並べて、上位2件を取得
   usedEntry = rankedResults.sort((a, b) => b.sum - a.sum).slice(0, 2);

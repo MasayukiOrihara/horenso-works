@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { MessageAi } from "../messages/message-ai";
 
 type Props = {
   onSend: (log: string[]) => void;
@@ -33,7 +32,7 @@ export const LogViewer: React.FC<Props> = ({ onSend }) => {
   // 送信
   useEffect(() => {
     onSend(logs);
-  }, [logs]);
+  }, [logs, onSend]);
 
   return null;
 };

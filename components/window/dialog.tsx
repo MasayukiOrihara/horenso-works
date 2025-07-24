@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { LoaderCircleIcon } from "lucide-react";
 import { ChevronsLeft } from "lucide-react";
 import { useUserMessages } from "../messages/message-provider";
@@ -37,10 +37,13 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
       setPage(0);
       setSeenPages([]);
     }
-  }, [aiState]);
+  }, [aiState, lines.length]);
 
   /* ログの処理 */
   const lastLog = logs[logs.length - 1] ?? "AI を呼び出し中...";
+  const onSend = useCallback((logs: string[]) => {
+    setLogs(logs);
+  }, []);
 
   /* ページネーション用 */
   const colors = [
@@ -134,7 +137,7 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
           )}
         </button>
       </div>
-      <LogViewer onSend={(log) => setLogs(log)} />
+      <LogViewer onSend={onSend} />
     </div>
   );
 };

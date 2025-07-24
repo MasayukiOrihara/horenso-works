@@ -1,7 +1,7 @@
 import { PromptTemplate } from "@langchain/core/prompts";
 import { Document } from "langchain/document";
 
-import { OpenAi4_1Mini, sonnet, strParser } from "@/lib/models";
+import { sonnet, strParser } from "@/lib/models";
 import { HorensoMetadata, UserAnswerEvaluation } from "@/lib/type";
 import { GUIDED_ANSWER_PROMPT } from "../../contents/messages";
 

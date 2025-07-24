@@ -17,7 +17,7 @@ export const MessageInput = () => {
       setText((prev) => inputTag + prev);
       setInputTag("");
     }
-  }, [inputTag]);
+  }, [inputTag, text, setInputTag]);
 
   const handleAiMessageCopy = () => {
     setText((prev) => prev + aiMessage);
