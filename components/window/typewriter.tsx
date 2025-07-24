@@ -7,15 +7,21 @@ type Props = {
 
 export function Typewriter({ text, speed = 100 }: Props) {
   const [displayed, setDisplayed] = useState("");
-  const isFirstRun = useRef(true);
-  const indexRef = useRef(0);
+  const isDev = true; // 開発時 true
+  const hasRun = useRef(false);
 
+  const refText = useRef("");
+  const indexRef = useRef(0);
   useEffect(() => {
-    // 初回マウントの回避
-    if (isFirstRun.current) {
-      isFirstRun.current = false;
+    // 開発モード時の回避処理
+    if (isDev && !hasRun.current) {
+      hasRun.current = true;
       return;
     }
+
+    // 初回マウントの回避
+    if (!isDev && refText.current === text) return;
+    refText.current = text;
 
     // Unicode対応（絵文字なども対応）
     const chars = Array.from(text);
@@ -40,6 +46,7 @@ export function Typewriter({ text, speed = 100 }: Props) {
 
     // クリーンアップで止める
     return () => {
+      console.log("🧹 クリーンアップ");
       isCancelled = true;
       indexRef.current = 0;
     };
