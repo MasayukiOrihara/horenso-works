@@ -87,6 +87,7 @@ async function rerank(state: typeof StateAnnotation.State) {
     messages: state.messages,
     step: state.transition.step,
     qaEmbeddings: state.qaEmbeddings,
+    talkJudge: state.talkJudge,
   });
 
   globalQaEntryId = qaEntryId;

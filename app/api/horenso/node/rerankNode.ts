@@ -15,6 +15,7 @@ type RerankNode = {
   messages: BaseMessage[];
   step: number;
   qaEmbeddings: [Document<QADocumentMetadata>, number][];
+  talkJudge: string;
 };
 
 /**
@@ -27,21 +28,30 @@ export function rerankNode({
   messages,
   step,
   qaEmbeddings,
+  talkJudge,
 }: RerankNode) {
-  // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1);
+  // 会話の分類
+  const match = talkJudge.match(/入力意図の分類:\s*(質問|回答|冗談|その他)/);
+  const category = match ? match[1] : "";
 
-  // エントリーデータ蓄積用
-  const qaEntryId = uuidv4();
-  const qaEntry: QAEntry = qaEntryData(
-    qaEntryId,
-    messageToText(messages, messages.length - 1),
-    `${step + 1}`
-  );
+  let qaEntryId = ""; // 次に渡す ID 用
+  // エントリーデータ新規登録処理（会話の内容によっては登録しない）
+  if (!(category === "質問" || category === "冗談")) {
+    // 既存データを読み込む（なければ空配列）
+    const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1);
 
-  // 新しいエントリを追加 + 上書き保存（整形付き）
-  qaList.push(qaEntry);
-  fs.writeFileSync(qaEntriesFilePath(), JSON.stringify(qaList, null, 2));
+    // エントリーデータ蓄積用
+    qaEntryId = uuidv4();
+    const qaEntry: QAEntry = qaEntryData(
+      qaEntryId,
+      messageToText(messages, messages.length - 1),
+      `${step + 1}`
+    );
+
+    // 新しいエントリを追加 + 上書き保存（整形付き）
+    qaList.push(qaEntry);
+    fs.writeFileSync(qaEntriesFilePath(), JSON.stringify(qaList, null, 2));
+  }
 
   const contexts = [];
   contexts.push(MSG.BULLET + MSG.PAST_REPLY_HINT_PROMPT);

@@ -28,24 +28,41 @@ export const judgeSemanticMatch = async (
     MSG.JUDGE_ANSWER_SEMANTIC_MATCH_PROMPT
   );
   // ※※ semanticJudgeはopenAiに直接出力させたオブジェクトなので取り扱いがかなり怖い
-  const semanticJudge = await prompt.pipe(OpenAi).pipe(jsonParser).invoke({
-    question: question,
-    current_answer: currentAnswer,
-    user_answer: userAnswer,
-    format_instructions: jsonParser.getFormatInstructions(),
-  });
+  let data: SemanticAnswerEntry;
+  try {
+    const semanticJudge = await prompt.pipe(OpenAi).pipe(jsonParser).invoke({
+      question: question,
+      current_answer: currentAnswer,
+      user_answer: userAnswer,
+      format_instructions: jsonParser.getFormatInstructions(),
+    });
 
-  const data: SemanticAnswerEntry = {
-    id: uuidv4(),
-    answer: semanticJudge.answer,
-    reason: semanticJudge.reason,
-    metadata: {
-      parentId: String(semanticJudge.metadata.parentId),
-      question_id: "",
-      timestamp: timestamp,
-      source: semanticJudge.metadata.source as "user" | "bot" | "admin", // 型が合うように明示
-    },
-  };
+    data = {
+      id: uuidv4(),
+      answer: semanticJudge.answer,
+      reason: semanticJudge.reason,
+      metadata: {
+        parentId: String(semanticJudge.metadata.parentId),
+        question_id: "",
+        timestamp: timestamp,
+        source: semanticJudge.metadata.source as "user" | "bot" | "admin", // 型が合うように明示
+      },
+    };
+  } catch (error) {
+    // ダメだったら空のデータを返す
+    console.error("JSONパース失敗", error);
+    data = {
+      id: uuidv4(),
+      answer: userAnswer,
+      reason: "JSONパース失敗",
+      metadata: {
+        parentId: "",
+        question_id: "",
+        timestamp: timestamp,
+        source: "bot",
+      },
+    };
+  }
   console.log("曖昧回答の出力:");
   console.log(data);
 

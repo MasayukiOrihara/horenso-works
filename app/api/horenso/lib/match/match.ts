@@ -170,61 +170,6 @@ export async function matchAnswerOpenAi({
   return { isAnswerCorrect, userAnswerDatas };
 }
 
-/** HuggingFaceのAPIを使用して類似度を計算する関数（※※※未調整） */
-export async function matchAnswerHuggingFaceAPI(
-  userAnswer: string,
-  documents: Document<HorensoMetadata>[],
-  threshold: number,
-  userAnswerDatas: UserAnswerEvaluation[],
-  allTrue = false
-) {
-  let isAnswerCorrect = false;
-
-  console.log(" ---\n HuggingFace APIでの回答チェック");
-  const getScore = await fetch(
-    "https://api-inference.huggingface.co/models/sentence-transformers/all-mpnet-base-v2",
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-      body: JSON.stringify({
-        inputs: {
-          source_sentence: userAnswer,
-          sentences: documents.map((doc) => doc.pageContent),
-        },
-      }),
-    }
-  );
-  const response = await getScore.json();
-
-  // スコアが閾値以上のドキュメントをマッチさせる
-  response.forEach((score: number, i: number) => {
-    console.log(`${documents[i].pageContent} : ${score}`);
-    if (score >= threshold) {
-      documents[i].metadata.isMatched = true;
-      isAnswerCorrect = true;
-    }
-    // 答えの結果を詰め込む
-    const data: UserAnswerEvaluation = {
-      parentId: documents[i].metadata.parentId,
-      question_id: documents[i].metadata.question_id,
-      userAnswer: userAnswer,
-      currentAnswer: documents[i].pageContent,
-      score: score.toString(),
-      isAnswerCorrect: isAnswerCorrect,
-    };
-    userAnswerDatas.push(data);
-  });
-
-  // 問題正解判定
-  if (allTrue) {
-    isAnswerCorrect = documents.every((doc) => doc.metadata.isMatched);
-  }
-  return isAnswerCorrect;
-}
-
 /**
  * isMatched の値が変化した要素だけを抽出する関数
  * @param before

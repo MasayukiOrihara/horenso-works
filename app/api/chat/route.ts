@@ -66,7 +66,6 @@ export async function POST(req: Request) {
       oldHorensoContenue = true;
 
       // 開発の解説と問題の提示
-
       aiMessages.push(
         MSG.REPHRASE_WITH_LOGIC_PRESERVED.replace(
           "{sentence}",

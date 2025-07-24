@@ -80,7 +80,8 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
         <button
           onClick={handlePrev}
           disabled={
-            page === 0 || (lines.length === 0 && aiState === "streaming")
+            (page === 0 && lines.length === 0) ||
+            (lines.length === 0 && aiState === "streaming")
           }
           className="px-4 py-2 w-[20%] border-y-6 border-l-6 border-black border-double rounded-md rounded-r-none hover:cursor-pointer hover:opacity-60 disabled:cursor-auto disabled:opacity-40"
         >
