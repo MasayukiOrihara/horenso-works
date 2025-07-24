@@ -46,11 +46,13 @@ export const CorrectCheck: React.FC = () => {
     setOldAiState(aiState);
   }, [aiState]);
 
+  // 削除をはいと答えた時の動作
   const handleDeleteYes = (id: string) => {
     setDeletedIds((prev) => [...prev, id]);
     userAnswerData.filter((item) => item.semanticId !== id);
   };
 
+  // 削除をいいえといったときの動作
   const handleDeleteNo = async (id: string) => {
     setDeletedIds((prev) => [...prev, id]);
     userAnswerData.filter((item) => item.semanticId !== id);
@@ -65,6 +67,7 @@ export const CorrectCheck: React.FC = () => {
   return (
     <div className="w-full flex-col justify-center">
       {userAnswerData &&
+        aiState === "ready" &&
         userAnswerData.map((data, index) => (
           <motion.div
             key={data.semanticId + uuidv4()}

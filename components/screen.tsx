@@ -7,7 +7,7 @@ export const SCREEN: React.FC = () => {
   return (
     <div className="w-full flex justify-center">
       <div
-        className={`relative w-1/6 aspect-[1/1] transition-opacity duration-1000 ease-in-out ${
+        className={`relative w-1/3 aspect-[1/1] transition-opacity duration-1000 ease-in-out ${
           started ? "opacity-100" : "opacity-0"
         }`}
       >
