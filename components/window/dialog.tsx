@@ -133,7 +133,7 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
           seenPages.length === lines.length - 1 ? (
             <></>
           ) : (
-            <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-[100%] w-[100%] rounded bg-zinc-400 opacity-0 animate-pulse"></span>
+            <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-[90%] w-[90%] rounded-md rounded-l-none bg-white animate-ping"></span>
           )}
         </button>
       </div>
