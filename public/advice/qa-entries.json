@@ -31,5 +31,16 @@
       "question_id": "1",
       "source": "bot"
     }
+  },
+  {
+    "id": "3541deca-4a6f-4170-8e5b-4aa379b548b8",
+    "userAnswer": "いう",
+    "hint": "",
+    "metadata": {
+      "timestamp": "2025-08-20T17:27:50.862+09:00",
+      "quality": 0.5,
+      "question_id": "1",
+      "source": "bot"
+    }
   }
 ]

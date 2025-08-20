@@ -25,6 +25,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     // フロントから今までのメッセージを取得
     const messages = body.messages ?? [];
+    // 過去の履歴取得（非同期）
+    const memoryResponsePromise = postMemoryApi(messages);
+    // 直近のメッセージを取得
+    const userMessage = messages[messages.length - 1].content;
+
     // フロントからセッションID を取得
     const sessionId: string = body.sessionId;
     if (!sessionId) {
@@ -34,27 +39,10 @@ export async function POST(req: Request) {
     // フロントからオプションを取得
     const options = ChatRequestOptionsSchema.parse(body.options);
 
-    const getBoolHeader = (key: string) => req.headers.get(key) === "true";
-    console.log(sessionId);
-    console.log(options);
-
-    // 過去の履歴
-    const memoryResponsePromise = postMemoryApi(messages);
-    // 直近のメッセージを取得
-    const userMessage = messages[messages.length - 1].content;
-
-    // ※※ メッセージの取り扱いはlangchain側で何とかやれそう
-    if (horensoContenue) {
-      // メッセージ保存: フロントエンドから記憶設定を取得
-      const humanMessage = new HumanMessage(userMessage);
-      if (getBoolHeader("memoryOn")) {
-        await logMessage(humanMessage);
-      }
-    }
-
+    /* --- 処理 ここから --- */
     // 指摘の取得: フロントエンドから指摘設定を取得
-    // ※※ これフロント側で実行すればいいんじゃないの？？
-    if (getBoolHeader("learnOn")) {
+    // ※※　後からプロンプロを変更するものだが、少し使いづらいので変更予定
+    if (options.learnOn) {
       const log = await logLearn(userMessage);
       console.log("指摘終了\n");
 
@@ -63,18 +51,11 @@ export async function POST(req: Request) {
       return LangChainAdapter.toDataStreamResponse(await fake(outputText));
     }
 
-    // デバック: 初回メッセージのスキップ
-    let step = "0";
-    if (getBoolHeader("debug")) {
-      console.log("デバッグモードで作動中...");
-      step = req.headers.get("step") ?? "0";
-    }
-
     // 始動時の状態判定
     const aiMessages = [];
     let qaEntryId = "";
     horensoContenue = true;
-    if (horensoContenue && !oldHorensoContenue && !getBoolHeader("debug")) {
+    if (horensoContenue && !oldHorensoContenue && !options.debug) {
       // 初回AIメッセージ
       console.log("🚪 初回のルート");
       oldHorensoContenue = true;
@@ -88,7 +69,11 @@ export async function POST(req: Request) {
       );
       aiMessages.push(MSG.QUESTION_WHO_ASKING);
     } else {
+      // メッセージ保存: フロントエンドから記憶設定を取得
+      if (options.memoryOn) await logMessage(new HumanMessage(userMessage));
+
       // 報連相ワークAPI呼び出し
+      const step = options.debug ? options.step : 0; // デバック用のステップ数設定
       const horensoGraph = await postHorensoGraphApi(step, userMessage);
       const apiBody = await horensoGraph.json();
       aiMessages.push(apiBody.text);
@@ -119,9 +104,7 @@ export async function POST(req: Request) {
 
     // プロンプト読み込み
     const load = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
-    const addPrompt = getBoolHeader("addPromptOn")
-      ? "\n" + (await readAddPrompt())
-      : "";
+    const addPrompt = options.addPromptOn ? "\n" + (await readAddPrompt()) : "";
     const template = load.manifest.kwargs.template + addPrompt;
     const prompt = PromptTemplate.fromTemplate(template);
 
@@ -147,7 +130,7 @@ export async function POST(req: Request) {
 
         // メッセージ保存: フロントエンドから記憶設定を取得
         const aiMessage = new AIMessage(fullText);
-        if (getBoolHeader("memoryOn")) {
+        if (options.memoryOn) {
           await logMessage(aiMessage);
         }
 

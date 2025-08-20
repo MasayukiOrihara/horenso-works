@@ -182,9 +182,10 @@ const app = workflow.compile({ checkpointer: memory });
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    // メッセージを取得
     const userMessage = body.userMessage;
-
-    globalDebugStep = Number(req.headers.get("step")) ?? 0;
+    // デバック用のステップ数を取得
+    globalDebugStep = body.step ?? 0;
     const { baseUrl } = getBaseUrl(req);
 
     console.log("🏁 報連相ワーク ターン開始");

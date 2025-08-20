@@ -3,7 +3,7 @@ import { BaseMessage } from "@langchain/core/messages";
 
 /* 報連相ワークAPI */
 export const postHorensoGraphApi = async (
-  step: string,
+  step: number,
   userMessage: string
 ) => {
   const { baseUrl } = getBaseUrl();
@@ -14,9 +14,8 @@ export const postHorensoGraphApi = async (
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env.ACCESS_TOKEN}`, // vercel用
-      step: step,
     },
-    body: JSON.stringify({ userMessage }),
+    body: JSON.stringify({ step, userMessage }),
   });
 
   return response;
