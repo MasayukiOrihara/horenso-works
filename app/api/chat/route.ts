@@ -2,13 +2,12 @@ import { LangSmithClient } from "@/lib/clients";
 import * as MSG from "./messages";
 import { fake, OpenAi4oMini } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { ChatRequestOptions, LangChainAdapter } from "ai";
+import { LangChainAdapter } from "ai";
 
 import { logLearn, logMessage, readAddPrompt, updateEntry } from "./utils";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import { getBaseUrl } from "@/lib/path";
 import { postHorensoGraphApi, postMemoryApi } from "../../../lib/api/serverApi";
-import { OPTIONS_ERROR, SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/messages";
+import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/messages";
 import { ChatRequestOptionsSchema } from "@/lib/schema";
 
 // 外部フラグ
