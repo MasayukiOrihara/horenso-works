@@ -98,3 +98,12 @@ export type ShouldValidate = {
   who: boolean;
   why: boolean;
 };
+
+/* フロントからバックへ送るチャットリクエスト設定 */
+export type ChatRequestOptions = {
+  memoryOn: boolean;
+  learnOn: boolean;
+  addPromptOn: boolean;
+  debug: boolean;
+  step: number;
+};

@@ -1,33 +1,11 @@
-import { useChat } from "@ai-sdk/react";
 import { useUserMessages } from "./message-provider";
 import { useEffect, useRef } from "react";
 import { UIMessage } from "ai";
 import { useSwitches } from "../provider/switch-provider";
 import { useStartButton } from "../provider/start-button-provider";
-
-// useChatの共通化関数
-function useMyChat(
-  apiPath: string,
-  memoryOn: boolean,
-  learnOn: boolean,
-  addPromptOn: boolean,
-  debug: boolean,
-  step: number
-) {
-  return useChat({
-    api: apiPath,
-    headers: {
-      memoryOn: memoryOn.toString(),
-      learnOn: learnOn.toString(),
-      addPromptOn: addPromptOn.toString(),
-      debug: debug.toString(),
-      step: step.toString(),
-    },
-    onError: (error) => {
-      console.log(error);
-    },
-  });
-}
+import { useSessionId } from "@/hooks/useSessionId";
+import { useHorensoChat } from "@/hooks/useHorensoChat";
+import { ChatRequestOptions } from "@/lib/type";
 
 // 最後のメッセージを取り出す共通化関数
 function getLatestAssistantMessage(messages: UIMessage[]) {
@@ -39,13 +17,22 @@ export const MessageAi = () => {
   const { setAiMessage, currentUserMessage, setAiState } = useUserMessages();
   const { memoryOn, learnOn, addPromptOn } = useSwitches();
   const { started, debug, step } = useStartButton();
-  const { messages, status, append } = useMyChat(
-    "api/chat",
+  // 現在のセッション ID
+  const sessionId = useSessionId();
+  // チャットリクエストのオプションを作成
+  const options: ChatRequestOptions = {
     memoryOn,
     learnOn,
     addPromptOn,
     debug,
-    step
+    step,
+  };
+
+  // カスタムフックから報連相ワークAI の準備
+  const { messages, status, append } = useHorensoChat(
+    "api/chat",
+    sessionId,
+    options
   );
   // append の状態を固定する
   const appendRef = useRef(append);

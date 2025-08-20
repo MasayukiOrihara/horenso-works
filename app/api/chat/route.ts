@@ -2,12 +2,14 @@ import { LangSmithClient } from "@/lib/clients";
 import * as MSG from "./messages";
 import { fake, OpenAi4oMini } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { LangChainAdapter } from "ai";
+import { ChatRequestOptions, LangChainAdapter } from "ai";
 
 import { logLearn, logMessage, readAddPrompt, updateEntry } from "./utils";
 import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import { getBaseUrl } from "@/lib/path";
 import { postHorensoGraphApi, postMemoryApi } from "../../../lib/api/serverApi";
+import { OPTIONS_ERROR, SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/messages";
+import { ChatRequestOptionsSchema } from "@/lib/schema";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -21,16 +23,27 @@ let oldHorensoContenue = false;
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    // フロントから今までのメッセージを取得
     const messages = body.messages ?? [];
-    const { baseUrl } = getBaseUrl(req);
-    console.log(baseUrl);
+    // フロントからセッションID を取得
+    const sessionId: string = body.sessionId;
+    if (!sessionId) {
+      console.error("💬 chat API POST error: " + SESSIONID_ERROR);
+      return Response.json({ error: SESSIONID_ERROR }, { status: 400 });
+    }
+    // フロントからオプションを取得
+    const options = ChatRequestOptionsSchema.parse(body.options);
+
     const getBoolHeader = (key: string) => req.headers.get(key) === "true";
+    console.log(sessionId);
+    console.log(options);
 
     // 過去の履歴
     const memoryResponsePromise = postMemoryApi(messages);
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
 
+    // ※※ メッセージの取り扱いはlangchain側で何とかやれそう
     if (horensoContenue) {
       // メッセージ保存: フロントエンドから記憶設定を取得
       const humanMessage = new HumanMessage(userMessage);
@@ -40,6 +53,7 @@ export async function POST(req: Request) {
     }
 
     // 指摘の取得: フロントエンドから指摘設定を取得
+    // ※※ これフロント側で実行すればいいんじゃないの？？
     if (getBoolHeader("learnOn")) {
       const log = await logLearn(userMessage);
       console.log("指摘終了\n");
@@ -147,17 +161,9 @@ export async function POST(req: Request) {
 
     return LangChainAdapter.toDataStreamResponse(enhancedStream);
   } catch (error) {
-    console.log(error);
-    if (error instanceof Error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
 
-    return new Response(JSON.stringify({ error: "Unknown error occurred" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("💬 chat API POST error: " + message);
+    return Response.json({ error: message }, { status: 500 });
   }
 }
