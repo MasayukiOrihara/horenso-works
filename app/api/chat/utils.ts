@@ -61,59 +61,59 @@ export async function logMessage(message: BaseMessage) {
 }
 
 /** 講師の指摘から学ぶ */
-export async function logLearn(learnText: string) {
-  console.log("タグ付き入力で会話を指摘可能...");
+// export async function logLearn(learnText: string) {
+//   console.log("タグ付き入力で会話を指摘可能...");
 
-  switch (true) {
-    case learnText.includes("【エントリー】"):
-      console.log("エントリーの入力");
+//   switch (true) {
+//     case learnText.includes("【エントリー】"):
+//       console.log("エントリーの入力");
 
-      // 既存データを読み込む（なければ空配列）
-      const qaList: QAEntry[] = readJson(Path.qaEntriesFilePath());
+//       // 既存データを読み込む（なければ空配列）
+//       const qaList: QAEntry[] = readJson(Path.qaEntriesFilePath());
 
-      // timestampが最大のもの（最新）を探す
-      const latestEntry = qaList.reduce(
-        (latest, entry) =>
-          entry.metadata.timestamp > latest.metadata.timestamp ? entry : latest,
-        initial
-      );
+//       // timestampが最大のもの（最新）を探す
+//       const latestEntry = qaList.reduce(
+//         (latest, entry) =>
+//           entry.metadata.timestamp > latest.metadata.timestamp ? entry : latest,
+//         initial
+//       );
 
-      // 値の追加
-      const qaEntry: QAEntry = {
-        id: uuidv4(),
-        userAnswer: latestEntry.userAnswer,
-        hint: learnText.replace("【エントリー】", ""),
-        metadata: {
-          ...latestEntry.metadata,
-          timestamp: Path.timestamp,
-          quality: 0.5,
-          source: "user",
-        },
-      };
-      qaList.push(qaEntry);
+//       // 値の追加
+//       const qaEntry: QAEntry = {
+//         id: uuidv4(),
+//         userAnswer: latestEntry.userAnswer,
+//         hint: learnText.replace("【エントリー】", ""),
+//         metadata: {
+//           ...latestEntry.metadata,
+//           timestamp: Path.timestamp,
+//           quality: 0.5,
+//           source: "user",
+//         },
+//       };
+//       qaList.push(qaEntry);
 
-      // 上書き保存（整形付き）
-      fs.writeFileSync(
-        Path.qaEntriesFilePath(),
-        JSON.stringify(qaList, null, 2)
-      );
-      const entryFinishLog = `✅ エントリーデータを ${Path.qaEntriesFilePath()} に更新しました`;
-      console.log(entryFinishLog);
+//       // 上書き保存（整形付き）
+//       fs.writeFileSync(
+//         Path.qaEntriesFilePath(),
+//         JSON.stringify(qaList, null, 2)
+//       );
+//       const entryFinishLog = `✅ エントリーデータを ${Path.qaEntriesFilePath()} に更新しました`;
+//       console.log(entryFinishLog);
 
-      return entryFinishLog;
-    case learnText.includes("【プロンプト】"):
-      console.log("プロンプトの入力");
+//       return entryFinishLog;
+//     case learnText.includes("【プロンプト】"):
+//       console.log("プロンプトの入力");
 
-      // プロンプトに追加
-      const result = " - " + learnText.replace("【プロンプト】", "") + "\n";
-      // 指摘をファイルに書き出し
-      await writeTextFile(Path.learnFilePath, result);
+//       // プロンプトに追加
+//       const result = " - " + learnText.replace("【プロンプト】", "") + "\n";
+//       // 指摘をファイルに書き出し
+//       await writeTextFile(Path.learnFilePath, result);
 
-      const promptFinishLog = `✅ 指摘内容を ${Path.learnFileName} に保存しました。\n`;
-      return promptFinishLog;
-  }
-  return "今回の変更はありません。";
-}
+//       const promptFinishLog = `✅ 指摘内容を ${Path.learnFileName} に保存しました。\n`;
+//       return promptFinishLog;
+//   }
+//   return "今回の変更はありません。";
+// }
 
 /** 追加プロンプトの読み込み */
 export async function readAddPrompt() {

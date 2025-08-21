@@ -8,6 +8,7 @@ import {
 
 import { OpenAi4_1Mini } from "@/lib/models";
 import { MEMORY_SUMMARY_PROMPT, MEMORY_UPDATE_PROMPT } from "./contents";
+import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/messages";
 
 // メッセージ履歴
 const conversation: string[] = [];
@@ -68,6 +69,7 @@ async function summarizeConversation(state: typeof GraphAnnotation.State) {
 // アノテーションの追加
 const GraphAnnotation = Annotation.Root({
   summary: Annotation<string>(),
+  sessionId: Annotation<string>(),
   ...MessagesAnnotation.spec,
 });
 
@@ -97,14 +99,22 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const messages = body.messages ?? [];
+    const sessionId = body.sessionId;
+    if (!sessionId) {
+      console.error("💿 memory API POST error: " + SESSIONID_ERROR);
+      return Response.json({ error: SESSIONID_ERROR }, { status: 400 });
+    }
 
     // 2行取得
     const len = messages.length;
     const previousMessage = messages.slice(Math.max(0, len - 2), len);
 
     // 履歴用キー
-    const config = { configurable: { thread_id: "abc123" } };
-    const results = await app.invoke({ messages: previousMessage }, config);
+    const config = { configurable: { thread_id: sessionId } };
+    const results = await app.invoke(
+      { messages: previousMessage, sessionId: sessionId },
+      config
+    );
 
     // 履歴メッセージの加工
     conversation.length = 0; // 初期化
@@ -123,22 +133,12 @@ export async function POST(req: Request) {
       }
     }
 
-    return new Response(JSON.stringify(conversation), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return Response.json(conversation, { status: 200 });
   } catch (error) {
-    if (error instanceof Error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
 
-    return new Response(JSON.stringify({ error: "Unknown error occurred" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("💿 memory API POST error: " + message);
+    return Response.json({ error: message }, { status: 500 });
   }
 }
 

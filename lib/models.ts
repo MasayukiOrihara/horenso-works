@@ -7,6 +7,8 @@ import {
   JsonOutputParser,
 } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
+import { UNKNOWN_ERROR } from "./messages";
+import { Runnable } from "@langchain/core/runnables";
 
 const ANTHROPIC_MODEL_3 = "claude-3-haiku-20240307";
 const ANTHROPIC_MODEL_3_5 = "claude-3-5-haiku-20241022";
@@ -85,3 +87,55 @@ export const fake = async (output: string) => {
   const fakeStream = await fakePrompt.pipe(fakeModel).stream({});
   return fakeStream;
 };
+
+// フォールバック可能なLLM一覧
+const fallbackLLMs: Runnable[] = [OpenAi4_1Mini, OpenAi4oMini];
+// レート制限に達したときに別のモデルに切り替える対策 + 指数バックオフ付き
+export async function runWithFallback(
+  runnable: Runnable,
+  input: Record<string, unknown>,
+  mode: "invoke" | "stream" = "invoke",
+  parser?: Runnable,
+  maxRetries = 3,
+  baseDelay = 200
+) {
+  for (const model of fallbackLLMs) {
+    for (let retry = 0; retry < maxRetries; retry++) {
+      try {
+        const pipeline = runnable.pipe(model);
+        if (parser) pipeline.pipe(parser);
+        const result =
+          mode === "stream"
+            ? await pipeline.stream(input)
+            : await pipeline.invoke(input);
+
+        // ✅ 成功モデルのログ
+        console.log(`[LLM] Using model: ${model.lc_kwargs.model}`);
+        return result;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : UNKNOWN_ERROR;
+        const isRateLimited =
+          message.includes("429") ||
+          message.includes("rate limit") ||
+          message.includes("overloaded");
+        if (!isRateLimited) throw err;
+
+        // 指数バックオフの処理
+        const delay = Math.min(baseDelay * 2 ** retry, 5000); // 最大5秒
+        const jitter = Math.random() * 100;
+        console.warn(
+          `Model ${model.lc_kwargs.model} failed with rate limit (${
+            retry + 1
+          }/${maxRetries}): ${message}`
+        );
+        await new Promise((res) => setTimeout(res, delay + jitter));
+      }
+    }
+    // 次のモデルにフォールバック（次のループへ）
+    console.warn(
+      `Model ${model.lc_kwargs.model} failed all retries. Trying next model.`
+    );
+  }
+  // どのモデルでも成功しなかった場合
+  throw new Error("All fallback models failed.");
+}

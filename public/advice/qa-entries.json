@@ -42,5 +42,16 @@
       "question_id": "1",
       "source": "bot"
     }
+  },
+  {
+    "id": "dc333723-27d8-4740-b540-b8e58e438b14",
+    "userAnswer": "研修よろしくお願いします。",
+    "hint": "",
+    "metadata": {
+      "timestamp": "2025-08-21T10:08:43.091+09:00",
+      "quality": 0.5,
+      "question_id": "1",
+      "source": "bot"
+    }
   }
 ]

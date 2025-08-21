@@ -1,18 +1,21 @@
-import { LangSmithClient } from "@/lib/clients";
 import * as MSG from "./messages";
-import { fake, OpenAi4oMini } from "@/lib/models";
+import { runWithFallback } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
 
-import { logLearn, logMessage, readAddPrompt, updateEntry } from "./utils";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
-import { postHorensoGraphApi, postMemoryApi } from "../../../lib/api/serverApi";
+import { logMessage } from "./utils";
+import { HumanMessage } from "@langchain/core/messages";
 import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/messages";
 import { ChatRequestOptionsSchema } from "@/lib/schema";
+import { requestApi } from "@/lib/utils";
+import { getBaseUrl } from "@/lib/path";
 
 // 外部フラグ
 let horensoContenue = false;
 let oldHorensoContenue = false;
+
+const MEMORY_PATH = "/api/memory";
+const HORENSO_PATH = "/api/horenso";
 
 /**
  * 報連相ワークAI
@@ -22,34 +25,26 @@ let oldHorensoContenue = false;
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const { baseUrl } = getBaseUrl();
     // フロントから今までのメッセージを取得
     const messages = body.messages ?? [];
-    // 過去の履歴取得（非同期）
-    const memoryResponsePromise = postMemoryApi(messages);
-    // 直近のメッセージを取得
-    const userMessage = messages[messages.length - 1].content;
-
     // フロントからセッションID を取得
     const sessionId: string = body.sessionId;
     if (!sessionId) {
       console.error("💬 chat API POST error: " + SESSIONID_ERROR);
       return Response.json({ error: SESSIONID_ERROR }, { status: 400 });
     }
+    // 過去の履歴取得（非同期）
+    const memoryResponsePromise = requestApi(baseUrl, MEMORY_PATH, {
+      method: "POST",
+      body: { messages, sessionId },
+    });
+    // 直近のメッセージを取得
+    const userMessage = messages[messages.length - 1].content;
     // フロントからオプションを取得
     const options = ChatRequestOptionsSchema.parse(body.options);
 
     /* --- 処理 ここから --- */
-    // 指摘の取得: フロントエンドから指摘設定を取得
-    // ※※　後からプロンプロを変更するものだが、少し使いづらいので変更予定
-    if (options.learnOn) {
-      const log = await logLearn(userMessage);
-      console.log("指摘終了\n");
-
-      // 定型文を吐いて会話を抜ける
-      const outputText = MSG.POINT_OUT_LOG.replace("{log}", log);
-      return LangChainAdapter.toDataStreamResponse(await fake(outputText));
-    }
-
     // 始動時の状態判定
     const aiMessages = [];
     let qaEntryId = "";
@@ -59,7 +54,7 @@ export async function POST(req: Request) {
       console.log("🚪 初回のルート");
       oldHorensoContenue = true;
 
-      // 開発の解説と問題の提示
+      // 開発の解説と問題を AIメッセージ に取り込み
       aiMessages.push(
         MSG.REPHRASE_WITH_LOGIC_PRESERVED.replace(
           "{sentence}",
@@ -73,75 +68,76 @@ export async function POST(req: Request) {
 
       // 報連相ワークAPI呼び出し
       const step = options.debug ? options.step : 0; // デバック用のステップ数設定
-      const horensoGraph = await postHorensoGraphApi(step, userMessage);
-      const apiBody = await horensoGraph.json();
-      aiMessages.push(apiBody.text);
-      qaEntryId = apiBody.qaEntryId;
+      const horensoGraph = await requestApi(baseUrl, HORENSO_PATH, {
+        method: "POST",
+        body: { step, userMessage },
+      });
+      aiMessages.push(horensoGraph.text);
+      qaEntryId = horensoGraph.qaEntryId;
 
       // 終了時の状態判定
       console.log(
-        "継続判定 api側: " + apiBody.contenue + " chat側: " + horensoContenue
+        "継続判定 api側: " +
+          horensoGraph.contenue +
+          " chat側: " +
+          horensoContenue
       );
-      if (apiBody.contenue != horensoContenue) {
+      if (horensoGraph.contenue != horensoContenue) {
         horensoContenue = false;
-        // ※※ 加藤さんから閉めの会話例をもらうので、それをベースに作成していく
-        // ※※ 現行のシステムだとグラフ内で終わりのプロンプトを導き出してるが、どうするかはあとで決める
         aiMessages.push(MSG.FINISH_MESSAGE);
       }
     }
 
     // 過去履歴の同期
     const memoryResponse = await memoryResponsePromise;
-    const memoryData = await memoryResponse.json();
+    console.log("記憶同期完了");
 
     // プロンプト全文を取得して表示
     const promptVariables = {
-      chat_history: memoryData,
+      chat_history: memoryResponse,
       user_message: userMessage,
       ai_message: aiMessages.join("\n\n"),
     };
 
     // プロンプト読み込み
-    const load = await LangSmithClient.pullPromptCommit("horenso_ai-kato");
-    const addPrompt = options.addPromptOn ? "\n" + (await readAddPrompt()) : "";
-    const template = load.manifest.kwargs.template + addPrompt;
+    const template = MSG.HORENSO_AI_KATO;
     const prompt = PromptTemplate.fromTemplate(template);
 
     // ストリーミング応答を取得
-    const stream = await prompt.pipe(OpenAi4oMini).stream(promptVariables);
+    const stream = await runWithFallback(prompt, promptVariables, "stream");
 
-    const fullPrompt = await prompt.format(promptVariables);
-    console.log("=== 送信するプロンプト全文 ===");
-    console.log(fullPrompt);
-    console.log("================================");
+    // const fullPrompt = await prompt.format(promptVariables);
+    // console.log("=== 送信するプロンプト全文 ===");
+    // console.log(fullPrompt);
+    // console.log("================================");
 
-    // ReadableStream を拡張して終了検知
-    const enhancedStream = new ReadableStream({
-      async start(controller) {
-        let fullText = "";
+    // // ReadableStream を拡張して終了検知
+    // const enhancedStream = new ReadableStream({
+    //   async start(controller) {
+    //     let fullText = "";
 
-        for await (const chunk of stream) {
-          fullText += chunk.content || "";
-          // ストリームにはそのまま流す
-          controller.enqueue(chunk);
-        }
-        console.log("ストリーミング終了\n");
+    //     for await (const chunk of stream) {
+    //       fullText += chunk.content || "";
+    //       // ストリームにはそのまま流す
+    //       controller.enqueue(chunk);
+    //     }
+    //     console.log("ストリーミング終了\n");
 
-        // メッセージ保存: フロントエンドから記憶設定を取得
-        const aiMessage = new AIMessage(fullText);
-        if (options.memoryOn) {
-          await logMessage(aiMessage);
-        }
+    //     // メッセージ保存: フロントエンドから記憶設定を取得
+    //     const aiMessage = new AIMessage(fullText);
+    //     if (options.memoryOn) {
+    //       await logMessage(aiMessage);
+    //     }
 
-        // 今回のエントリーにメッセージを追記
-        if (!(qaEntryId === "")) {
-          updateEntry(qaEntryId, fullText);
-        }
-        controller.close();
-      },
-    });
+    //     // 今回のエントリーにメッセージを追記
+    //     if (!(qaEntryId === "")) {
+    //       updateEntry(qaEntryId, fullText);
+    //     }
+    //     controller.close();
+    //   },
+    // });
 
-    return LangChainAdapter.toDataStreamResponse(enhancedStream);
+    return LangChainAdapter.toDataStreamResponse(stream);
   } catch (error) {
     const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
 
