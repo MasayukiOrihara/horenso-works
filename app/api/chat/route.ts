@@ -1,5 +1,4 @@
 import * as MSG from "./messages";
-import { runWithFallback } from "@/lib/models";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
 
@@ -9,6 +8,7 @@ import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/messages";
 import { ChatRequestOptionsSchema } from "@/lib/schema";
 import { requestApi } from "@/lib/utils";
 import { getBaseUrl } from "@/lib/path";
+import { runWithFallback } from "@/lib/llm/run";
 
 // 外部フラグ
 let horensoContenue = false;
