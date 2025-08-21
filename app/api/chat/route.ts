@@ -2,14 +2,13 @@ import * as MSG from "./messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
 
-import { HumanMessage } from "@langchain/core/messages";
 import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/messages";
 import { ChatRequestOptionsSchema } from "@/lib/schema";
 import { getBaseUrl } from "@/lib/path";
 import { runWithFallback } from "@/lib/llm/run";
 import { requestApi } from "@/lib/api/request";
 import * as PATH from "@/lib/api/path";
-import { logMessage } from "./log";
+import { AIMessage, BaseMessage } from "@langchain/core/messages";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -41,18 +40,15 @@ export async function POST(req: Request) {
     const userMessage = messages[messages.length - 1].content;
     // フロントからオプションを取得
     const options = ChatRequestOptionsSchema.parse(body.options);
-
-    // api test
-    if (options.memoryOn) {
-      const memorySaveTest = await requestApi(
-        baseUrl,
-        "/api/memory/chat/save",
-        {
+    // 会話履歴保存関数
+    const save = async (messages: BaseMessage[]) => {
+      if (options.memoryOn) {
+        await requestApi(baseUrl, PATH.CHAT_SAVE_PATH, {
           method: "POST",
           body: { messages, sessionId },
-        }
-      );
-    }
+        });
+      }
+    };
 
     /* --- --- コンテキスト 処理 --- --- */
     // 始動時の状態判定
@@ -74,7 +70,7 @@ export async function POST(req: Request) {
       aiMessages.push(MSG.QUESTION_WHO_ASKING);
     } else {
       // メッセージ保存: フロントエンドから記憶設定を取得
-      if (options.memoryOn) await logMessage(new HumanMessage(userMessage));
+      await save(messages);
 
       // 報連相ワークAPI呼び出し
       const step = options.debug ? options.step : 0; // デバック用のステップ数設定
@@ -115,31 +111,25 @@ export async function POST(req: Request) {
     };
 
     // ストリーミング応答を取得
-    const stream = await runWithFallback(prompt, promptVariables, "stream");
+    const stream = await runWithFallback(
+      prompt,
+      promptVariables,
+      "stream",
+      undefined,
+      undefined,
+      undefined,
+      {
+        onStreamEnd: async (response: string) =>
+          await save([new AIMessage(response)]),
+      }
+    );
 
     // // ReadableStream を拡張して終了検知
-    // const enhancedStream = new ReadableStream({
-    //   async start(controller) {
-    //     let fullText = "";
-
-    //     for await (const chunk of stream) {
-    //       fullText += chunk.content || "";
-    //       // ストリームにはそのまま流す
-    //       controller.enqueue(chunk);
-    //     }
-    //     console.log("ストリーミング終了\n");
-
-    //     // メッセージ保存: フロントエンドから記憶設定を取得
-    //     const aiMessage = new AIMessage(fullText);
-    //     if (options.memoryOn) {
-    //       await logMessage(aiMessage);
-    //     }
 
     //     // 今回のエントリーにメッセージを追記
     //     if (!(qaEntryId === "")) {
     //       updateEntry(qaEntryId, fullText);
     //     }
-    //     controller.close();
     //   },
     // });
 

@@ -12,7 +12,7 @@ import {
   SESSIONID_ERROR,
   UNKNOWN_ERROR,
 } from "@/lib/message/messages";
-import { convertToOpenAIFormat } from "../../utils";
+import { convertToOpenAIFormat, logShort } from "../../utils";
 import { memoryFilePath, timestamp } from "@/lib/path";
 
 /* 保存先を判断する */
@@ -36,7 +36,7 @@ async function convertTextFormat(state: typeof GraphAnnotation.State) {
   const sessionIdText = `sessionId: ${sessionId}`;
   const timestampText = `time: ${timestamp.slice(0, 16)}`;
   const result = `${cleanFormat} \n - ${sessionIdText}  ${timestampText} \n`;
-  console.log(result);
+  logShort("書き出す内容: \n" + result);
 
   return { textFormat: result };
 }
@@ -128,7 +128,9 @@ export async function POST(req: Request) {
 
     // 履歴用キー
     const config = { configurable: { thread_id: sessionId } };
-    const results = await app.invoke(
+
+    // 実行
+    await app.invoke(
       { messages: previousMessage, sessionId: sessionId },
       config
     );

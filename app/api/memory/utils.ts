@@ -40,3 +40,9 @@ const getContentString = (msg: BaseMessage): string => {
 
   return String(content);
 };
+
+/** ログを全文書かないようにする処理 */
+export const logShort = (msg: string, max = 30) => {
+  const trimmed = msg.length > max ? msg.slice(0, max) + "... \n" : msg;
+  console.log(trimmed);
+};

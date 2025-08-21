@@ -19,7 +19,10 @@ export async function runWithFallback(
   mode: "invoke" | "stream" = "invoke",
   parser?: Runnable,
   maxRetries = 3,
-  baseDelay = 200
+  baseDelay = 200,
+  options?: {
+    onStreamEnd?: (response: string) => Promise<void>;
+  }
 ) {
   for (const model of fallbackLLMs) {
     for (let retry = 0; retry < maxRetries; retry++) {
@@ -44,7 +47,7 @@ export async function runWithFallback(
         console.log(`[LLM] Using model: ${model.lc_kwargs.model}`);
 
         // stream 応答時終了後に処理を行う
-        return mode === "stream" ? enhancedStream(result) : result;
+        return mode === "stream" ? enhancedStream(result, options) : result;
       } catch (err) {
         const message = err instanceof Error ? err.message : UNKNOWN_ERROR;
         const isRateLimited =
@@ -87,7 +90,12 @@ const getAllPrompt = async (
 };
 
 /* ストリーム終了後の処理 */
-const enhancedStream = (stream: AsyncIterable<StreamChunk>) =>
+const enhancedStream = (
+  stream: AsyncIterable<StreamChunk>,
+  options?: {
+    onStreamEnd?: (response: string) => Promise<void>;
+  }
+) =>
   new ReadableStream({
     async start(controller) {
       let response = "";
@@ -99,7 +107,10 @@ const enhancedStream = (stream: AsyncIterable<StreamChunk>) =>
       }
       console.log("ストリーミング正常完了\n");
 
-      // レスポンスを保存
+      // 終了時に外部処理を走らせる
+      if (options?.onStreamEnd) {
+        await options.onStreamEnd(response);
+      }
       controller.close();
     },
   });
