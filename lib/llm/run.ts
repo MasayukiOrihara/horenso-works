@@ -1,6 +1,6 @@
 import { Runnable } from "@langchain/core/runnables";
-import { OpenAi4_1Mini, OpenAi4oMini } from "../models";
-import { UNKNOWN_ERROR } from "../messages";
+import { OpenAi4_1Mini, OpenAi4oMini } from "./models";
+import { UNKNOWN_ERROR } from "../message/error";
 import { PromptTemplate } from "@langchain/core/prompts";
 
 // 型

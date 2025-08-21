@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 
 import * as MSG from "../../contents/messages";
-import { embeddings, jsonParser, OpenAi } from "@/lib/models";
+import { embeddings, jsonParser, OpenAi } from "@/lib/llm/models";
 import { timestamp } from "@/lib/path";
 import {
   HorensoMetadata,

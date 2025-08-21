@@ -1,6 +1,6 @@
 import { PromptTemplate } from "@langchain/core/prompts";
 
-import { OpenAi4oMini, strParser } from "@/lib/models";
+import { OpenAi4oMini, strParser } from "@/lib/llm/models";
 import {
   INSTRUCTOR_INTRO_MESSAGE_PROMPT,
   USER_QUESTION_LABEL_PROMPT,

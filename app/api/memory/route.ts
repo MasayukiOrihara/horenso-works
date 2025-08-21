@@ -6,9 +6,9 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 
-import { OpenAi4_1Mini } from "@/lib/models";
+import { OpenAi4_1Mini } from "@/lib/llm/models";
 import { MEMORY_SUMMARY_PROMPT, MEMORY_UPDATE_PROMPT } from "./contents";
-import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/messages";
+import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/error";
 
 // メッセージ履歴
 const conversation: string[] = [];

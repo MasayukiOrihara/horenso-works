@@ -4,21 +4,19 @@ import { LangChainAdapter } from "ai";
 
 import { logMessage } from "./utils";
 import { HumanMessage } from "@langchain/core/messages";
-import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/messages";
+import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/error";
 import { ChatRequestOptionsSchema } from "@/lib/schema";
-import { requestApi } from "@/lib/utils";
 import { getBaseUrl } from "@/lib/path";
 import { runWithFallback } from "@/lib/llm/run";
+import { requestApi } from "@/lib/api/request";
+import * as PATH from "@/lib/api/path";
 
 // 外部フラグ
 let horensoContenue = false;
 let oldHorensoContenue = false;
 
-const MEMORY_PATH = "/api/memory";
-const HORENSO_PATH = "/api/horenso";
-
 /**
- * 報連相ワークAI
+ * 報連相ワークAI のレスポンスメッセージ作成API
  * @param req
  * @returns
  */
@@ -35,7 +33,7 @@ export async function POST(req: Request) {
       return Response.json({ error: SESSIONID_ERROR }, { status: 400 });
     }
     // 過去の履歴取得（非同期）
-    const memoryResponsePromise = requestApi(baseUrl, MEMORY_PATH, {
+    const memoryResponsePromise = requestApi(baseUrl, PATH.MEMORY_PATH, {
       method: "POST",
       body: { messages, sessionId },
     });
@@ -68,7 +66,7 @@ export async function POST(req: Request) {
 
       // 報連相ワークAPI呼び出し
       const step = options.debug ? options.step : 0; // デバック用のステップ数設定
-      const horensoGraph = await requestApi(baseUrl, HORENSO_PATH, {
+      const horensoGraph = await requestApi(baseUrl, PATH.HORENSO_PATH, {
         method: "POST",
         body: { step, userMessage },
       });

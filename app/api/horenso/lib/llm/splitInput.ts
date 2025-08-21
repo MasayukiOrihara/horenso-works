@@ -1,6 +1,6 @@
 import { PromptTemplate } from "@langchain/core/prompts";
 
-import { haiku3_5_sentence, listParser } from "@/lib/models";
+import { haiku3_5_sentence, listParser } from "@/lib/llm/models";
 
 /** LLMを利用して答えを切り分ける(haiku3.5使用) */
 export const splitInputLlm = async (promptText: string, input: string) => {

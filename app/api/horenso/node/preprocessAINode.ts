@@ -4,7 +4,7 @@ import { BaseMessage } from "@langchain/core/messages";
 import * as MSG from "../contents/messages";
 import { matchAnswerOpenAi } from "../lib/match/match";
 import { HorensoMetadata, QADocumentMetadata, QAEntry } from "@/lib/type";
-import { embeddings } from "@/lib/models";
+import { embeddings } from "@/lib/llm/models";
 import { readJson } from "../../chat/utils";
 import {
   notCrrectFilePath,
