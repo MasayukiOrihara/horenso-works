@@ -9,6 +9,15 @@ interface StreamChunk {
   additional_kwargs?: Record<string, unknown>;
 }
 
+type RunWithFallbackOptions = {
+  mode?: "invoke" | "stream";
+  parser?: Runnable;
+  maxRetries?: number;
+  baseDelay?: number;
+  memoryOn?: boolean;
+  onStreamEnd?: (response: string) => Promise<void>;
+};
+
 // フォールバック可能なLLM一覧
 const fallbackLLMs: Runnable[] = [OpenAi4_1Mini, OpenAi4oMini];
 
@@ -16,14 +25,17 @@ const fallbackLLMs: Runnable[] = [OpenAi4_1Mini, OpenAi4oMini];
 export async function runWithFallback(
   runnable: Runnable,
   input: Record<string, unknown>,
-  mode: "invoke" | "stream" = "invoke",
-  parser?: Runnable,
-  maxRetries = 3,
-  baseDelay = 200,
-  options?: {
-    onStreamEnd?: (response: string) => Promise<void>;
-  }
+  options?: RunWithFallbackOptions
 ) {
+  // デフォルト値を設定
+  const {
+    mode = "invoke",
+    parser,
+    maxRetries = 3,
+    baseDelay = 200,
+    onStreamEnd = async () => {},
+  } = options || {};
+
   for (const model of fallbackLLMs) {
     for (let retry = 0; retry < maxRetries; retry++) {
       try {
@@ -47,7 +59,7 @@ export async function runWithFallback(
         console.log(`[LLM] Using model: ${model.lc_kwargs.model}`);
 
         // stream 応答時終了後に処理を行う
-        return mode === "stream" ? enhancedStream(result, options) : result;
+        return mode === "stream" ? enhancedStream(result, onStreamEnd) : result;
       } catch (err) {
         const message = err instanceof Error ? err.message : UNKNOWN_ERROR;
         const isRateLimited =
@@ -92,9 +104,7 @@ const getAllPrompt = async (
 /* ストリーム終了後の処理 */
 const enhancedStream = (
   stream: AsyncIterable<StreamChunk>,
-  options?: {
-    onStreamEnd?: (response: string) => Promise<void>;
-  }
+  onStreamEnd?: (response: string) => Promise<void>
 ) =>
   new ReadableStream({
     async start(controller) {
@@ -108,8 +118,8 @@ const enhancedStream = (
       console.log("ストリーミング正常完了\n");
 
       // 終了時に外部処理を走らせる
-      if (options?.onStreamEnd) {
-        await options.onStreamEnd(response);
+      if (onStreamEnd) {
+        await onStreamEnd(response);
       }
       controller.close();
     },

@@ -9,6 +9,7 @@ import { runWithFallback } from "@/lib/llm/run";
 import { requestApi } from "@/lib/api/request";
 import * as PATH from "@/lib/api/path";
 import { AIMessage, BaseMessage } from "@langchain/core/messages";
+import { updateEntry } from "./utils";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     const userMessage = messages[messages.length - 1].content;
     // フロントからオプションを取得
     const options = ChatRequestOptionsSchema.parse(body.options);
-    // 会話履歴保存関数
+    // メッセージ保存: フロントエンドから記憶設定を取得
     const save = async (messages: BaseMessage[]) => {
       if (options.memoryOn) {
         await requestApi(baseUrl, PATH.CHAT_SAVE_PATH, {
@@ -69,8 +70,7 @@ export async function POST(req: Request) {
       );
       aiMessages.push(MSG.QUESTION_WHO_ASKING);
     } else {
-      // メッセージ保存: フロントエンドから記憶設定を取得
-      await save(messages);
+      await save(messages); // ユーザーメッセージ保存
 
       // 報連相ワークAPI呼び出し
       const step = options.debug ? options.step : 0; // デバック用のステップ数設定
@@ -111,27 +111,19 @@ export async function POST(req: Request) {
     };
 
     // ストリーミング応答を取得
-    const stream = await runWithFallback(
-      prompt,
-      promptVariables,
-      "stream",
-      undefined,
-      undefined,
-      undefined,
-      {
-        onStreamEnd: async (response: string) =>
-          await save([new AIMessage(response)]),
-      }
-    );
+    const stream = await runWithFallback(prompt, promptVariables, {
+      mode: "stream",
+      onStreamEnd: async (response: string) => {
+        // assistant メッセージ保存
+        await save([new AIMessage(response)]);
 
-    // // ReadableStream を拡張して終了検知
-
-    //     // 今回のエントリーにメッセージを追記
-    //     if (!(qaEntryId === "")) {
-    //       updateEntry(qaEntryId, fullText);
-    //     }
-    //   },
-    // });
+        // 今回のエントリーにメッセージを追記 ※※ 後で細かくチェック
+        console.log(qaEntryId);
+        if (!(qaEntryId === "")) {
+          updateEntry(qaEntryId, response);
+        }
+      },
+    });
 
     return LangChainAdapter.toDataStreamResponse(stream);
   } catch (error) {
