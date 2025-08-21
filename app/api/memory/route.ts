@@ -8,7 +8,7 @@ import {
 
 import { OpenAi4_1Mini } from "@/lib/llm/models";
 import { MEMORY_SUMMARY_PROMPT, MEMORY_UPDATE_PROMPT } from "./contents";
-import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/error";
+import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/messages";
 
 // メッセージ履歴
 const conversation: string[] = [];

@@ -2,21 +2,21 @@ import * as MSG from "./messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
 
-import { logMessage } from "./utils";
 import { HumanMessage } from "@langchain/core/messages";
-import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/error";
+import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/messages";
 import { ChatRequestOptionsSchema } from "@/lib/schema";
 import { getBaseUrl } from "@/lib/path";
 import { runWithFallback } from "@/lib/llm/run";
 import { requestApi } from "@/lib/api/request";
 import * as PATH from "@/lib/api/path";
+import { logMessage } from "./log";
 
 // 外部フラグ
 let horensoContenue = false;
 let oldHorensoContenue = false;
 
 /**
- * 報連相ワークAI のレスポンスメッセージ作成API
+ * 報連相ワークAI のレスポンスメッセージ作成API3
  * @param req
  * @returns
  */
@@ -41,6 +41,18 @@ export async function POST(req: Request) {
     const userMessage = messages[messages.length - 1].content;
     // フロントからオプションを取得
     const options = ChatRequestOptionsSchema.parse(body.options);
+
+    // api test
+    if (options.memoryOn) {
+      const memorySaveTest = await requestApi(
+        baseUrl,
+        "/api/memory/chat/save",
+        {
+          method: "POST",
+          body: { messages, sessionId },
+        }
+      );
+    }
 
     /* --- --- コンテキスト 処理 --- --- */
     // 始動時の状態判定

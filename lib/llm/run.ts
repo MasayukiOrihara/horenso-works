@@ -1,6 +1,6 @@
 import { Runnable } from "@langchain/core/runnables";
 import { OpenAi4_1Mini, OpenAi4oMini } from "./models";
-import { UNKNOWN_ERROR } from "../message/error";
+import { UNKNOWN_ERROR } from "../message/messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 
 // 型
@@ -81,9 +81,9 @@ const getAllPrompt = async (
   const fullPrompt = await (runnable as PromptTemplate).format(input);
 
   // ログ出力
-  console.log("=== 送信するプロンプト全文 ===");
-  console.log(fullPrompt);
-  console.log("================================");
+  //   console.log("=== 送信するプロンプト全文 ===");
+  //   console.log(fullPrompt);
+  //   console.log("================================");
 };
 
 /* ストリーム終了後の処理 */
