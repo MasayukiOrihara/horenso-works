@@ -1,6 +1,7 @@
 import { Runnable } from "@langchain/core/runnables";
 import { OpenAi4_1Mini, OpenAi4oMini } from "../models";
 import { UNKNOWN_ERROR } from "../messages";
+import { PromptTemplate } from "@langchain/core/prompts";
 
 // 型
 interface StreamChunk {
@@ -23,6 +24,10 @@ export async function runWithFallback(
   for (const model of fallbackLLMs) {
     for (let retry = 0; retry < maxRetries; retry++) {
       try {
+        // プロンプトの全文取得（ログ出力）
+        await getAllPrompt(runnable, input);
+
+        // LLM 呼び出し
         const pipeline = runnable.pipe(model);
         if (parser) pipeline.pipe(parser);
         const callback = createLatencyCallback(model.lc_kwargs.model);
@@ -68,6 +73,19 @@ export async function runWithFallback(
   throw new Error("All fallback models failed.");
 }
 
+/* プロンプト全文取得 */
+const getAllPrompt = async (
+  runnable: Runnable,
+  input: Record<string, unknown>
+) => {
+  const fullPrompt = await (runnable as PromptTemplate).format(input);
+
+  // ログ出力
+  console.log("=== 送信するプロンプト全文 ===");
+  console.log(fullPrompt);
+  console.log("================================");
+};
+
 /* ストリーム終了後の処理 */
 const enhancedStream = (stream: AsyncIterable<StreamChunk>) =>
   new ReadableStream({
@@ -87,7 +105,7 @@ const enhancedStream = (stream: AsyncIterable<StreamChunk>) =>
   });
 
 /* 呼び出し時間測定用のコールバック関数（ラベル付き） */
-function createLatencyCallback(label: string) {
+const createLatencyCallback = (label: string) => {
   let startTime = 0;
   let firstTokenTime: number | null = null;
 
@@ -120,4 +138,4 @@ function createLatencyCallback(label: string) {
       console.log(`[${label}] all latency: ${seconds}s ${milliseconds}ms`);
     },
   };
-}
+};

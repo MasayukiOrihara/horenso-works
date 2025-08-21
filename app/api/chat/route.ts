@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     // フロントからオプションを取得
     const options = ChatRequestOptionsSchema.parse(body.options);
 
-    /* --- 処理 ここから --- */
+    /* --- --- コンテキスト 処理 --- --- */
     // 始動時の状態判定
     const aiMessages = [];
     let qaEntryId = "";
@@ -88,6 +88,11 @@ export async function POST(req: Request) {
       }
     }
 
+    /* --- --- LLM 処理 --- --- */
+    // プロンプト読み込み
+    const template = MSG.HORENSO_AI_KATO;
+    const prompt = PromptTemplate.fromTemplate(template);
+
     // 過去履歴の同期
     const memoryResponse = await memoryResponsePromise;
     console.log("記憶同期完了");
@@ -99,17 +104,8 @@ export async function POST(req: Request) {
       ai_message: aiMessages.join("\n\n"),
     };
 
-    // プロンプト読み込み
-    const template = MSG.HORENSO_AI_KATO;
-    const prompt = PromptTemplate.fromTemplate(template);
-
     // ストリーミング応答を取得
     const stream = await runWithFallback(prompt, promptVariables, "stream");
-
-    // const fullPrompt = await prompt.format(promptVariables);
-    // console.log("=== 送信するプロンプト全文 ===");
-    // console.log(fullPrompt);
-    // console.log("================================");
 
     // // ReadableStream を拡張して終了検知
     // const enhancedStream = new ReadableStream({
