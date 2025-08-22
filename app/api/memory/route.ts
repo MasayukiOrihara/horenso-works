@@ -182,6 +182,7 @@ export async function POST(req: Request) {
     // 実行
     const results = await measureExecution(
       app,
+      "memory",
       { messages: previousMessage, sessionId },
       config
     );

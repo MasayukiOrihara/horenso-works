@@ -3,6 +3,7 @@ export async function measureExecution<
   TGraph extends { invoke: (...args: any[]) => Promise<any> }
 >(
   graph: TGraph,
+  label: string,
   ...args: Parameters<TGraph["invoke"]>
 ): Promise<ReturnType<TGraph["invoke"]>> {
   // 計測開始
@@ -14,7 +15,7 @@ export async function measureExecution<
   // 計算してログに出力
   const seconds = Math.floor(duration / 1000);
   const milliseconds = duration % 1000;
-  console.log(`📊 Graph latency: ${seconds}s ${milliseconds}ms`);
+  console.log(`📊 ${label} Graph latency: ${seconds}s ${milliseconds}ms`);
 
   return result;
 }

@@ -42,7 +42,7 @@ const getContentString = (msg: BaseMessage): string => {
 };
 
 /** ログを全文書かないようにする処理 */
-export const logShort = (msg: string, max = 30) => {
-  const trimmed = msg.length > max ? msg.slice(0, max) + "... \n" : msg;
+export const logShort = (msg: string, max = 32) => {
+  const trimmed = msg.length > max ? msg.slice(0, max) + "... " : msg;
   console.log(trimmed);
 };
