@@ -5,7 +5,6 @@ import {
   INSTRUCTOR_INTRO_MESSAGE_PROMPT,
   USER_QUESTION_LABEL_PROMPT,
 } from "../../contents/messages";
-import { getMemoryApi } from "@/lib/api/serverApi";
 
 /** 会話からユーザーの意図を推測する */
 export const judgeTalk = async (input: string, question: string) => {
@@ -19,18 +18,14 @@ export const judgeTalk = async (input: string, question: string) => {
     入力意図の分類: 回答 | 質問 | 冗談 | その他
     ※ その他を選択した場合は理由と新たに分けるとしたら分類を出力してください。
     
-    Current conversation: ---
-    {chat_history}
-    ---
     
     ユーザーの入力: {input}
     assistant: `;
 
-  const chatHistory = await getMemoryApi();
+  // 後で過去履歴を参照させる
   const prompt = PromptTemplate.fromTemplate(template);
   const response = await prompt.pipe(OpenAi4oMini).pipe(strParser).invoke({
     input: input,
-    chat_history: chatHistory,
   });
 
   return response;

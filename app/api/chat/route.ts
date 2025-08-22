@@ -2,7 +2,7 @@ import * as MSG from "./messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
 
-import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/messages";
+import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/error";
 import { ChatRequestOptionsSchema } from "@/lib/schema";
 import { getBaseUrl } from "@/lib/path";
 import { runWithFallback } from "@/lib/llm/run";

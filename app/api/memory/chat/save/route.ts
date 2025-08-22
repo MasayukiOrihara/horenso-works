@@ -11,7 +11,7 @@ import {
   MESSAGES_ERROR,
   SESSIONID_ERROR,
   UNKNOWN_ERROR,
-} from "@/lib/message/messages";
+} from "@/lib/message/error";
 import { convertToOpenAIFormat, logShort } from "../../utils";
 import { memoryFilePath, timestamp } from "@/lib/path";
 

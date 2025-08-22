@@ -1,5 +1,5 @@
 import axios from "axios";
-import { UNKNOWN_ERROR } from "../message/messages";
+import { UNKNOWN_ERROR } from "../message/error";
 
 // 型
 type RequestBody = Record<string, unknown>;

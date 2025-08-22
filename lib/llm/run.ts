@@ -1,6 +1,6 @@
 import { Runnable } from "@langchain/core/runnables";
 import { OpenAi4_1Mini, OpenAi4oMini } from "./models";
-import { UNKNOWN_ERROR } from "../message/messages";
+import { UNKNOWN_ERROR } from "../message/error";
 import { PromptTemplate } from "@langchain/core/prompts";
 
 // 型
@@ -14,7 +14,7 @@ type RunWithFallbackOptions = {
   parser?: Runnable;
   maxRetries?: number;
   baseDelay?: number;
-  memoryOn?: boolean;
+  label?: string;
   onStreamEnd?: (response: string) => Promise<void>;
 };
 
@@ -33,6 +33,7 @@ export async function runWithFallback(
     parser,
     maxRetries = 3,
     baseDelay = 200,
+    label = "",
     onStreamEnd = async () => {},
   } = options || {};
 
@@ -45,7 +46,9 @@ export async function runWithFallback(
         // LLM 呼び出し
         const pipeline = runnable.pipe(model);
         if (parser) pipeline.pipe(parser);
-        const callback = createLatencyCallback(model.lc_kwargs.model);
+        const callback = createLatencyCallback(
+          label ? label : model.lc_kwargs.model
+        );
         const result =
           mode === "stream"
             ? await pipeline.stream(input, {
@@ -96,9 +99,9 @@ const getAllPrompt = async (
   const fullPrompt = await (runnable as PromptTemplate).format(input);
 
   // ログ出力
-  //   console.log("=== 送信するプロンプト全文 ===");
-  //   console.log(fullPrompt);
-  //   console.log("================================");
+  console.log("=== 送信するプロンプト全文 ===");
+  console.log(fullPrompt);
+  console.log("================================");
 };
 
 /* ストリーム終了後の処理 */

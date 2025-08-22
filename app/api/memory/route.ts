@@ -6,10 +6,20 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 
-import { OpenAi4_1Mini } from "@/lib/llm/models";
-import { MEMORY_SUMMARY_PROMPT, MEMORY_UPDATE_PROMPT } from "./contents";
-import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/messages";
+import { strParser } from "@/lib/llm/models";
+import { MEMORY_UPDATE_PROMPT, SUMMARY_PROMPT } from "./contents";
+import {
+  SESSIONID_ERROR,
+  SUMMARY_ERROR,
+  UNKNOWN_ERROR,
+} from "@/lib/message/error";
 import { convertToOpenAIFormat } from "./utils";
+import { runWithFallback } from "@/lib/llm/run";
+import { PromptTemplate } from "@langchain/core/prompts";
+
+// 定数
+const MAX_LENGTH = 6; // 要約をする最大行
+const MAX_CHAR_LENGTH = 40; // 要約する最大文字数
 
 /** メッセージを挿入する処理 */
 async function insartMessages(state: typeof GraphAnnotation.State) {
@@ -31,7 +41,24 @@ async function convertFormat(state: typeof GraphAnnotation.State) {
   // message を整形
   for (const message of previousMessage) {
     const openaiFormat = convertToOpenAIFormat(message);
-    const stringFormat = `${openaiFormat.role}: ${openaiFormat.content}`;
+
+    // assistant メッセージは長いので毎回要約
+    const role = openaiFormat.role;
+    let content = openaiFormat.content;
+    try {
+      if (role === "assistant" && content.length > MAX_CHAR_LENGTH) {
+        const prompt = PromptTemplate.fromTemplate(SUMMARY_PROMPT);
+        const summary = await runWithFallback(
+          prompt,
+          { input: content },
+          { mode: "invoke", parser: strParser, label: "assistant summary" }
+        );
+        content = summary.content;
+      }
+    } catch (error) {
+      console.warn(SUMMARY_ERROR);
+    }
+    const stringFormat = `${role}: ${content}`;
     const cleanFormat = stringFormat.replace(/[\r\n]+/g, "");
     formatted.push(cleanFormat);
   }
@@ -48,7 +75,7 @@ async function convertFormat(state: typeof GraphAnnotation.State) {
 async function shouldContenue(state: typeof GraphAnnotation.State) {
   const formatted = state.formatted;
 
-  if (formatted.length > 6) return "summarize";
+  if (formatted.length > MAX_LENGTH) return "summarize";
   return "__end__";
 }
 
@@ -56,22 +83,38 @@ async function shouldContenue(state: typeof GraphAnnotation.State) {
 async function summarizeConversation(state: typeof GraphAnnotation.State) {
   const summary = state.summary;
   const formatted = state.formatted;
+  const formattedText = formatted.join("\n");
 
-  let summaryMessage;
-
+  // 要約の有無によって分岐
+  let summaryMessage = SUMMARY_PROMPT;
+  type PromptVariables = {
+    input: string;
+    summary?: string;
+  };
+  let promptVariables: PromptVariables = { input: formattedText };
   if (summary) {
-    summaryMessage = MEMORY_UPDATE_PROMPT.replace("{summary}", summary);
-  } else {
-    summaryMessage = MEMORY_SUMMARY_PROMPT;
+    summaryMessage = MEMORY_UPDATE_PROMPT;
+    promptVariables = { input: formattedText, summary: summary };
   }
 
   // 要約処理
-  const context = `${formatted.join("\n")}\n${summaryMessage}`;
-  const response = await OpenAi4_1Mini.invoke(context);
-
+  let responseSummary = "";
   // 要約したメッセージ除去
-  const empty: string[] = [];
-  return { summary: response.content, formatted: empty };
+  let empty: string[] = [];
+  try {
+    const prompt = PromptTemplate.fromTemplate(summaryMessage);
+    const response = await runWithFallback(prompt, promptVariables, {
+      mode: "invoke",
+      parser: strParser,
+      label: "memory summary",
+    });
+    responseSummary = response.content;
+  } catch (error) {
+    console.warn(SUMMARY_ERROR);
+    empty = [...formatted];
+  }
+
+  return { summary: responseSummary, formatted: empty };
 }
 
 /** 要約したメッセージを追加する処理 */
@@ -115,7 +158,6 @@ const app = workflow.compile({ checkpointer: memory });
 
 /**
  * 会話履歴要約API
- * オンメモリ版最悪の手段として一応の押しておく...?
  * @param req
  * @returns
  */
