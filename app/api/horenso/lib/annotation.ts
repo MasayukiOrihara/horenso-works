@@ -7,7 +7,7 @@ import {
   UserAnswerEvaluation,
 } from "@/lib/type";
 
-/** グラフ内の状態を司るアノテーション */
+/** メイングラフ内の状態を司るアノテーション */
 export const StateAnnotation = Annotation.Root({
   sessionId: Annotation<string>(),
   contexts: Annotation<string[]>(),

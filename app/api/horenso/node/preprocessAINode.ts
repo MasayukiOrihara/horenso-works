@@ -22,6 +22,7 @@ import { requestApi } from "@/lib/api/request";
 import { RunnableParallel } from "@langchain/core/runnables";
 import { buildQADocuments } from "../lib/entry";
 import { analyzeInput } from "../lib/llm/analyzeInput";
+import { USER_ANSWER_DATA_PATH } from "@/lib/api/path";
 
 // 定数
 const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
@@ -114,8 +115,36 @@ export async function preprocessAiNode({
         semanticList,
         notCorrectList,
       });
+    // const MATCH_PATH = "/api/horenso/lib/match";
+    // await requestApi(baseUrl, MATCH_PATH, {
+    //   method: "POST",
+    //   body: { matchAnswerArgs },
+    // });
   });
   const checkUserAnswers = new RunnableParallel({ steps });
+
+  // test
+  const MATCH_PATH = "/api/horenso/lib/match";
+  userAnswer.forEach((answer, i) => {
+    steps[`checkAnswer_${i}`] = async () =>
+      requestApi(baseUrl, MATCH_PATH, {
+        method: "POST",
+        body: {
+          matchAnswerArgs: {
+            userAnswer: answer,
+            documents: useDocuments,
+            topK: k,
+            allTrue,
+            shouldValidate,
+            semanticList,
+            notCorrectList,
+          },
+        },
+      });
+  });
+  const checkUserAnswers2 = new RunnableParallel({ steps });
+  const a = await checkUserAnswers2.invoke([]);
+  console.log(a);
 
   //vectorStore検索と並列に実行(全体の処理時間も計測)
   const start = Date.now();
@@ -126,7 +155,9 @@ export async function preprocessAiNode({
   const end = Date.now();
   const matchResults = Object.values(matchResultsMap);
 
+  console.log(matchResults);
   const userAnswerDatas = matchResults.map((r) => r.userAnswerDatas).flat();
+
   const matched = matchResults.map((r) => r.isAnswerCorrect);
   console.log("\n");
   console.log(`処理時間(ms): ${end - start} ms`);
