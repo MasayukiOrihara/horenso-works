@@ -88,16 +88,15 @@ export async function preprocessAiNode({
 
   /* ① 答えの分離 と ユーザーの回答を埋め込み とベクターストア作成 */
   pushLog("回答の確認中です...");
-  const [userAnswer, userEmbedding, vectorStore, analyzeResult] =
-    await Promise.all([
-      splitInputLlm(sepKeywordPrompt, userMessage),
-      embeddings.embedQuery(userMessage),
-      cachedVectorStore(qaDocuments),
-      analyzeInput(userMessage, question),
-    ]);
+  // 入力の分析
+  const analyzeResultPromise = analyzeInput(userMessage, question);
+  const [userAnswer, userEmbedding, vectorStore] = await Promise.all([
+    splitInputLlm(sepKeywordPrompt, userMessage),
+    embeddings.embedQuery(userMessage),
+    cachedVectorStore(qaDocuments),
+  ]);
   console.log("質問の分離した答え: ");
   console.log(userAnswer);
-  console.log(analyzeResult);
   console.log(" --- ");
 
   /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
@@ -118,18 +117,20 @@ export async function preprocessAiNode({
   });
   const checkUserAnswers = new RunnableParallel({ steps });
 
-  //vectorStore検索と並列に実行
+  //vectorStore検索と並列に実行(全体の処理時間も計測)
+  const start = Date.now();
   const [matchResultsMap, rawQaEmbeddings] = await Promise.all([
     checkUserAnswers.invoke([]), // RunnableParallel 実行
     vectorStore.similaritySearchVectorWithScore(userEmbedding, 5),
   ]);
+  const end = Date.now();
   const matchResults = Object.values(matchResultsMap);
 
   const userAnswerDatas = matchResults.map((r) => r.userAnswerDatas).flat();
   const matched = matchResults.map((r) => r.isAnswerCorrect);
-  console.log("\n OpenAI Embeddings チェック完了 \n ---");
-  console.log("ユーザーの答えデータ");
-  console.log(userAnswerDatas);
+  console.log("\n");
+  console.log(`処理時間(ms): ${end - start} ms`);
+  console.log(`OpenAI Embeddings チェック完了 \n ---`);
 
   /* ③ ヒントの取得（正解していたときは飛ばす） */
   pushLog("ヒントの準備中です...");
@@ -145,6 +146,8 @@ export async function preprocessAiNode({
     console.log("質問1のヒント: \n" + getHint);
   }
 
+  const analyzeResult = await analyzeResultPromise;
+  console.log(analyzeResult);
   pushLog("返答の生成中です...");
   return { userAnswerDatas, matched, qaEmbeddings, getHint, analyzeResult };
 }

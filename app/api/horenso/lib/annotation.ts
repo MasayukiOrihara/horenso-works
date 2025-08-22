@@ -14,7 +14,7 @@ export const StateAnnotation = Annotation.Root({
   matched: Annotation<boolean[]>(),
   qaEmbeddings: Annotation<[Document<QADocumentMetadata>, number][]>(),
   aiHint: Annotation<string>(),
-  talkJudge: Annotation<string>(),
+  analyze: Annotation<string>(),
   userAnswerDatas: Annotation<UserAnswerEvaluation[]>(),
   transition: Annotation<HorensoStates>({
     value: (

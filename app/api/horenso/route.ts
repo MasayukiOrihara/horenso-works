@@ -62,7 +62,7 @@ async function setupInitial() {
 async function preprocessAI(state: typeof StateAnnotation.State) {
   console.log("🧠 AI 準備ノード");
 
-  const { userAnswerDatas, matched, qaEmbeddings, getHint, judgeResoult } =
+  const { userAnswerDatas, matched, qaEmbeddings, getHint, analyzeResult } =
     await preprocessAiNode({
       messages: state.messages,
       step: state.transition.step,
@@ -76,7 +76,7 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
     matched: matched,
     qaEmbeddings: qaEmbeddings,
     aiHint: getHint,
-    talkJudge: judgeResoult,
+    analyze: analyzeResult,
   };
 }
 
@@ -98,7 +98,7 @@ async function rerank(state: typeof StateAnnotation.State) {
     messages: state.messages,
     step: state.transition.step,
     qaEmbeddings: state.qaEmbeddings,
-    talkJudge: state.talkJudge,
+    talkJudge: state.analyze,
   });
 
   globalQaEntryId = qaEntryId;
@@ -115,7 +115,7 @@ async function generateHint(state: typeof StateAnnotation.State) {
     userAnswerDatas: state.userAnswerDatas,
     step: state.transition.step,
     aiHint: state.aiHint,
-    talkJudge: state.talkJudge,
+    talkJudge: state.analyze,
   });
 
   return { contexts: [...state.contexts, ...contexts] };
