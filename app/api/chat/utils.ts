@@ -8,6 +8,7 @@ import path from "path";
 import { QAEntry } from "@/lib/type";
 import * as Path from "@/lib/path";
 import { getBaseUrl, qaEntriesFilePath } from "@/lib/path";
+import { readJson } from "@/lib/file/read";
 
 // ダミーデータ
 const initial: QAEntry = {
@@ -151,16 +152,6 @@ export const writeTextFile = async (path: string, result: string) => {
   } else {
     console.log("⚠ 記憶の保存ができませんでした。\n");
   }
-};
-
-// Json fileの読み込み
-export const readJson = (path: string) => {
-  if (fs.existsSync(path) && fs.statSync(path).size > 0) {
-    const raw = fs.readFileSync(path, "utf-8");
-    return JSON.parse(raw);
-  }
-
-  return [];
 };
 
 /* エントリーの更新関数 */

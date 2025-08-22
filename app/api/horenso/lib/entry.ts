@@ -1,6 +1,8 @@
-import { readJson } from "../../chat/utils";
-import { QAEntry, UsedEntry } from "@/lib/type";
+import { Document } from "langchain/document";
+
+import { QADocumentMetadata, QAEntry, UsedEntry } from "@/lib/type";
 import { qaEntriesFilePath, timestamp } from "@/lib/path";
+import { readJson } from "@/lib/file/read";
 
 /** 既存のデータを読み込み、使用したデータからqualityの値を更新する */
 export function writeQaEntriesQuality(
@@ -54,3 +56,20 @@ export const qaEntryData = (
     },
   };
 };
+
+/* エントリーデータをdocument用にマップする処理 */
+export function buildQADocuments(
+  qaList: QAEntry[],
+  step: number
+): Document<QADocumentMetadata>[] {
+  return qaList
+    .filter((qa) => qa.metadata.question_id === String(step + 1))
+    .map((qa) => ({
+      pageContent: qa.userAnswer,
+      metadata: {
+        hint: qa.hint,
+        id: qa.id,
+        ...qa.metadata,
+      },
+    }));
+}

@@ -5,7 +5,7 @@ import * as MSG from "../contents/messages";
 import { matchAnswerOpenAi } from "../lib/match/match";
 import { HorensoMetadata, QADocumentMetadata, QAEntry } from "@/lib/type";
 import { embeddings } from "@/lib/llm/models";
-import { readJson } from "../../chat/utils";
+
 import {
   notCrrectFilePath,
   qaEntriesFilePath,
@@ -17,12 +17,19 @@ import { sortScore } from "../lib/match/score";
 import { cachedVectorStore } from "../lib/match/vectorStore";
 import { messageToText } from "../lib/utils";
 import { pushLog } from "../lib/log/logBuffer";
-import { judgeTalk } from "../lib/llm/judgeTalk";
-import { getShouldValidateApi } from "@/lib/api/serverApi";
+import { readJson } from "@/lib/file/read";
+import { requestApi } from "@/lib/api/request";
+import { RunnableParallel } from "@langchain/core/runnables";
+import { buildQADocuments } from "../lib/entry";
+import { analyzeInput } from "../lib/llm/analyzeInput";
+
+// 定数
+const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
 
 type AiNode = {
   messages: BaseMessage[];
   step: number;
+  baseUrl: string;
   whoUseDocuments: Document<HorensoMetadata>[];
   whyUseDocuments: Document<HorensoMetadata>[];
 };
@@ -35,6 +42,7 @@ type AiNode = {
 export async function preprocessAiNode({
   messages,
   step,
+  baseUrl,
   whoUseDocuments,
   whyUseDocuments,
 }: AiNode) {
@@ -45,21 +53,14 @@ export async function preprocessAiNode({
   // 既存データを読み込む（なければ空配列）
   const qaList: QAEntry[] = readJson(qaEntriesFilePath());
   // 埋め込み作成用にデータをマップ
-  const qaDocuments: Document<QADocumentMetadata>[] = qaList
-    .filter((qa) => qa.metadata.question_id === String(step + 1))
-    .map((qa) => ({
-      pageContent: qa.userAnswer,
-      metadata: {
-        hint: qa.hint,
-        id: qa.id,
-        ...qa.metadata,
-      },
-    }));
+  const qaDocuments = buildQADocuments(qaList, step);
   // あいまい回答jsonの読み込み
   const semanticList = readJson(semanticFilePath());
   const notCorrectList = readJson(notCrrectFilePath());
-  const readShouldValidate = await getShouldValidateApi();
-  console.log(readShouldValidate);
+  // 回答チェック判定を取得
+  const readShouldValidate = await requestApi(baseUrl, MATCH_VALIDATE, {
+    method: "GET",
+  });
 
   // 使用するプロンプト
   let sepKeywordPrompt = "";
@@ -87,36 +88,43 @@ export async function preprocessAiNode({
 
   /* ① 答えの分離 と ユーザーの回答を埋め込み とベクターストア作成 */
   pushLog("回答の確認中です...");
-  const [userAnswer, userEmbedding, vectorStore, judgeResoult] =
+  const [userAnswer, userEmbedding, vectorStore, analyzeResult] =
     await Promise.all([
       splitInputLlm(sepKeywordPrompt, userMessage),
       embeddings.embedQuery(userMessage),
       cachedVectorStore(qaDocuments),
-      judgeTalk(userMessage, question),
+      analyzeInput(userMessage, question),
     ]);
   console.log("質問の分離した答え: ");
   console.log(userAnswer);
+  console.log(analyzeResult);
   console.log(" --- ");
-  console.log(judgeResoult);
 
   /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
   pushLog("正解チェックを行っています...");
-  const [matchResults, rawQaEmbeddings] = await Promise.all([
-    Promise.all(
-      userAnswer.map((answer) =>
-        matchAnswerOpenAi({
-          userAnswer: answer,
-          documents: useDocuments,
-          topK: k,
-          allTrue: allTrue,
-          shouldValidate: shouldValidate,
-          semanticList: semanticList,
-          notCorrectList: notCorrectList,
-        })
-      )
-    ),
+  // langchain の並列処理を利用
+  const steps: Record<string, () => Promise<any>> = {};
+  userAnswer.forEach((answer, i) => {
+    steps[`checkAnswer_${i}`] = async () =>
+      matchAnswerOpenAi({
+        userAnswer: answer,
+        documents: useDocuments,
+        topK: k,
+        allTrue,
+        shouldValidate,
+        semanticList,
+        notCorrectList,
+      });
+  });
+  const checkUserAnswers = new RunnableParallel({ steps });
+
+  //vectorStore検索と並列に実行
+  const [matchResultsMap, rawQaEmbeddings] = await Promise.all([
+    checkUserAnswers.invoke([]), // RunnableParallel 実行
     vectorStore.similaritySearchVectorWithScore(userEmbedding, 5),
   ]);
+  const matchResults = Object.values(matchResultsMap);
+
   const userAnswerDatas = matchResults.map((r) => r.userAnswerDatas).flat();
   const matched = matchResults.map((r) => r.isAnswerCorrect);
   console.log("\n OpenAI Embeddings チェック完了 \n ---");
@@ -138,5 +146,5 @@ export async function preprocessAiNode({
   }
 
   pushLog("返答の生成中です...");
-  return { userAnswerDatas, matched, qaEmbeddings, getHint, judgeResoult };
+  return { userAnswerDatas, matched, qaEmbeddings, getHint, analyzeResult };
 }

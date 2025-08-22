@@ -1,3 +1,4 @@
+import { UNKNOWN_ERROR } from "@/lib/message/error";
 import { ShouldValidate } from "@/lib/type";
 
 let shouldValidate: ShouldValidate = { who: false, why: true };
@@ -16,16 +17,10 @@ export async function POST(req: Request) {
       status: 201, // No Content
     });
   } catch (error) {
-    if (error instanceof Error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    return new Response(JSON.stringify({ error: "Unknown error occurred" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
+
+    console.error("validate API POST error: " + message);
+    return Response.json({ error: message }, { status: 500 });
   }
 }
 
@@ -39,8 +34,9 @@ export async function GET() {
       status: 200,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error occurred";
+    const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
+
+    console.error("validate API GET error: " + message);
     return Response.json({ error: message }, { status: 500 });
   }
 }

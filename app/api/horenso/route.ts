@@ -39,6 +39,8 @@ let globalDebugStep = 0;
 let globalQaEntryId = "";
 // ヒントに使ったエントリーデータ(次のターンも使いまわす)
 let globalUsedEntry: UsedEntry[] = [];
+// ベースURL の共通化
+let globalBaseUrl = "";
 
 /**
  * langGraphのノード群
@@ -64,6 +66,7 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
     await preprocessAiNode({
       messages: state.messages,
       step: state.transition.step,
+      baseUrl: globalBaseUrl,
       whoUseDocuments: whoUseDocuments,
       whyUseDocuments: whyUseDocuments,
     });
@@ -206,7 +209,9 @@ export async function POST(req: Request) {
     const config = { configurable: { thread_id: sessionId } };
     // デバック用のステップ数を取得
     globalDebugStep = body.step ?? 0;
+    // url の取得
     const { baseUrl } = getBaseUrl(req);
+    globalBaseUrl = baseUrl;
 
     // 実行
     const result = await measureExecution(

@@ -16,19 +16,3 @@ export const getMemoryApi = async () => {
 
   return response;
 };
-
-/* 回答チェックの判定API */
-export const getShouldValidateApi = async () => {
-  const { baseUrl } = getBaseUrl();
-
-  const response = await fetch(baseUrl + "/api/horenso/lib/match/validate", {
-    method: "GET",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.ACCESS_TOKEN}`, // vercel用
-    },
-  });
-
-  return response.json();
-};
