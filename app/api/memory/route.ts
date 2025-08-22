@@ -1,4 +1,4 @@
-import { BaseMessage, RemoveMessage } from "@langchain/core/messages";
+import { RemoveMessage } from "@langchain/core/messages";
 import {
   Annotation,
   MemorySaver,

@@ -58,7 +58,6 @@ export async function POST(req: Request) {
     horensoContenue = true;
     if (horensoContenue && !oldHorensoContenue && !options.debug) {
       // 初回AIメッセージ
-      console.log("🚪 初回のルート");
       oldHorensoContenue = true;
 
       // 開発の解説と問題を AIメッセージ に取り込み
