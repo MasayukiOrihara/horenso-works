@@ -1,4 +1,4 @@
-import { RemoveMessage } from "@langchain/core/messages";
+import { BaseMessage, RemoveMessage } from "@langchain/core/messages";
 import {
   Annotation,
   MemorySaver,
@@ -16,6 +16,7 @@ import {
 import { convertToOpenAIFormat } from "./utils";
 import { runWithFallback } from "@/lib/llm/run";
 import { PromptTemplate } from "@langchain/core/prompts";
+import { measureExecution } from "@/lib/llm/graph";
 
 // 定数
 const MAX_LENGTH = 6; // 要約をする最大行
@@ -177,8 +178,11 @@ export async function POST(req: Request) {
 
     // 履歴用キー
     const config = { configurable: { thread_id: sessionId } };
-    const results = await app.invoke(
-      { messages: previousMessage, sessionId: sessionId },
+
+    // 実行
+    const results = await measureExecution(
+      app,
+      { messages: previousMessage, sessionId },
       config
     );
 
