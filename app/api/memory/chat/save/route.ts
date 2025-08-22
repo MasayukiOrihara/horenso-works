@@ -14,6 +14,7 @@ import {
 } from "@/lib/message/error";
 import { convertToOpenAIFormat, logShort } from "../../utils";
 import { memoryFilePath, timestamp } from "@/lib/path";
+import { measureExecution } from "@/lib/llm/graph";
 
 /* 保存先を判断する */
 async function decideSaveDestination() {
@@ -130,8 +131,10 @@ export async function POST(req: Request) {
     const config = { configurable: { thread_id: sessionId } };
 
     // 実行
-    await app.invoke(
-      { messages: previousMessage, sessionId: sessionId },
+    await measureExecution(
+      app,
+      "memory save",
+      { messages: previousMessage, sessionId },
       config
     );
 

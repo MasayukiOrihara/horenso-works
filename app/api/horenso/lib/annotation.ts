@@ -9,6 +9,7 @@ import {
 
 /** グラフ内の状態を司るアノテーション */
 export const StateAnnotation = Annotation.Root({
+  sessionId: Annotation<string>(),
   contexts: Annotation<string[]>(),
   matched: Annotation<boolean[]>(),
   qaEmbeddings: Annotation<[Document<QADocumentMetadata>, number][]>(),

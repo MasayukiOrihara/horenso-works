@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       const step = options.debug ? options.step : 0; // デバック用のステップ数設定
       const horensoGraph = await requestApi(baseUrl, PATH.HORENSO_PATH, {
         method: "POST",
-        body: { step, userMessage },
+        body: { userMessage, sessionId, step },
       });
       aiMessages.push(horensoGraph.text);
       qaEntryId = horensoGraph.qaEntryId;
@@ -101,7 +101,6 @@ export async function POST(req: Request) {
 
     // 過去履歴の同期
     const memoryResponse = await memoryResponsePromise;
-    console.log("記憶同期完了");
 
     // プロンプト全文を取得して表示
     const promptVariables = {

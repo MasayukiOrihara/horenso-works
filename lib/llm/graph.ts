@@ -15,7 +15,7 @@ export async function measureExecution<
   // 計算してログに出力
   const seconds = Math.floor(duration / 1000);
   const milliseconds = duration % 1000;
-  console.log(`📊 ${label} Graph latency: ${seconds}s ${milliseconds}ms`);
+  console.log(`[${label} Graph] latency: ${seconds}s ${milliseconds}ms`);
 
   return result;
 }

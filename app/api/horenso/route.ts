@@ -13,6 +13,14 @@ import { generateHintNode } from "./node/generateHintNode";
 import { askQuestionNode } from "./node/askQuestionNode";
 import { explainAnswerNode } from "./node/explainAnswerNode";
 import { saveFinishStateNode } from "./node/saveFinishStateNode";
+import {
+  MESSAGES_ERROR,
+  SESSIONID_ERROR,
+  UNKNOWN_ERROR,
+} from "@/lib/message/error";
+import { measureExecution } from "@/lib/llm/graph";
+import { requestApi } from "@/lib/api/request";
+import { USER_ANSWER_DATA_PATH } from "@/lib/api/path";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -184,60 +192,53 @@ export async function POST(req: Request) {
     const body = await req.json();
     // メッセージを取得
     const userMessage = body.userMessage;
+    if (!userMessage) {
+      console.error("🥬 horenso API POST error: " + MESSAGES_ERROR);
+      return Response.json({ error: MESSAGES_ERROR }, { status: 400 });
+    }
+    // セッションID 取得
+    const sessionId = body.sessionId;
+    if (!sessionId) {
+      console.error("🥬 horenso API POST error: " + SESSIONID_ERROR);
+      return Response.json({ error: SESSIONID_ERROR }, { status: 400 });
+    }
+    // memory server 設定
+    const config = { configurable: { thread_id: sessionId } };
     // デバック用のステップ数を取得
     globalDebugStep = body.step ?? 0;
     const { baseUrl } = getBaseUrl(req);
 
-    console.log("🏁 報連相ワーク ターン開始");
-    // langgraph
-    const config = { configurable: { thread_id: "abc123" } };
-    const result = await app.invoke(
-      {
-        messages: userMessage,
-      },
+    // 実行
+    const result = await measureExecution(
+      app,
+      "horenso",
+      { messages: userMessage, sessionId },
       config
     );
-    console.log(result.contexts);
+    // console.log(result.contexts);
     const aiText = result.contexts.join("");
 
     // ユーザー答えデータの管理
     const sendUserAnswerData = result.userAnswerDatas.filter(
       (item) => item.isAnswerCorrect === true
     );
-    await fetch(baseUrl + "/api/user-answer-data", {
+    await requestApi(baseUrl, USER_ANSWER_DATA_PATH, {
       method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.ACCESS_TOKEN}`, // vercel用
-      },
-      body: JSON.stringify({ sendUserAnswerData }),
+      body: { sendUserAnswerData },
     });
 
-    console.log("🈡 報連相ワーク ターン終了");
-
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         text: aiText,
         contenue: !aiText.includes("--終了--"),
         qaEntryId: globalQaEntryId,
-      }),
-      {
-        headers: { "Content-Type": "application/json" },
-      }
+      },
+      { status: 200 }
     );
   } catch (error) {
-    console.log(error);
-    if (error instanceof Error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
 
-    return new Response(JSON.stringify({ error: "Unknown error occurred" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("🥬 horenso API POST error: " + message);
+    return Response.json({ error: message }, { status: 500 });
   }
 }

@@ -118,7 +118,6 @@ const enhancedStream = (
         // ストリームにはそのまま流す
         controller.enqueue(chunk);
       }
-      console.log("ストリーミング正常完了\n");
 
       // 終了時に外部処理を走らせる
       if (onStreamEnd) {
