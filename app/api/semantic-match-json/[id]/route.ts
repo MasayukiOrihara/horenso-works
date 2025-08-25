@@ -1,7 +1,7 @@
 import { semanticFilePath } from "@/lib/path";
 import fs from "fs/promises";
-import { readJson } from "../../chat/utils";
 import { SemanticAnswerData, SemanticAnswerEntry } from "@/lib/type";
+import { readJson } from "@/lib/file/read";
 
 /**
  * semantic match answer からデータを削除するAPI

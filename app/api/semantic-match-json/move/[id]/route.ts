@@ -1,7 +1,7 @@
 import { notCrrectFilePath, semanticFilePath } from "@/lib/path";
 import { SemanticAnswerData } from "@/lib/type";
-import { readJson } from "@/app/api/chat/utils";
 import { updateSemanticMatch } from "@/app/api/horenso/lib/match/semantic";
+import { readJson } from "@/lib/file/read";
 
 /**
  * semantic match answer からデータを移動するAPI

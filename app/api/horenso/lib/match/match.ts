@@ -8,6 +8,7 @@ import {
 import * as SEM from "./semantic";
 import { cachedVectorStore } from "./vectorStore";
 import { semanticFilePath } from "@/lib/path";
+import { SemanticMatchScore } from "./route";
 
 // スコアの閾値
 const SCORE_BORDER = 0.82;
@@ -39,7 +40,7 @@ export async function matchAnswerOpenAi({
     console.log("score: " + score + ", match: " + bestDocument.pageContent);
 
     // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
-    let semanticId = "";
+    let semanticId: string = "";
     let semanticReason = "";
     if (score >= 0.78) {
       for (const doc of documents) {
@@ -62,35 +63,33 @@ export async function matchAnswerOpenAi({
       // 曖昧マッチングを行う
       const parentId = bestDocument.metadata.parentId;
       // 外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
-      const { score: worstScore } = await SEM.getMaxScoreSemanticMatch(
-        bestDocument,
-        notCorrectList,
-        userAnswer
-      );
-      if (worstScore > SCORE_BORDER) {
-        console.log("worstScore: " + worstScore);
+      const semanticMatchBadScore: SemanticMatchScore =
+        await SEM.getMaxScoreSemanticMatch(
+          bestDocument,
+          notCorrectList,
+          userAnswer
+        );
+      if (semanticMatchBadScore.score > SCORE_BORDER) {
+        console.log("worstScore: " + semanticMatchBadScore.score);
       } else {
         // 曖昧リストから検索し最大値スコアを取得
-        const { id: topId, score: topScore } =
-          await SEM.getMaxScoreSemanticMatch(
-            bestDocument,
-            semanticList,
-            userAnswer
-          );
-        console.log("曖昧結果: " + topScore);
-        if (topScore > SCORE_BORDER) {
+        const semanticMatchScore = await SEM.getMaxScoreSemanticMatch(
+          bestDocument,
+          semanticList,
+          userAnswer
+        );
+        console.log("曖昧結果: " + semanticMatchScore.score);
+
+        if (semanticMatchScore.score > SCORE_BORDER) {
           documents.forEach((d) => {
             const docParentId = d.metadata.parentId;
-            if (docParentId === parentId) {
+
+            if (semanticMatchScore.id != null && docParentId === parentId) {
               d.metadata.isMatched = true;
               isAnswerCorrect = true;
               saveAnswerCorrect = true;
-              semanticId = topId;
-              semanticReason = SEM.getSemanticMatchReason(
-                bestDocument,
-                semanticList,
-                topId
-              );
+              semanticId = semanticMatchScore.id;
+              semanticReason = semanticMatchScore.reason ?? "";
             }
           });
         } else {
@@ -126,11 +125,7 @@ export async function matchAnswerOpenAi({
                     isAnswerCorrect = true;
                     saveAnswerCorrect = true;
                     semanticId = semanticJudge.id;
-                    semanticReason = SEM.getSemanticMatchReason(
-                      bestDocument,
-                      semanticList,
-                      semanticJudge.id
-                    );
+                    semanticReason = semanticJudge.reason ?? "";
                   }
                 });
               }
