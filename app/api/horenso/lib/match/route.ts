@@ -46,6 +46,7 @@ type Evaluation = {
   input: UserAnswerEmbedding; // 入力
   document: Document<HorensoMetadata>; // 照合対象
   documentScore: DocumentScore; // ドキュメント正答の結果
+  badScore?: FuzzyScore; // 外れリストの結果
   fuzzyScore?: FuzzyScore; // あいまい正答の結果
   answerCorrect: AnswerCorrect; // 最終結果
 };
@@ -221,19 +222,15 @@ async function shouldBadMatch(state: typeof StateAnnotation.State) {
 
 async function checkBadMatch(state: typeof StateAnnotation.State) {
   console.log("☑ ハズレチェック");
-  const similarityResults = state.similarityResults;
-  const notCorrectList = state.matchAnswerArgs.notCorrectList;
-  const userAnswer = state.matchAnswerArgs.userAnswer;
-  let isAnswerIncorrect = state.isAnswerIncorrect;
-
   const evaluationRecords = state.evaluationRecords;
+  const notCorrectList = state.matchAnswerArgs.notCorrectList;
 
   // 外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
   try {
-    const results = await Promise.all(
-      evaluationRecords.map(async (evaluation) => {
-        const bestDocument = evaluation.document as Document<HorensoMetadata>;
-        const input = evaluation.input;
+    await Promise.all(
+      evaluationRecords.map(async (record) => {
+        const bestDocument = record.document as Document<HorensoMetadata>;
+        const input = record.input;
 
         // ※※ 読み込みを逐一やってるっぽいんでDBに伴い早くなりそう？userAnserじゃなくて埋め込んだやつを直接使ってもいいかも
         const badScore = await SEM.getMaxScoreSemanticMatch(
@@ -241,40 +238,43 @@ async function checkBadMatch(state: typeof StateAnnotation.State) {
           bestDocument,
           notCorrectList
         );
-        return badScore;
+        if (badScore) record.badScore = badScore;
       })
-      // similarityResults.map(async ([bestMatch, _]) => {
-      //   const bestDocument = bestMatch as Document<HorensoMetadata>;
-      //   // ※※ 読み込みを逐一やってるっぽいんでDBに伴い早くなりそう？userAnserじゃなくて埋め込んだやつを直接使ってもいいかも
-      //   const badScore = await SEM.getMaxScoreSemanticMatch(
-      //     bestDocument,
-      //     notCorrectList,
-      //     userAnswer
-      //   );
-      //   return badScore;
-      // })
     );
 
-    console.log(results);
-
     // まとめてチェック
-    // for (const result of results) {
-    //   if (result.score > BAD_MATCH_SCORE) {
-    //     console.log("worstScore: " + result.score);
-    //     isAnswerIncorrect = true;
-    //     return { isAnswerIncorrect: isAnswerIncorrect };
-    //   }
-    // }
+    evaluationRecords.map(async (record) => {
+      const badScore = record.badScore;
+      if (badScore) {
+        // 答えの結果が出てない
+        const isAnswerUnknown = record.answerCorrect === "unknown";
+        // ハズレリストの閾値以上
+        const exceedsBadMatchThreshold = badScore.score > BAD_MATCH_SCORE;
+        if (isAnswerUnknown && exceedsBadMatchThreshold) {
+          console.log(
+            `${record.input.userAnswer} worstScore: ${badScore.score}`
+          );
+          badScore.correct = "incorrect"; // 不正解
+          record.answerCorrect = badScore.correct;
+        }
+      }
+    });
   } catch (error) {
     console.warn("ハズレチェック中にエラーが発生しました。: " + error);
   }
+
+  return { evaluationRecords: evaluationRecords };
 }
 
 async function shouldSemanticMatch(state: typeof StateAnnotation.State) {
   // セマンティック検索が必要かどうか
-  const isAnswerIncorrect = state.isAnswerIncorrect;
+  const evaluationRecords = state.evaluationRecords;
 
-  if (isAnswerIncorrect) {
+  // ひとつでもがあった場合不正解
+  const hasIncorrect = evaluationRecords.every(
+    (item) => item.answerCorrect === "incorrect"
+  );
+  if (hasIncorrect) {
     return "finish";
   }
 
