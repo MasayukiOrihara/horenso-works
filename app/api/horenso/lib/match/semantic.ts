@@ -12,14 +12,7 @@ import {
   SemanticAnswerEntry,
 } from "@/lib/type";
 import { cachedVectorStore } from "./vectorStore";
-import { SemanticMatchScore } from "./route";
-
-// 型
-type Phrases = {
-  id: string;
-  answer: string;
-  reason?: string;
-};
+import { FuzzyScore, SemanticMatchScore, UserAnswerEmbedding } from "./route";
 
 /** ユーザー回答が答えに意味的に近いかLLMに判断させてJSON形式で出力する */
 export const judgeSemanticMatch = async (
@@ -120,27 +113,24 @@ export function updateSemanticMatch(
 
 /** あいまい正解表を読み込んでその中で類似度最大スコアを返す */
 export const getMaxScoreSemanticMatch = async (
+  input: UserAnswerEmbedding,
   similarity: Document<HorensoMetadata>,
-  semanticList: SemanticAnswerData,
-  userAnswer: string
+  semanticList: SemanticAnswerData
 ) => {
-  const semanticMatchScore: SemanticMatchScore = {
-    id: null,
-    parentId: "",
-    score: 0,
-    isAnswerCorrect: false,
-  };
+  let fuzzyScore: FuzzyScore | null = null;
 
   // あいまい回答jsonの読み込み
-  let phrases: Phrases[] = [];
+  let phrases: FuzzyScore[] = [];
   const id = Number(similarity.metadata.parentId);
   switch (similarity.metadata.question_id) {
     case "1":
       if (Array.isArray(semanticList.who) && semanticList.who.length > 0) {
         phrases = semanticList.who[id - 1].map((e) => ({
           id: e.id,
-          answer: e.answer,
+          score: 0,
+          nearAnswer: e.answer,
           reason: e.reason,
+          correct: "unknown",
         }));
       }
       break;
@@ -148,39 +138,48 @@ export const getMaxScoreSemanticMatch = async (
       if (Array.isArray(semanticList.why) && semanticList.why.length > 0) {
         phrases = semanticList.why[id - 1].map((e) => ({
           id: e.id,
-          answer: e.answer,
+          score: 0,
+          nearAnswer: e.answer,
           reason: e.reason,
+          correct: "unknown",
         }));
       }
       break;
   }
 
   if (phrases.length > 0) {
+    // ベクターストアを作成
     const docs = buildSupportDocs(phrases, String(id));
     const supportVectorStore = await cachedVectorStore(docs);
-    const userEmbedding = await embeddings.embedQuery(userAnswer);
 
     // 最大スコアを取得
     const maxSimilarity =
       await supportVectorStore.similaritySearchVectorWithScore(
-        userEmbedding,
+        input.embedding,
         1
       );
-    semanticMatchScore.id = maxSimilarity[0]?.[0].metadata.id ?? null;
-    semanticMatchScore.parentId = String(id);
-    semanticMatchScore.score = maxSimilarity[0]?.[1] ?? 0;
-    semanticMatchScore.reason = maxSimilarity[0]?.[0].metadata.reason;
+    const max = maxSimilarity[0];
+    fuzzyScore = {
+      id: max?.[0].metadata.id,
+      score: max?.[1],
+      nearAnswer: max?.[0].pageContent,
+      reason: max?.[0].metadata.reason,
+      correct: "unknown",
+    };
   }
 
-  return semanticMatchScore;
+  return fuzzyScore;
 };
 
 // 例：サポート用フレーズを事前にまとめる
-const buildSupportDocs = (phrases: Phrases[], parentId: string): Document[] =>
+const buildSupportDocs = (
+  phrases: FuzzyScore[],
+  parentId: string
+): Document[] =>
   phrases.map(
     (phrases) =>
       new Document({
-        pageContent: phrases.answer,
+        pageContent: phrases.nearAnswer!,
         metadata: { id: phrases.id, parentId, reason: phrases.reason },
       })
   );

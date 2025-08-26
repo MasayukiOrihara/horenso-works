@@ -50,7 +50,7 @@ type Evaluation = {
   answerCorrect: AnswerCorrect; // 最終結果
 };
 // 入力
-type UserAnswerEmbedding = {
+export type UserAnswerEmbedding = {
   userAnswer: string; // ユーザーの答え
   embedding: number[]; // ベクターデータ
 };
@@ -61,9 +61,10 @@ type DocumentScore = {
   correct: AnswerCorrect; // 正解判定
 };
 // あいまい正答
-type FuzzyScore = {
+export type FuzzyScore = {
   id: string;
   score: number; // 類似性スコア
+  nearAnswer?: string; // 類似した答え
   reason?: string; // このスコアになった理由
   correct: AnswerCorrect; // 正解判定
 };
@@ -175,7 +176,7 @@ async function checkDocumentScore(state: typeof StateAnnotation.State) {
         // ✅ 評価を作成
         const evaluation: Evaluation = {
           input: userEmbedding,
-          document: doc,
+          document: bestDocument,
           documentScore: documentScore,
           answerCorrect: documentScore.correct,
         };
@@ -225,29 +226,45 @@ async function checkBadMatch(state: typeof StateAnnotation.State) {
   const userAnswer = state.matchAnswerArgs.userAnswer;
   let isAnswerIncorrect = state.isAnswerIncorrect;
 
+  const evaluationRecords = state.evaluationRecords;
+
   // 外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
   try {
     const results = await Promise.all(
-      similarityResults.map(async ([bestMatch, _]) => {
-        const bestDocument = bestMatch as Document<HorensoMetadata>;
+      evaluationRecords.map(async (evaluation) => {
+        const bestDocument = evaluation.document as Document<HorensoMetadata>;
+        const input = evaluation.input;
+
         // ※※ 読み込みを逐一やってるっぽいんでDBに伴い早くなりそう？userAnserじゃなくて埋め込んだやつを直接使ってもいいかも
         const badScore = await SEM.getMaxScoreSemanticMatch(
+          input,
           bestDocument,
-          notCorrectList,
-          userAnswer
+          notCorrectList
         );
         return badScore;
       })
+      // similarityResults.map(async ([bestMatch, _]) => {
+      //   const bestDocument = bestMatch as Document<HorensoMetadata>;
+      //   // ※※ 読み込みを逐一やってるっぽいんでDBに伴い早くなりそう？userAnserじゃなくて埋め込んだやつを直接使ってもいいかも
+      //   const badScore = await SEM.getMaxScoreSemanticMatch(
+      //     bestDocument,
+      //     notCorrectList,
+      //     userAnswer
+      //   );
+      //   return badScore;
+      // })
     );
 
+    console.log(results);
+
     // まとめてチェック
-    for (const result of results) {
-      if (result.score > BAD_MATCH_SCORE) {
-        console.log("worstScore: " + result.score);
-        isAnswerIncorrect = true;
-        return { isAnswerIncorrect: isAnswerIncorrect };
-      }
-    }
+    // for (const result of results) {
+    //   if (result.score > BAD_MATCH_SCORE) {
+    //     console.log("worstScore: " + result.score);
+    //     isAnswerIncorrect = true;
+    //     return { isAnswerIncorrect: isAnswerIncorrect };
+    //   }
+    // }
   } catch (error) {
     console.warn("ハズレチェック中にエラーが発生しました。: " + error);
   }
@@ -271,39 +288,44 @@ async function checkSemanticMatch(state: typeof StateAnnotation.State) {
   const userAnswer = state.matchAnswerArgs.userAnswer;
   const semanticMatchScore = state.semanticMatchScore;
 
+  const evaluationRecords = state.evaluationRecords;
+
   // 曖昧リストから検索し最大値スコアを取得
   try {
     const results = await Promise.all(
-      similarityResults.map(async ([bestMatch, _]) => {
-        const bestDocument = bestMatch as Document<HorensoMetadata>;
+      evaluationRecords.map(async (evaluation) => {
+        const bestDocument = evaluation.document as Document<HorensoMetadata>;
+        const input = evaluation.input;
+
         const match = await SEM.getMaxScoreSemanticMatch(
+          input,
           bestDocument,
-          semanticList,
-          userAnswer
+          semanticList
         );
+        if (!match) throw new Error("スコアの取得に失敗しました");
         console.log(`曖昧結果 ID: ${match.id} score: ${match.score}`);
         return match;
       })
     );
 
     // まとめてチェック & 値更新
-    for (const result of results) {
-      for (let i = 0; i < semanticMatchScore.length; i++) {
-        const semantic = semanticMatchScore[i];
-        if (result.parentId === semantic.parentId) {
-          const isScoreAboveThreshold = result.score > SEMANTIC_MATCH_SCORE;
-          const isScoreAboveMaxScore = result.score > semantic.score;
-          if (isScoreAboveThreshold && isScoreAboveMaxScore) {
-            semanticMatchScore[i] = {
-              ...semantic,
-              isAnswerCorrect: true,
-              score: result.score,
-              reason: result.reason,
-            };
-          }
-        }
-      }
-    }
+    // for (const result of results) {
+    //   for (let i = 0; i < semanticMatchScore.length; i++) {
+    //     const semantic = semanticMatchScore[i];
+    //     if (result.parentId === semantic.parentId) {
+    //       const isScoreAboveThreshold = result.score > SEMANTIC_MATCH_SCORE;
+    //       const isScoreAboveMaxScore = result.score > semantic.score;
+    //       if (isScoreAboveThreshold && isScoreAboveMaxScore) {
+    //         semanticMatchScore[i] = {
+    //           ...semantic,
+    //           isAnswerCorrect: true,
+    //           score: result.score,
+    //           reason: result.reason,
+    //         };
+    //       }
+    //     }
+    //   }
+    // }
   } catch (error) {
     console.warn("あいまい検索中にエラーが発生しました。: " + error);
   }
