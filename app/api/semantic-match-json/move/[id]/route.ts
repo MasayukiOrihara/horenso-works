@@ -1,6 +1,6 @@
 import { notCrrectFilePath, semanticFilePath } from "@/lib/path";
 import { SemanticAnswerData } from "@/lib/type";
-import { updateSemanticMatch } from "@/app/api/horenso/lib/match/semantic";
+import { updateSemanticMatch } from "@/app/api/horenso/lib/match/lib/semantic";
 import { readJson } from "@/lib/file/read";
 
 /**

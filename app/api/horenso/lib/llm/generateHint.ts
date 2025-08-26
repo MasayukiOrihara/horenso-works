@@ -48,7 +48,7 @@ export const generateHintLlm = async (
     // 型変換
     hint = response.content;
   } catch (error) {
-    console.warn("ヒントを取得できませんでした");
+    console.warn(`ヒントを取得できませんでした: ${error}`);
   }
 
   return hint;

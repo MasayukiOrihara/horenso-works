@@ -8,7 +8,7 @@ import { QADocumentMetadata, QAEntry, UsedEntry } from "@/lib/type";
 import { qaEntriesFilePath } from "@/lib/path";
 import { qaEntryData, writeQaEntriesQuality } from "../lib/entry";
 import { messageToText } from "../lib/utils";
-import { getRankedResults } from "../lib/match/score";
+import { getRankedResults } from "../lib/match/lib/score";
 
 type RerankNode = {
   usedEntry: UsedEntry[];

@@ -12,8 +12,8 @@ import {
 } from "@/lib/path";
 import { splitInputLlm } from "../lib/llm/splitInput";
 import { generateHintLlm } from "../lib/llm/generateHint";
-import { sortScore } from "../lib/match/score";
-import { cachedVectorStore } from "../lib/match/vectorStore";
+import { sortScore } from "../lib/match/lib/score";
+import { cachedVectorStore } from "../lib/match/lib/vectorStore";
 import { evaluatedResults, messageToText } from "../lib/utils";
 import { pushLog } from "../lib/log/logBuffer";
 import { readJson } from "@/lib/file/read";

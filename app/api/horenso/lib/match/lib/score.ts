@@ -1,7 +1,7 @@
 import { Document } from "langchain/document";
 
 import { QADocumentMetadata, UsedEntry } from "@/lib/type";
-import { Evaluation } from "./route";
+import { Evaluation } from "../route";
 
 /** データに重みづけしたスコアを計算して出力 */
 export const getRankedResults = (
