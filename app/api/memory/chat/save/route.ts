@@ -43,10 +43,10 @@ async function convertTextFormat(state: typeof GraphAnnotation.State) {
 }
 
 /** メッセージを DB に保存するためにフォーマットする処理 */
-async function convertDBFormat(state: typeof GraphAnnotation.State) {
+async function convertDBFormat() {
   console.log("📩 db format");
   // メッセージを1つ取得
-  const messages = state.messages[state.messages.length - 1];
+  //const messages = state.messages[state.messages.length - 1];
 
   return {};
 }

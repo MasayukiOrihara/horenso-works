@@ -102,7 +102,7 @@ export async function preprocessAiNode({
   /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
   pushLog("正解チェックを行っています...");
   // langchain の並列処理を利用
-  const steps: Record<string, () => Promise<any>> = {};
+  const steps: Record<string, () => Promise<unknown>> = {};
   userAnswer.forEach((answer, i) => {
     steps[`checkAnswer_${i}`] = async () =>
       requestApi(baseUrl, MATCH_PATH, {

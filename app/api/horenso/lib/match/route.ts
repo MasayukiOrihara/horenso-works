@@ -415,11 +415,11 @@ async function finishState(state: typeof StateAnnotation.State) {
   return { evaluationData: topRecord };
 }
 
-export const StateAnnotation = Annotation.Root({
+const StateAnnotation = Annotation.Root({
   matchAnswerArgs: Annotation<MatchAnswerArgs>(),
   userEmbedding: Annotation<UserAnswerEmbedding>(),
   similarityResults:
-    Annotation<[DocumentInterface<Record<string, any>>, number][]>(),
+    Annotation<[DocumentInterface<Record<string, unknown>>, number][]>(),
   didEvaluateAnswer: Annotation<boolean>(),
   evaluationRecords: Annotation<Evaluation[]>(),
   evaluationData: Annotation<Evaluation>(),

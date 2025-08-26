@@ -1,6 +1,4 @@
-import { BaseMessage } from "@langchain/core/messages";
 import { put, head } from "@vercel/blob";
-import { v4 as uuidv4 } from "uuid";
 
 import fs from "fs";
 import path from "path";
@@ -10,13 +8,13 @@ import * as Path from "@/lib/path";
 import { getBaseUrl, qaEntriesFilePath } from "@/lib/path";
 import { readJson } from "@/lib/file/read";
 
-// ダミーデータ
-const initial: QAEntry = {
-  id: "xxx",
-  userAnswer: "",
-  hint: "",
-  metadata: { timestamp: "1970-01-01T00:00:00.000+00:00", quality: 0.5 },
-};
+// // ダミーデータ
+// const initial: QAEntry = {
+//   id: "xxx",
+//   userAnswer: "",
+//   hint: "",
+//   metadata: { timestamp: "1970-01-01T00:00:00.000+00:00", quality: 0.5 },
+// };
 
 /** 講師の指摘から学ぶ */
 // export async function logLearn(learnText: string) {

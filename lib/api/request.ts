@@ -3,7 +3,7 @@ import { UNKNOWN_ERROR } from "../message/error";
 
 // 型
 type RequestBody = Record<string, unknown>;
-type HttpMethod = "GET" | "POST";
+type HttpMethod = "GET" | "POST" | "DELETE";
 type RequestOptions = {
   method?: HttpMethod;
   body?: RequestBody;

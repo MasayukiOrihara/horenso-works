@@ -57,7 +57,7 @@ async function convertFormat(state: typeof GraphAnnotation.State) {
         content = summary.content;
       }
     } catch (error) {
-      console.warn(SUMMARY_ERROR);
+      console.warn(`${SUMMARY_ERROR}: ${error} `);
     }
     const stringFormat = `${role}: ${content}`;
     const cleanFormat = stringFormat.replace(/[\r\n]+/g, "");
@@ -111,7 +111,7 @@ async function summarizeConversation(state: typeof GraphAnnotation.State) {
     });
     responseSummary = response.content;
   } catch (error) {
-    console.warn(SUMMARY_ERROR);
+    console.warn(`${SUMMARY_ERROR}: ${error}`);
     empty = [...formatted];
   }
 

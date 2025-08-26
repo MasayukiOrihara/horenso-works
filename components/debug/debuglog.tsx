@@ -3,7 +3,8 @@ import { useUserMessages } from "../messages/message-provider";
 import { Button } from "../ui/button";
 import { useSwitches } from "../provider/switch-provider";
 import { Switch } from "@/components/ui/switch";
-import { shouldValidateAPI } from "@/lib/api/api";
+import { requestApi } from "@/lib/api/request";
+import { MATCH_VALIDATE } from "@/lib/api/path";
 
 let message = "";
 
@@ -48,7 +49,10 @@ export const Debuglog: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      await shouldValidateAPI(shouldVidateOn);
+      await requestApi("", MATCH_VALIDATE, {
+        method: "POST",
+        body: shouldVidateOn,
+      });
     };
     fetchData();
   }, [shouldVidateOn]);
