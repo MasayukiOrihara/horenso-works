@@ -21,6 +21,7 @@ import { requestApi } from "@/lib/api/request";
 import { RunnableParallel } from "@langchain/core/runnables";
 import { buildQADocuments } from "../lib/entry";
 import { analyzeInput } from "../lib/llm/analyzeInput";
+import { Evaluation } from "../lib/match/route";
 
 // 定数
 const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
@@ -130,10 +131,12 @@ export async function preprocessAiNode({
   ]);
   const end = Date.now();
   const matchResults = Object.values(matchResultsMap);
-  const evaluationData = matchResults.map((r) => r.evaluationData).flat();
+  const evaluationData: Evaluation[] = matchResults
+    .map((r) => r.evaluationData)
+    .flat();
 
   console.log("🐶");
-  console.log(evaluationData);
+  console.log(evaluationData.map((d) => d.document.metadata));
 
   console.log("\n");
   console.log(`処理時間(ms): ${end - start} ms`);

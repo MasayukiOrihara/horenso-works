@@ -97,7 +97,7 @@ async function checkDocumentScore(state: typeof StateAnnotation.State) {
   // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
   similarityResults.forEach(([bestMatch, score]) => {
     const bestDocument = bestMatch as Document<HorensoMetadata>;
-    console.log("score: " + score + ", match: " + bestDocument.pageContent);
+    // console.log("score: " + score + ", match: " + bestDocument.pageContent);
 
     for (const doc of documents) {
       if (bestDocument.pageContent === doc.pageContent) {
@@ -123,7 +123,7 @@ async function checkDocumentScore(state: typeof StateAnnotation.State) {
           // 評価を正解に変更
           documentScore.correct = "correct";
 
-          console.log(" → " + doc.metadata.isMatched);
+          // console.log(" → " + doc.metadata.isMatched);
         }
         // ✅ 評価を作成
         const evaluation: Evaluation = {
@@ -163,9 +163,7 @@ async function shouldBadMatch(state: typeof StateAnnotation.State) {
   );
   if (hasCorrect || hasIncorrect) {
     // ログ出力
-    console.log(
-      `☑ ドキュメントチェック hasCorrect: ${hasCorrect}  hasIncoreect: ${hasIncorrect}`
-    );
+    // console.log(`☑ ドキュメントチェック ○: ${hasCorrect}  ✖: ${hasIncorrect}`);
     return "finish";
   }
 
@@ -226,9 +224,8 @@ async function shouldSemanticMatch(state: typeof StateAnnotation.State) {
   );
   if (hasIncorrect) {
     // ログ出力
-    console.log(
-      `ハズレチェック（${evaluationRecords[0].input.userAnswer}）: ${hasIncorrect}`
-    );
+    // const answer = evaluationRecords[0].input.userAnswer;
+    // console.log(`ハズレチェック（${answer}）: ${hasIncorrect}`);
     return "finish";
   }
 
@@ -254,7 +251,7 @@ async function checkSemanticMatch(state: typeof StateAnnotation.State) {
           semanticList
         );
         if (!match) throw new Error("スコアの取得に失敗しました");
-        console.log(`曖昧結果 ID: ${match.id} score: ${match.score}`);
+        // console.log(`曖昧結果 ID: ${match.id} score: ${match.score}`);
         record.fuzzyScore = match;
       })
     );
@@ -291,9 +288,8 @@ async function shouldEvaluateAnswer(state: typeof StateAnnotation.State) {
     (item) => item.answerCorrect === "correct"
   );
   if (hasCorrect) {
-    console.log(
-      `☑ あいまいチェック（${evaluationRecords[0].input.userAnswer}）: ${hasCorrect}`
-    );
+    // const answer = evaluationRecords[0].input.userAnswer;
+    // console.log(`☑ あいまいチェック（${answer}）: ${hasCorrect}`);
     return "update";
   }
 
@@ -334,7 +330,6 @@ async function evaluateAnswer(state: typeof StateAnnotation.State) {
       const checkIdMatch = evaluateParentId === bestDocument.metadata.parentId;
       // 判定OK
       if (evaluate && checkIdMatch) {
-        console.log("適正あり");
         // jsonの更新
         SEM.updateSemanticMatch(
           evaluate,
@@ -410,8 +405,6 @@ async function finishState(state: typeof StateAnnotation.State) {
   // 一番目の要素
   const topRecord = evaluationRecords[0];
 
-  console.log(topRecord);
-
   return { evaluationData: topRecord };
 }
 
@@ -469,6 +462,7 @@ export async function POST(req: Request) {
     const result = await measureExecution(app, "match", { matchAnswerArgs });
 
     // 出力
+    // 回答評価データ
     const evaluationData = result.evaluationData;
     return Response.json({ evaluationData }, { status: 200 });
   } catch (error) {

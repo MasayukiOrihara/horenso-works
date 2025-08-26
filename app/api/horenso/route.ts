@@ -83,7 +83,7 @@ async function checkUserAnswer(state: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
 
   const { flag } = checkUserAnswerNode({
-    whoUseDocuments: whoUseDocuments,
+    evaluationData: state.evaluationData,
     whyUseDocuments: whyUseDocuments,
     transition: state.transition,
   });
