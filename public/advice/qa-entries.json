@@ -757,5 +757,16 @@
       "question_id": "1",
       "source": "bot"
     }
+  },
+  {
+    "id": "f6054077-e015-4644-b7fc-c96f5e57820e",
+    "userAnswer": "プロジェクトの破綻を防ぐ,お金を稼ぐ,納期や期限を守るため",
+    "hint": "",
+    "metadata": {
+      "timestamp": "2025-08-26T13:24:19.954+09:00",
+      "quality": 0.5,
+      "question_id": "2",
+      "source": "bot"
+    }
   }
 ]

@@ -12,7 +12,7 @@ import {
   SemanticAnswerEntry,
 } from "@/lib/type";
 import { cachedVectorStore } from "./vectorStore";
-import { FuzzyScore, SemanticMatchScore, UserAnswerEmbedding } from "./route";
+import { FuzzyScore, UserAnswerEmbedding } from "./route";
 
 /** ユーザー回答が答えに意味的に近いかLLMに判断させてJSON形式で出力する */
 export const judgeSemanticMatch = async (
@@ -88,7 +88,7 @@ export function updateSemanticMatch(
       switch (question_id) {
         case "1":
           semanticList.who[parentId - 1].splice(
-            semanticList.why[parentId - 1].length,
+            semanticList.who[parentId - 1].length,
             0,
             semanticJudge
           );
