@@ -20,14 +20,57 @@ import { cachedVectorStore } from "./vectorStore";
 import { DocumentInterface } from "@langchain/core/documents";
 import * as SEM from "./semantic";
 import { semanticFilePath } from "@/lib/path";
+import { embeddings } from "@/lib/llm/models";
 
 // 定数
 const BASE_MATCH_SCORE = 0.78; // 基準値
+const BASE_WORST_SCORE = 0.3;
 const BAD_MATCH_SCORE = 0.82; // 外れ基準値
 const SEMANTIC_MATCH_SCORE = 0.82; // 曖昧基準値
 
 // 型
-// セマンティック検索結果
+/** ユーザーの回答データを管理する型 */
+/*
+export type UserAnswerEvaluation = {
+  parentId: string;
+  question_id: string; // 問題番号
+  userAnswer: string; // ユーザーの答え
+  currentAnswer: string; // 正答
+  score: string; // 類似性のスコア
+  semanticId?: string; // あいまい正解リストでのID
+  semanticReason?: string; // あいまい正解リストでの理由
+  isAnswerCorrect: boolean; // 正解だったかどうか
+};*/
+// 最終評価
+type Evaluation = {
+  input: UserAnswerEmbedding; // 入力
+  document: Document<HorensoMetadata>; // 照合対象
+  documentScore: DocumentScore; // ドキュメント正答の結果
+  fuzzyScore?: FuzzyScore; // あいまい正答の結果
+  answerCorrect: AnswerCorrect; // 最終結果
+};
+// 入力
+type UserAnswerEmbedding = {
+  userAnswer: string; // ユーザーの答え
+  embedding: number[]; // ベクターデータ
+};
+// ドキュメント正答
+type DocumentScore = {
+  id: string;
+  score: number; // 類似性スコア
+  correct: AnswerCorrect; // 正解判定
+};
+// あいまい正答
+type FuzzyScore = {
+  id: string;
+  score: number; // 類似性スコア
+  reason?: string; // このスコアになった理由
+  correct: AnswerCorrect; // 正解判定
+};
+// 正解判定
+type AnswerCorrect = "correct" | "incorrect" | "unknown";
+
+// セマンティック検索結果※※　削除予定
 export type SemanticMatchScore = {
   id: string | null;
   parentId?: string;
@@ -46,13 +89,23 @@ async function similarityUserAnswer(state: typeof StateAnnotation.State) {
   const userAnswer = state.matchAnswerArgs.userAnswer;
   const topK = state.matchAnswerArgs.topK;
 
-  // ベクトルストア準備
-  const vectorStore = await cachedVectorStore(documents);
-
+  // ベクトルストア準備と変換
+  const [vectorStore, embedding] = await Promise.all([
+    cachedVectorStore(documents),
+    embeddings.embedQuery(userAnswer),
+  ]);
+  // 値の準備
+  const userEmbedding: UserAnswerEmbedding = {
+    userAnswer: userAnswer,
+    embedding: embedding,
+  };
   // ベクトルストア内のドキュメントとユーザーの答えを比較
-  const results = await vectorStore.similaritySearchWithScore(userAnswer, topK);
+  const results = await vectorStore.similaritySearchVectorWithScore(
+    userEmbedding.embedding,
+    topK
+  );
 
-  // スコア初期化
+  // スコア初期化　※※　削除予定
   let semanticMatchScore: SemanticMatchScore[] = Array.from(
     { length: topK },
     () => ({ id: null, score: 0, isAnswerCorrect: false })
@@ -60,8 +113,9 @@ async function similarityUserAnswer(state: typeof StateAnnotation.State) {
 
   return {
     similarityResults: results,
+    userEmbedding: userEmbedding,
     semanticMatchScore: semanticMatchScore,
-    isAnswerIncorrect: false, // 初期化
+    isAnswerIncorrect: false, // 初期化※※　削除予定
     didEvaluateAnswer: false, // 初期化
   };
 }
@@ -70,7 +124,11 @@ async function checkDocumentScore(state: typeof StateAnnotation.State) {
   console.log("☑ ドキュメントチェック");
   const similarityResults = state.similarityResults;
   const documents = state.matchAnswerArgs.documents;
-  const semanticMatchScore = state.semanticMatchScore;
+  const semanticMatchScore = state.semanticMatchScore; // ※※　削除予定
+  const userEmbedding = state.userEmbedding;
+
+  // 評価結果オブジェクト
+  const evaluationRecords: Evaluation[] = [];
 
   // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
   similarityResults.forEach(([bestMatch, score], index) => {
@@ -80,26 +138,48 @@ async function checkDocumentScore(state: typeof StateAnnotation.State) {
     for (const doc of documents) {
       if (bestDocument.pageContent === doc.pageContent) {
         const bestParentId = bestDocument.metadata.parentId;
-        // 値を保持
+
+        // 値を保持※※　削除予定
         semanticMatchScore[index] = {
           ...semanticMatchScore[index], // 既存の値を残す
           parentId: bestParentId,
           score: score,
         };
+        // ✅ 結果の作成
+        const documentScore: DocumentScore = {
+          id: bestParentId,
+          score: score,
+          correct: "unknown",
+        };
 
+        // 不正解判定
+        if (score < BASE_WORST_SCORE) {
+          documentScore.correct = "incorrect";
+        }
+
+        // 正解判定
         if (score >= BASE_MATCH_SCORE) {
-          // 同じparentIdのフラグ上げる
-          documents.map((d) => {
-            const parentId = d.metadata.parentId;
-            if (bestParentId === parentId) d.metadata.isMatched = true;
-          });
+          // 正解ののフラグ上げる
+          doc.metadata.isMatched = true;
+
+          // ※※　削除予定
           semanticMatchScore[index] = {
             ...semanticMatchScore[index], // 既存の値を残す
             isAnswerCorrect: true,
           };
+          // 評価を正解に変更
+          documentScore.correct = "correct";
 
           console.log(" → " + doc.metadata.isMatched);
         }
+        // ✅ 評価を作成
+        const evaluation: Evaluation = {
+          input: userEmbedding,
+          document: doc,
+          documentScore: documentScore,
+          answerCorrect: documentScore.correct,
+        };
+        evaluationRecords.push(evaluation);
       }
     }
   });
@@ -110,18 +190,28 @@ async function checkDocumentScore(state: typeof StateAnnotation.State) {
     documents: documents,
   };
 
+  console.log(evaluationRecords);
   return {
     matchAnswerArgs: matchAnswerArgs,
-    semanticMatchScore: semanticMatchScore,
+    semanticMatchScore: semanticMatchScore, // 削除予定
+    evaluationRecords: evaluationRecords,
   };
 }
 
 async function shouldBadMatch(state: typeof StateAnnotation.State) {
   // ハズレチェックが必要かどうか
-  const answerCorrect = state.semanticMatchScore;
+  const evaluationRecords = state.evaluationRecords;
 
-  const hasCorrect = answerCorrect.some((item) => item.isAnswerCorrect);
-  if (hasCorrect) {
+  // 1つでも正解があった場合
+  const hasCorrect = evaluationRecords.some(
+    (item) => item.answerCorrect === "correct"
+  );
+  // すべて不正解
+  const hasIncorrect = evaluationRecords.every(
+    (item) => item.answerCorrect === "incorrect"
+  );
+  if (hasCorrect || hasIncorrect) {
+    console.log(`hasCorrect: ${hasCorrect}  hasIncoreect: ${hasIncorrect}`);
     return "finish";
   }
 
@@ -357,12 +447,14 @@ async function finishState(state: typeof StateAnnotation.State) {
 
 export const StateAnnotation = Annotation.Root({
   matchAnswerArgs: Annotation<MatchAnswerArgs>(),
+  userEmbedding: Annotation<UserAnswerEmbedding>(),
   similarityResults:
     Annotation<[DocumentInterface<Record<string, any>>, number][]>(),
   isAnswerIncorrect: Annotation<boolean>(),
   semanticMatchScore: Annotation<SemanticMatchScore[]>(),
   userAnswerDatas: Annotation<UserAnswerEvaluation[]>(),
-  didEvaluateAnswer: Annotation<boolean>,
+  didEvaluateAnswer: Annotation<boolean>(),
+  evaluationRecords: Annotation<Evaluation[]>(),
 });
 
 /**

@@ -26,6 +26,7 @@ import { USER_ANSWER_DATA_PATH } from "@/lib/api/path";
 
 // 定数
 const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
+const MATCH_PATH = "/api/horenso/lib/match";
 
 type AiNode = {
   messages: BaseMessage[];
@@ -104,27 +105,6 @@ export async function preprocessAiNode({
   pushLog("正解チェックを行っています...");
   // langchain の並列処理を利用
   const steps: Record<string, () => Promise<any>> = {};
-  // userAnswer.forEach((answer, i) => {
-  //   steps[`checkAnswer_${i}`] = async () =>
-  //     matchAnswerOpenAi({
-  //       userAnswer: answer,
-  //       documents: useDocuments,
-  //       topK: k,
-  //       allTrue,
-  //       shouldValidate,
-  //       semanticList,
-  //       notCorrectList,
-  //     });
-  //   // const MATCH_PATH = "/api/horenso/lib/match";
-  //   // await requestApi(baseUrl, MATCH_PATH, {
-  //   //   method: "POST",
-  //   //   body: { matchAnswerArgs },
-  //   // });
-  // });
-  // const checkUserAnswers = new RunnableParallel({ steps });
-
-  // test
-  const MATCH_PATH = "/api/horenso/lib/match";
   userAnswer.forEach((answer, i) => {
     steps[`checkAnswer_${i}`] = async () =>
       requestApi(baseUrl, MATCH_PATH, {
@@ -142,14 +122,12 @@ export async function preprocessAiNode({
         },
       });
   });
-  const checkUserAnswers2 = new RunnableParallel({ steps });
-  // const a = await checkUserAnswers2.invoke([]);
-  // console.log(a);
+  const checkUserAnswers = new RunnableParallel({ steps });
 
   //vectorStore検索と並列に実行(全体の処理時間も計測)
   const start = Date.now();
   const [matchResultsMap, rawQaEmbeddings] = await Promise.all([
-    checkUserAnswers2.invoke([]), // RunnableParallel 実行
+    checkUserAnswers.invoke([]), // RunnableParallel 実行
     vectorStore.similaritySearchVectorWithScore(userEmbedding, 5),
   ]);
   const end = Date.now();
