@@ -22,7 +22,7 @@ const SEMANTIC_MATCH_SCORE = 0.82; // 曖昧基準値
 
 // 型
 // 最終評価
-type Evaluation = {
+export type Evaluation = {
   input: UserAnswerEmbedding; // 入力
   document: Document<HorensoMetadata>; // 照合対象
   documentScore: DocumentScore; // ドキュメント正答の結果

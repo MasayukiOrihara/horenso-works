@@ -1,11 +1,7 @@
 import { Document } from "langchain/document";
 
-import {
-  HorensoMetadata,
-  QADocumentMetadata,
-  UsedEntry,
-  UserAnswerEvaluation,
-} from "@/lib/type";
+import { QADocumentMetadata, UsedEntry } from "@/lib/type";
+import { Evaluation } from "./route";
 
 /** データに重みづけしたスコアを計算して出力 */
 export const getRankedResults = (
@@ -44,37 +40,13 @@ export const getRankedResults = (
 };
 
 /** 余分なデータフィルターし、スコア順に並べ替える */
-export const sortScore = (
-  data: UserAnswerEvaluation[],
-  documents: Document<HorensoMetadata>[]
-) => {
-  // userAnswerごとにグループ化
-  const grouped = new Map<string, UserAnswerEvaluation[]>();
-
-  for (const item of data) {
-    if (!grouped.has(item.userAnswer)) {
-      grouped.set(item.userAnswer, []);
-    }
-    grouped.get(item.userAnswer)!.push(item);
-  }
-
-  // すべて不正解の userAnswer を抽出
-  const allIncorrectUserAnswers = Array.from(grouped.entries())
-    .filter(([, group]) => group.every((item) => !item.isAnswerCorrect))
-    .map(([userAnswer]) => userAnswer);
-
-  // 未正解の parentId を抽出
-  const incorrectParentId = documents
-    .filter((item) => item.metadata.isMatched === false)
-    .map((item) => item.metadata.parentId);
-
+export const sortScore = (data: Evaluation[]) => {
+  // 不正解のみを残してソート
   return data
-    .slice()
-    .sort((a, b) => Number(b.score) - Number(a.score))
-    .filter(
-      (item) =>
-        allIncorrectUserAnswers.includes(item.userAnswer) &&
-        incorrectParentId.includes(item.parentId)
-    )
-    .slice(0, 1);
+    .filter((r) => r.answerCorrect !== "correct")
+    .sort((a, b) => {
+      const scoreA = a.documentScore?.score ?? -Infinity;
+      const scoreB = b.documentScore?.score ?? -Infinity;
+      return scoreB - scoreA; // 降順
+    });
 };

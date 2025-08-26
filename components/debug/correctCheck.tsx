@@ -3,13 +3,15 @@ import { motion } from "framer-motion";
 import { v4 as uuidv4 } from "uuid";
 
 import { useUserMessages } from "../messages/message-provider";
-import { UserAnswerEvaluation } from "@/lib/type";
 import { Button } from "../ui/button";
 import {
-  getUserAnswerDataApi,
   semanticMatchJsonDeleteAPI,
   semanticMatchJsonMoveAPI,
 } from "@/lib/api/api";
+import { Evaluation } from "@/app/api/horenso/lib/match/route";
+import { requestApi } from "@/lib/api/request";
+
+const a = "/api/user-answer-data";
 
 /**
  * 前ターンに正解を出したユーザーの答えは正しいのか問うUI
@@ -17,12 +19,10 @@ import {
 export const CorrectCheck: React.FC = () => {
   const { aiState } = useUserMessages();
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
-  const [userAnswerData, setUserAnswerData] = useState<UserAnswerEvaluation[]>(
-    []
-  );
+  const [evaluationData, setEvaluationData] = useState<Evaluation[]>([]);
 
   /**
-   * ストリーミングが終わったタイミングで userAnswerData を取得する
+   * ストリーミングが終わったタイミングで evaluationData を取得する
    */
   const oldAiStateRef = useRef("");
   useEffect(() => {
@@ -36,9 +36,8 @@ export const CorrectCheck: React.FC = () => {
     const isStreaming = oldAiStateRef.current === "streaming"; // 前の状態が"streaming"
     if (haveChanged && isStreaming) {
       const fetchData = async () => {
-        const res = await getUserAnswerDataApi();
-        const json = await res.json();
-        setUserAnswerData(json);
+        const data = await requestApi("", a, { method: "GET" });
+        setEvaluationData(data);
         setDeletedIds([]);
       };
       fetchData();
@@ -49,13 +48,13 @@ export const CorrectCheck: React.FC = () => {
   // 削除をはいと答えた時の動作
   const handleDeleteYes = (id: string) => {
     setDeletedIds((prev) => [...prev, id]);
-    userAnswerData.filter((item) => item.semanticId !== id);
+    evaluationData.filter((item) => item.fuzzyScore?.id !== id);
   };
 
   // 削除をいいえといったときの動作
   const handleDeleteNo = async (id: string) => {
     setDeletedIds((prev) => [...prev, id]);
-    userAnswerData.filter((item) => item.semanticId !== id);
+    evaluationData.filter((item) => item.fuzzyScore?.id !== id);
 
     // 記述を不正解リストに移動
     const result = await semanticMatchJsonMoveAPI(id);
@@ -66,19 +65,19 @@ export const CorrectCheck: React.FC = () => {
 
   return (
     <div className="w-full flex-col justify-center">
-      {userAnswerData &&
+      {evaluationData &&
         aiState === "ready" &&
-        userAnswerData.map((data, index) => (
+        evaluationData.map((data, index) => (
           <motion.div
-            key={data.semanticId + uuidv4()}
+            key={data.fuzzyScore?.id + uuidv4()}
             className="text-sm text-zinc-500 bg-blue-200 mb-2 px-4 py-2 rounded"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1, duration: 0.5 }}
           >
-            {data.semanticId ? (
+            {data.fuzzyScore?.id ? (
               <>
-                {deletedIds.includes(data.semanticId!) ? (
+                {deletedIds.includes(data.fuzzyScore.id!) ? (
                   <span className="text-gray-400 italic">
                     ご協力ありがとうございます
                   </span>
@@ -90,7 +89,7 @@ export const CorrectCheck: React.FC = () => {
                       </p>
                       <div className="text-center text-xs mt-1">
                         <Button
-                          onClick={() => handleDeleteYes(data.semanticId!)}
+                          onClick={() => handleDeleteYes(data.fuzzyScore!.id)}
                           variant={"check"}
                           className="mr-2"
                         >
@@ -98,7 +97,7 @@ export const CorrectCheck: React.FC = () => {
                         </Button>
                         <Button
                           onClick={async () =>
-                            await handleDeleteNo(data.semanticId!)
+                            await handleDeleteNo(data.fuzzyScore!.id)
                           }
                           variant={"check"}
                           className=""
@@ -110,19 +109,19 @@ export const CorrectCheck: React.FC = () => {
                     <div>
                       ユーザーの回答:{" "}
                       <span className="text-zinc-700 font-bold">
-                        {data.userAnswer}
+                        {data.input.userAnswer}
                       </span>
                     </div>
                     <div>
                       正答:{" "}
                       <span className="text-zinc-700 font-bold">
-                        {data.currentAnswer}
+                        {data.document.pageContent}
                       </span>
                     </div>
                     <div>
                       正解の理由:{" "}
                       <span className="text-zinc-700 font-bold">
-                        {data.semanticReason}
+                        {data.fuzzyScore.reason}
                       </span>
                     </div>
                   </>
@@ -132,7 +131,7 @@ export const CorrectCheck: React.FC = () => {
               <div>
                 <span>この回答はすでに正しい回答として判定されています。</span>
                 <p className="text-zinc-700 font-bold">
-                  「 {data.userAnswer} 」
+                  「 {data.input.userAnswer} 」
                 </p>
               </div>
             )}

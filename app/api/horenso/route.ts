@@ -55,14 +55,14 @@ async function setupInitial() {
   return {
     contexts: contexts,
     transition: { ...states },
-    userAnswerDatas: [], // 初期化
+    evaluationData: [], // 初期化
   };
 }
 
 async function preprocessAI(state: typeof StateAnnotation.State) {
   console.log("🧠 AI 準備ノード");
 
-  const { userAnswerDatas, matched, qaEmbeddings, getHint, analyzeResult } =
+  const { evaluationData, qaEmbeddings, getHint, analyzeResult } =
     await preprocessAiNode({
       messages: state.messages,
       step: state.transition.step,
@@ -72,8 +72,7 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
     });
 
   return {
-    userAnswerDatas: userAnswerDatas,
-    matched: matched,
+    evaluationData: evaluationData,
     qaEmbeddings: qaEmbeddings,
     aiHint: getHint,
     analyze: analyzeResult,
@@ -84,7 +83,8 @@ async function checkUserAnswer(state: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
 
   const { flag } = checkUserAnswerNode({
-    matched: state.matched,
+    whoUseDocuments: whoUseDocuments,
+    whyUseDocuments: whyUseDocuments,
     transition: state.transition,
   });
   return { transition: flag };
@@ -112,7 +112,7 @@ async function generateHint(state: typeof StateAnnotation.State) {
   const { contexts } = generateHintNode({
     whoUseDocuments: whoUseDocuments,
     whyUseDocuments: whyUseDocuments,
-    userAnswerDatas: state.userAnswerDatas,
+    evaluationData: state.evaluationData,
     step: state.transition.step,
     aiHint: state.aiHint,
     talkJudge: state.analyze,
@@ -224,12 +224,12 @@ export async function POST(req: Request) {
     const aiText = result.contexts.join("");
 
     // ユーザー答えデータの管理
-    const sendUserAnswerData = result.userAnswerDatas.filter(
-      (item) => item.isAnswerCorrect === true
+    const sendEvaluationData = result.evaluationData.filter(
+      (item) => item.answerCorrect === "correct"
     );
     await requestApi(baseUrl, USER_ANSWER_DATA_PATH, {
       method: "POST",
-      body: { sendUserAnswerData },
+      body: { sendEvaluationData },
     });
 
     return Response.json(

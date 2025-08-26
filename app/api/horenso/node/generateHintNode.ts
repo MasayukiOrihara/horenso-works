@@ -2,8 +2,9 @@ import { Document } from "langchain/document";
 
 import * as MSG from "../contents/messages";
 import * as DOC from "../contents/documents";
-import { HorensoMetadata, UserAnswerEvaluation } from "@/lib/type";
+import { HorensoMetadata } from "@/lib/type";
 import { findMatchStatusChanges } from "../lib/utils";
+import { Evaluation } from "../lib/match/route";
 
 let oldWhoUseDocuments = DOC.whoDocuments.map((doc) => ({
   pageContent: doc.pageContent,
@@ -17,7 +18,7 @@ let oldWhyUseDocuments = DOC.whyDocuments.map((doc) => ({
 type HintNode = {
   whoUseDocuments: Document<HorensoMetadata>[];
   whyUseDocuments: Document<HorensoMetadata>[];
-  userAnswerDatas: UserAnswerEvaluation[];
+  evaluationData: Evaluation[];
   step: number;
   aiHint: string;
   talkJudge: string;
@@ -52,7 +53,7 @@ const matchedSummaryMessage = (
 export function generateHintNode({
   whoUseDocuments,
   whyUseDocuments,
-  userAnswerDatas,
+  evaluationData,
   step,
   aiHint,
   talkJudge,
@@ -109,22 +110,20 @@ export function generateHintNode({
     case "回答":
     default:
       const haveChanged = Object.keys(changed).length > 0;
-      const hasAnyMatch = userAnswerDatas.some(
-        (doc) => doc.isAnswerCorrect === true
+      const hasAnyMatch = evaluationData.some(
+        (data) => data.answerCorrect === "correct"
       );
       if (haveChanged) {
         // 部分的に正解だったところを解説
         contexts.push(MSG.BULLET + MSG.PARTIAL_CORRECT_FEEDBACK_PROMPT);
-        for (const doc of changed) {
-          for (const user of userAnswerDatas) {
-            if (
-              doc.metadata.parentId === user.parentId &&
-              user.isAnswerCorrect
-            ) {
-              contexts.push(
-                userAnswerTemplate(user.userAnswer, doc.pageContent)
-              );
-            }
+        for (const data of evaluationData) {
+          if (data.answerCorrect === "correct") {
+            contexts.push(
+              userAnswerTemplate(
+                data.input.userAnswer,
+                data.document.pageContent
+              )
+            );
           }
         }
         contexts.push("\n");
@@ -132,17 +131,18 @@ export function generateHintNode({
         // 部分的に正解だが、すでに正解だった場合
 
         contexts.push(MSG.BULLET + ALREADY_ANSWERED_NOTICE);
-        for (const doc of documents) {
-          for (const user of userAnswerDatas) {
-            if (
-              doc.metadata.isMatched &&
-              doc.metadata.parentId === user.parentId &&
-              user.isAnswerCorrect
-            ) {
-              contexts.push(
-                userAnswerTemplate(user.userAnswer, doc.pageContent)
-              );
-            }
+
+        for (const data of evaluationData) {
+          if (
+            data.document.metadata.isMatched &&
+            data.answerCorrect === "correct"
+          ) {
+            contexts.push(
+              userAnswerTemplate(
+                data.input.userAnswer,
+                data.document.pageContent
+              )
+            );
           }
         }
       } else {

@@ -1,17 +1,17 @@
 import { UNKNOWN_ERROR } from "@/lib/message/error";
-import { UserAnswerEvaluation } from "@/lib/type";
+import { Evaluation } from "../horenso/lib/match/route";
 
-let userAnswerDatas: UserAnswerEvaluation[] = [];
+let evaluationData: Evaluation[] = [];
 
 /**
- * userAnswerData をフロントとやり取りするための API
+ * evaluationData をフロントとやり取りするための API
  * @param req
  * @returns
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    userAnswerDatas = body.sendUserAnswerData;
+    evaluationData = body.sendEvaluationData;
 
     return new Response(null, {
       status: 201, // No Content
@@ -19,24 +19,24 @@ export async function POST(req: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
 
-    console.error("USER ANSWER DATA API POST error: " + message);
+    console.error("evaluation data API POST error: " + message);
     return Response.json({ error: message }, { status: 500 });
   }
 }
 
 /**
- * userAnswerDatas を取得する
+ * evaluationData を取得する
  * @returns
  */
 export async function GET() {
   try {
-    return Response.json(userAnswerDatas, {
+    return Response.json(evaluationData, {
       status: 200,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
 
-    console.error("USER ANSWER DATA API GET error: " + message);
+    console.error("evaluation data API GET error: " + message);
     return Response.json({ error: message }, { status: 500 });
   }
 }

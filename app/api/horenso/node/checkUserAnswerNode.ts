@@ -1,7 +1,9 @@
-import { HorensoStates } from "@/lib/type";
+import { Document } from "langchain/document";
+import { HorensoMetadata, HorensoStates } from "@/lib/type";
 
 type UserAnswerNode = {
-  matched: boolean[];
+  whoUseDocuments: Document<HorensoMetadata>[];
+  whyUseDocuments: Document<HorensoMetadata>[];
   transition: HorensoStates;
 };
 
@@ -10,17 +12,21 @@ type UserAnswerNode = {
  * @param param0 ユーザーの回答を判定するノード
  * @returns
  */
-export function checkUserAnswerNode({ matched, transition }: UserAnswerNode) {
-  const tempIsCorrect = matched.some((result) => result === true);
-  console.log("質問の正解判定: " + tempIsCorrect);
-
+export function checkUserAnswerNode({
+  whoUseDocuments,
+  whyUseDocuments,
+  transition,
+}: UserAnswerNode) {
   const flag: HorensoStates = { ...transition };
   switch (transition.step) {
     case 0:
       console.log("質問1: 報連相は誰のため？");
 
       // 正解パターン
-      if (tempIsCorrect) {
+      const isCorrectWho = whoUseDocuments.some(
+        (doc) => doc.metadata.isMatched
+      );
+      if (isCorrectWho) {
         flag.step = 1;
         flag.isAnswerCorrect = true;
       }
@@ -29,7 +35,10 @@ export function checkUserAnswerNode({ matched, transition }: UserAnswerNode) {
       console.log("質問2: なぜリーダーのため？");
 
       // 全正解
-      if (tempIsCorrect) {
+      const isCorrectWhy = whyUseDocuments.every(
+        (doc) => doc.metadata.isMatched
+      );
+      if (isCorrectWhy) {
         flag.hasQuestion = false;
         flag.isAnswerCorrect = true;
       }

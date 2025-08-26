@@ -130,23 +130,23 @@ export async function preprocessAiNode({
   ]);
   const end = Date.now();
   const matchResults = Object.values(matchResultsMap);
+  const evaluationData = matchResults.map((r) => r.evaluationData).flat();
 
-  console.log(matchResults);
-  const userAnswerDatas = matchResults.map((r) => r.userAnswerDatas).flat();
+  console.log("🐶");
+  console.log(evaluationData);
 
-  const matched = matchResults.map((r) => r.isAnswerCorrect);
   console.log("\n");
   console.log(`処理時間(ms): ${end - start} ms`);
   console.log(`OpenAI Embeddings チェック完了 \n ---`);
 
   /* ③ ヒントの取得（正解していたときは飛ばす） */
   pushLog("ヒントの準備中です...");
-  const tempIsCorrect = matched.some((result) => result === true);
+  const tempIsCorrect = false; // 正解判定で飛ばす（※※ 後で考える）
   let qaEmbeddings: [Document<QADocumentMetadata>, number][] = [];
   let getHint: string = "";
   if (!tempIsCorrect) {
-    const top = sortScore(userAnswerDatas, useDocuments);
-    const getHintPromises = generateHintLlm(question, top, useDocuments);
+    const sortData = sortScore(evaluationData);
+    const getHintPromises = generateHintLlm(question, sortData, useDocuments);
 
     qaEmbeddings = rawQaEmbeddings as [Document<QADocumentMetadata>, number][];
     getHint = await getHintPromises;
@@ -156,5 +156,5 @@ export async function preprocessAiNode({
   const analyzeResult = await analyzeResultPromise;
   console.log(analyzeResult);
   pushLog("返答の生成中です...");
-  return { userAnswerDatas, matched, qaEmbeddings, getHint, analyzeResult };
+  return { evaluationData, qaEmbeddings, getHint, analyzeResult };
 }
