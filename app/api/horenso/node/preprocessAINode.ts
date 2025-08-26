@@ -2,7 +2,6 @@ import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
 
 import * as MSG from "../contents/messages";
-import { matchAnswerOpenAi } from "../lib/match/match";
 import { HorensoMetadata, QADocumentMetadata, QAEntry } from "@/lib/type";
 import { embeddings } from "@/lib/llm/models";
 
@@ -22,7 +21,6 @@ import { requestApi } from "@/lib/api/request";
 import { RunnableParallel } from "@langchain/core/runnables";
 import { buildQADocuments } from "../lib/entry";
 import { analyzeInput } from "../lib/llm/analyzeInput";
-import { USER_ANSWER_DATA_PATH } from "@/lib/api/path";
 
 // 定数
 const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
