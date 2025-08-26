@@ -10,8 +10,7 @@ import {
 } from "@/lib/api/api";
 import { Evaluation } from "@/app/api/horenso/lib/match/route";
 import { requestApi } from "@/lib/api/request";
-
-const a = "/api/user-answer-data";
+import { EVALUATION_DATA_PATH } from "@/lib/api/path";
 
 /**
  * 前ターンに正解を出したユーザーの答えは正しいのか問うUI
@@ -36,7 +35,9 @@ export const CorrectCheck: React.FC = () => {
     const isStreaming = oldAiStateRef.current === "streaming"; // 前の状態が"streaming"
     if (haveChanged && isStreaming) {
       const fetchData = async () => {
-        const data = await requestApi("", a, { method: "GET" });
+        const data = await requestApi("", EVALUATION_DATA_PATH, {
+          method: "GET",
+        });
         setEvaluationData(data);
         setDeletedIds([]);
       };

@@ -20,7 +20,7 @@ import {
 } from "@/lib/message/error";
 import { measureExecution } from "@/lib/llm/graph";
 import { requestApi } from "@/lib/api/request";
-import { USER_ANSWER_DATA_PATH } from "@/lib/api/path";
+import { EVALUATION_DATA_PATH } from "@/lib/api/path";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -227,7 +227,7 @@ export async function POST(req: Request) {
     const sendEvaluationData = result.evaluationData.filter(
       (item) => item.answerCorrect === "correct"
     );
-    await requestApi(baseUrl, USER_ANSWER_DATA_PATH, {
+    await requestApi(baseUrl, EVALUATION_DATA_PATH, {
       method: "POST",
       body: { sendEvaluationData },
     });
