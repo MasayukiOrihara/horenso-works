@@ -14,7 +14,7 @@ import { splitInputLlm } from "../lib/llm/splitInput";
 import { generateHintLlm } from "../lib/llm/generateHint";
 import { sortScore } from "../lib/match/score";
 import { cachedVectorStore } from "../lib/match/vectorStore";
-import { messageToText } from "../lib/utils";
+import { evaluatedResults, messageToText } from "../lib/utils";
 import { pushLog } from "../lib/log/logBuffer";
 import { readJson } from "@/lib/file/read";
 import { requestApi } from "@/lib/api/request";
@@ -135,8 +135,8 @@ export async function preprocessAiNode({
     .map((r) => r.evaluationData)
     .flat();
 
-  console.log("🐶");
-  console.log(evaluationData.map((d) => d.document.metadata));
+  // document 更新
+  evaluatedResults(evaluationData, useDocuments);
 
   console.log("\n");
   console.log(`処理時間(ms): ${end - start} ms`);
@@ -144,10 +144,17 @@ export async function preprocessAiNode({
 
   /* ③ ヒントの取得（正解していたときは飛ばす） */
   pushLog("ヒントの準備中です...");
-  const tempIsCorrect = false; // 正解判定で飛ばす（※※ 後で考える）
+  // 正解判定
+  const tempIsCorrect =
+    allTrue === true
+      ? useDocuments.every((doc) => doc.metadata.isMatched)
+      : useDocuments.some((doc) => doc.metadata.isMatched);
+
+  // ヒントの判定
   let qaEmbeddings: [Document<QADocumentMetadata>, number][] = [];
   let getHint: string = "";
   if (!tempIsCorrect) {
+    // ヒントの取得
     const sortData = sortScore(evaluationData);
     const getHintPromises = generateHintLlm(question, sortData, useDocuments);
 

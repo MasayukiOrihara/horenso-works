@@ -1,10 +1,11 @@
 import { PromptTemplate } from "@langchain/core/prompts";
 import { Document } from "langchain/document";
 
-import { sonnet, strParser } from "@/lib/llm/models";
+import { strParser } from "@/lib/llm/models";
 import { HorensoMetadata } from "@/lib/type";
 import { GUIDED_ANSWER_PROMPT } from "../../contents/messages";
 import { Evaluation } from "../match/route";
+import { runWithFallback } from "@/lib/llm/run";
 
 /** LLMを利用して答えを導くヒントを生成する */
 export const generateHintLlm = async (
@@ -26,13 +27,29 @@ export const generateHintLlm = async (
   const userAnswer =
     data.length > 0 ? data.map((val) => val.input.userAnswer).join(", ") : "";
 
-  // ヒントの出力　※※　後でいじる
-  const template = GUIDED_ANSWER_PROMPT;
-  const prompt = PromptTemplate.fromTemplate(template);
-  const getHint = await prompt.pipe(sonnet).pipe(strParser).invoke({
-    question: question,
-    currect_answer: correctAnswer,
-    user_answer: userAnswer,
-  });
-  return getHint;
+  // ヒントの出力
+  let hint = "";
+  try {
+    const template = GUIDED_ANSWER_PROMPT;
+    const prompt = PromptTemplate.fromTemplate(template);
+    const promptVariables = {
+      question: question,
+      currect_answer: correctAnswer,
+      user_answer: userAnswer,
+    };
+
+    // LLM応答（配列のパサーを使っているがうまくいってない？）
+    const response = await runWithFallback(prompt, promptVariables, {
+      mode: "invoke",
+      parser: strParser,
+      label: "generate hint",
+    });
+
+    // 型変換
+    hint = response.content;
+  } catch (error) {
+    console.warn("ヒントを取得できませんでした");
+  }
+
+  return hint;
 };

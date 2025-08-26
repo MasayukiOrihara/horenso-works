@@ -2,6 +2,7 @@ import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
 
 import { HorensoMetadata } from "@/lib/type";
+import { Evaluation } from "./match/route";
 
 /** メッセージ形式をStringに変換する関数 */
 export function messageToText(message: BaseMessage[], index: number) {
@@ -35,3 +36,19 @@ export function findMatchStatusChanges(
     );
   });
 }
+
+// evaluationData から正解した問題の結果を反映
+export const evaluatedResults = (
+  evaluationData: Evaluation[],
+  documents: Document<HorensoMetadata>[]
+) => {
+  for (const data of evaluationData) {
+    documents.forEach((doc) => {
+      if (data.document.metadata.parentId === doc.metadata.parentId) {
+        if (data.document.metadata.isMatched) {
+          doc.metadata.isMatched = data.document.metadata.isMatched; // ← 更新
+        }
+      }
+    });
+  }
+};
