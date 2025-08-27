@@ -25,8 +25,6 @@ export async function checkDocumentScoreNode({
   const documents = matchAnswerArgs.documents;
   const evaluationRecords: TYPE.Evaluation[] = []; // 評価結果オブジェクト
 
-  console.log(similarityResults);
-
   // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
   similarityResults.forEach(([bestMatch, score]) => {
     const bestDocument = bestMatch as Document<TYPE.HorensoMetadata>;
@@ -51,7 +49,8 @@ export async function checkDocumentScoreNode({
         // 正解判定
         if (score >= BASE_MATCH_SCORE) {
           // 正解ののフラグ上げる
-          doc.metadata.isMatched = true;
+          doc.metadata.isMatched = true; // matchAnswerArgs 内の document
+          bestMatch.metadata.isMatched = true; // similarityResults 内の document
 
           // 評価を正解に変更
           documentScore.correct = "correct";

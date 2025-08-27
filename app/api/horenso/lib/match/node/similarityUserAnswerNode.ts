@@ -47,7 +47,7 @@ export async function similarityUserAnswerNode({
   // ベクトルストア内のドキュメントとユーザーの答えを比較
   let similarityResults;
   try {
-    throw new Error("デバッグ用エラー");
+    //throw new Error("デバッグ用エラー");
     const question_id = documents[0].metadata.question_id;
     similarityResults = await vectorStore.similaritySearchVectorWithScore(
       embedding,
@@ -66,7 +66,6 @@ export async function similarityUserAnswerNode({
     similarityResults = await doFallbackSearch(documents, embedding, topK);
   }
 
-  console.log(similarityResults);
   return { similarityResults, userEmbedding };
 }
 

@@ -46,5 +46,8 @@ export function checkUserAnswerNode({
       break;
   }
 
+  console.log("正解判定：");
+  console.log(flag);
+
   return { flag };
 }
