@@ -5,6 +5,10 @@ import { HorensoMetadata, UserAnswerEmbedding } from "@/lib/type";
 import { cachedVectorStore } from "../lib/vectorStore";
 import { embeddings } from "@/lib/llm/models";
 import { supabaseClient } from "@/lib/clients";
+import {
+  SUPABASE_NO_RESULT_ERROR,
+  SUPABASE_SEARCH_ERROR,
+} from "@/lib/message/error";
 
 type SimilarityNode = {
   documents: Document<HorensoMetadata>[];
@@ -53,11 +57,11 @@ export async function similarityUserAnswerNode({
 
     // 検索結果が空の場合も考慮するならここでチェック
     if (!similarityResults || similarityResults.length === 0) {
-      console.warn("No results from Supabase, fallback search");
+      console.warn(SUPABASE_NO_RESULT_ERROR);
       similarityResults = await doFallbackSearch(documents, embedding, topK);
     }
   } catch (error) {
-    console.error("Error searching Supabase:", error);
+    console.error(SUPABASE_SEARCH_ERROR, error);
     // エラー時のフォールバック
     similarityResults = await doFallbackSearch(documents, embedding, topK);
   }
