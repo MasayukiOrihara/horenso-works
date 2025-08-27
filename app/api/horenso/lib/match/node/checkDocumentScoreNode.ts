@@ -1,0 +1,80 @@
+import { DocumentInterface } from "@langchain/core/documents";
+import { Document } from "langchain/document";
+
+import * as TYPE from "@/lib/type";
+
+type DocCheckNode = {
+  similarityResults: [DocumentInterface<Record<string, unknown>>, number][];
+  matchAnswerArgs: TYPE.MatchAnswerArgs;
+  userEmbedding: TYPE.UserAnswerEmbedding;
+};
+
+// 定数
+const BASE_MATCH_SCORE = 0.78; // 基準値
+const BASE_WORST_SCORE = 0.3;
+
+/**
+ * document から正答をチェックする関数
+ * @param param0
+ */
+export async function checkDocumentScoreNode({
+  similarityResults,
+  matchAnswerArgs,
+  userEmbedding,
+}: DocCheckNode) {
+  const documents = matchAnswerArgs.documents;
+  const evaluationRecords: TYPE.Evaluation[] = []; // 評価結果オブジェクト
+
+  console.log(similarityResults);
+
+  // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
+  similarityResults.forEach(([bestMatch, score]) => {
+    const bestDocument = bestMatch as Document<TYPE.HorensoMetadata>;
+    console.log("score: " + score + ", match: " + bestDocument.pageContent);
+
+    for (const doc of documents) {
+      if (bestDocument.pageContent === doc.pageContent) {
+        const bestParentId = bestDocument.metadata.parentId;
+
+        // ✅ 結果の作成
+        const documentScore: TYPE.DocumentScore = {
+          id: bestParentId,
+          score: score,
+          correct: "unknown",
+        };
+
+        // 不正解判定
+        if (score < BASE_WORST_SCORE) {
+          documentScore.correct = "incorrect";
+        }
+
+        // 正解判定
+        if (score >= BASE_MATCH_SCORE) {
+          // 正解ののフラグ上げる
+          doc.metadata.isMatched = true;
+
+          // 評価を正解に変更
+          documentScore.correct = "correct";
+
+          console.log(" → " + doc.metadata.isMatched);
+        }
+        // ✅ 評価を作成
+        const evaluation: TYPE.Evaluation = {
+          input: userEmbedding,
+          document: bestDocument,
+          documentScore: documentScore,
+          answerCorrect: documentScore.correct,
+        };
+        evaluationRecords.push(evaluation);
+      }
+    }
+  });
+
+  // 値を更新
+  const tempMatchAnswerArgs = {
+    ...matchAnswerArgs,
+    documents: documents,
+  };
+
+  return { tempMatchAnswerArgs, evaluationRecords };
+}

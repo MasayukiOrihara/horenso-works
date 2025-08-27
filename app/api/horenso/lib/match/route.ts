@@ -52,63 +52,18 @@ async function similarityUserAnswer(state: typeof StateAnnotation.State) {
 /** ドキュメントの答えを比較するノード */
 async function checkDocumentScore(state: typeof StateAnnotation.State) {
   const similarityResults = state.similarityResults;
-  const documents = state.matchAnswerArgs.documents;
+  const matchAnswerArgs = state.matchAnswerArgs;
   const userEmbedding = state.userEmbedding;
 
-  // 評価結果オブジェクト
-  const evaluationRecords: Evaluation[] = [];
-
-  // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
-  similarityResults.forEach(([bestMatch, score]) => {
-    const bestDocument = bestMatch as Document<HorensoMetadata>;
-    console.log("score: " + score + ", match: " + bestDocument.pageContent);
-
-    for (const doc of documents) {
-      if (bestDocument.pageContent === doc.pageContent) {
-        const bestParentId = bestDocument.metadata.parentId;
-
-        // ✅ 結果の作成
-        const documentScore: DocumentScore = {
-          id: bestParentId,
-          score: score,
-          correct: "unknown",
-        };
-
-        // 不正解判定
-        if (score < BASE_WORST_SCORE) {
-          documentScore.correct = "incorrect";
-        }
-
-        // 正解判定
-        if (score >= BASE_MATCH_SCORE) {
-          // 正解ののフラグ上げる
-          doc.metadata.isMatched = true;
-
-          // 評価を正解に変更
-          documentScore.correct = "correct";
-
-          console.log(" → " + doc.metadata.isMatched);
-        }
-        // ✅ 評価を作成
-        const evaluation: Evaluation = {
-          input: userEmbedding,
-          document: bestDocument,
-          documentScore: documentScore,
-          answerCorrect: documentScore.correct,
-        };
-        evaluationRecords.push(evaluation);
-      }
-    }
-  });
-
-  // 値を更新
-  const matchAnswerArgs = {
-    ...state.matchAnswerArgs,
-    documents: documents,
-  };
+  const { tempMatchAnswerArgs, evaluationRecords } =
+    await NODE.checkDocumentScoreNode({
+      similarityResults: similarityResults,
+      matchAnswerArgs: matchAnswerArgs,
+      userEmbedding: userEmbedding,
+    });
 
   return {
-    matchAnswerArgs: matchAnswerArgs,
+    matchAnswerArgs: tempMatchAnswerArgs,
     evaluationRecords: evaluationRecords,
   };
 }

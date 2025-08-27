@@ -1,10 +1,9 @@
 import { Document } from "langchain/document";
+import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 
 import { HorensoMetadata, UserAnswerEmbedding } from "@/lib/type";
 import { cachedVectorStore } from "../lib/vectorStore";
 import { embeddings } from "@/lib/llm/models";
-import { saveEmbeddingSupabase } from "../lib/supabase";
-import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 import { supabaseClient } from "@/lib/clients";
 
 type SimilarityNode = {
@@ -35,19 +34,50 @@ export async function similarityUserAnswerNode({
   });
 
   // ユーザーの回答設定
+  const embedding = await embeddings.embedQuery(userAnswer);
   const userEmbedding: UserAnswerEmbedding = {
     userAnswer: userAnswer,
-    embedding: await embeddings.embedQuery(userAnswer),
+    embedding: embedding,
   };
 
   // ベクトルストア内のドキュメントとユーザーの答えを比較
-  const question_id = documents[0].metadata.question_id;
-  const similarityResults = await vectorStore.similaritySearchVectorWithScore(
-    userEmbedding.embedding,
-    topK,
-    { question_id: question_id } // RPC に渡る
-  );
+  let similarityResults;
+  try {
+    throw new Error("デバッグ用エラー");
+    const question_id = documents[0].metadata.question_id;
+    similarityResults = await vectorStore.similaritySearchVectorWithScore(
+      embedding,
+      topK,
+      { question_id: question_id } // RPC に渡る
+    );
+
+    // 検索結果が空の場合も考慮するならここでチェック
+    if (!similarityResults || similarityResults.length === 0) {
+      console.warn("No results from Supabase, fallback search");
+      similarityResults = await doFallbackSearch(documents, embedding, topK);
+    }
+  } catch (error) {
+    console.error("Error searching Supabase:", error);
+    // エラー時のフォールバック
+    similarityResults = await doFallbackSearch(documents, embedding, topK);
+  }
 
   console.log(similarityResults);
   return { similarityResults, userEmbedding };
+}
+
+// ベクトルストアを作り document を変換して検索
+async function doFallbackSearch(
+  documents: Document<HorensoMetadata>[],
+  embedding: number[],
+  topK: number
+) {
+  // ベクトルストア準備
+  const vectorStore = await cachedVectorStore(documents);
+  // ベクトルストア内のドキュメントとユーザーの答えを比較
+  const similarityResults = await vectorStore.similaritySearchVectorWithScore(
+    embedding,
+    topK
+  );
+  return similarityResults;
 }
