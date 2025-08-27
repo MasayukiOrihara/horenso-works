@@ -2,7 +2,16 @@ import { Document } from "langchain/document";
 
 import * as TYPE from "@/lib/type";
 import { getMaxScoreSemanticMatch, saveSemanticScoreDB } from "../lib/semantic";
-import { BADMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
+import {
+  BADMATCH_ERROR,
+  SCORE_GET_ERROR,
+  SUPABASE_NO_RESULT_ERROR,
+} from "@/lib/message/error";
+import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
+import { embeddings } from "@/lib/llm/models";
+import { supabaseClient } from "@/lib/clients";
+import { DOCUMENTS_SEARCH_QUERY } from "./similarityUserAnswerNode";
+import { searchEmbeddingSupabase } from "../lib/supabase";
 
 type BadCheckNode = {
   evaluationRecords: TYPE.Evaluation[];
@@ -11,6 +20,8 @@ type BadCheckNode = {
 
 // 定数
 const BAD_MATCH_SCORE = 0.82; // 外れ基準値
+const WRONGLIST_TABLE = "wronglist";
+const WRONGLIST_QUERY = "search_wronglist";
 
 /**
  * ハズレチェックを行うノード
@@ -30,15 +41,35 @@ export async function checkBadMatchNode({
         const bestDocument = record.document as Document<TYPE.HorensoMetadata>;
         const input = record.input;
 
-        const tableName = "wronglist";
-        await saveSemanticScoreDB(notCorrectList, tableName);
+        // ベクトルストア内のドキュメントとユーザーの答えを比較
+        let badScore: TYPE.FuzzyScore | null = null;
+        try {
+          //throw new Error("デバッグ用エラー");
+          const question_id = bestDocument.metadata.question_id;
 
-        // ※※ 読み込みを逐一やってるっぽいんでDBに伴い早くなりそう？userAnserじゃなくて埋め込んだやつを直接使ってもいいかも
-        const badScore = await getMaxScoreSemanticMatch(
-          input,
-          bestDocument,
-          notCorrectList
-        );
+          // supabase から similarityResults を取得
+          const results = await searchEmbeddingSupabase(
+            WRONGLIST_TABLE,
+            WRONGLIST_QUERY,
+            input.embedding,
+            1,
+            question_id
+          );
+
+          // 変換
+          const max = results[0];
+          badScore = {
+            id: max?.[0].metadata.id,
+            score: max?.[1],
+            nearAnswer: max?.[0].pageContent,
+            reason: max?.[0].metadata.reason,
+            correct: "unknown",
+          };
+        } catch (error) {
+          console.error(SCORE_GET_ERROR, error);
+        }
+
+        // エラー処理
         if (!badScore) throw new Error(SCORE_GET_ERROR);
         record.badScore = badScore;
       })

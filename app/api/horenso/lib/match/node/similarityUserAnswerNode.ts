@@ -9,6 +9,7 @@ import {
   SUPABASE_NO_RESULT_ERROR,
   SUPABASE_SEARCH_ERROR,
 } from "@/lib/message/error";
+import { searchEmbeddingSupabase } from "../lib/supabase";
 
 type SimilarityNode = {
   documents: Document<HorensoMetadata>[];
@@ -18,7 +19,7 @@ type SimilarityNode = {
 
 // 定数
 const DOCUMENT_TABLE = "documents";
-const DOCUMENTS_SEARCH_QUERY = "search_similar_documents";
+export const DOCUMENTS_SEARCH_QUERY = "search_similar_documents";
 
 /**
  * 正誤判定の初期化を行うノード
@@ -30,15 +31,9 @@ export async function similarityUserAnswerNode({
   userAnswer,
   topK,
 }: SimilarityNode) {
-  // VectorStoreをSupabaseから設定
-  const vectorStore = new SupabaseVectorStore(embeddings, {
-    client: supabaseClient(),
-    tableName: DOCUMENT_TABLE,
-    queryName: DOCUMENTS_SEARCH_QUERY,
-  });
-
   // ユーザーの回答設定
   const embedding = await embeddings.embedQuery(userAnswer);
+  const question_id = documents[0].metadata.question_id;
   const userEmbedding: UserAnswerEmbedding = {
     userAnswer: userAnswer,
     embedding: embedding,
@@ -48,18 +43,15 @@ export async function similarityUserAnswerNode({
   let similarityResults;
   try {
     //throw new Error("デバッグ用エラー");
-    const question_id = documents[0].metadata.question_id;
-    similarityResults = await vectorStore.similaritySearchVectorWithScore(
+
+    // supabase から similarityResults を取得
+    similarityResults = await searchEmbeddingSupabase(
+      DOCUMENT_TABLE,
+      DOCUMENTS_SEARCH_QUERY,
       embedding,
       topK,
-      { question_id: question_id } // RPC に渡る
+      question_id
     );
-
-    // 検索結果が空の場合も考慮するならここでチェック
-    if (!similarityResults || similarityResults.length === 0) {
-      console.warn(SUPABASE_NO_RESULT_ERROR);
-      similarityResults = await doFallbackSearch(documents, embedding, topK);
-    }
   } catch (error) {
     console.error(SUPABASE_SEARCH_ERROR, error);
     // エラー時のフォールバック
