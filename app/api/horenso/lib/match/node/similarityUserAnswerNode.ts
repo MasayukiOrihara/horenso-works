@@ -4,6 +4,8 @@ import { HorensoMetadata, UserAnswerEmbedding } from "@/lib/type";
 import { cachedVectorStore } from "../lib/vectorStore";
 import { embeddings } from "@/lib/llm/models";
 import { saveEmbeddingSupabase } from "../lib/supabase";
+import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
+import { supabaseClient } from "@/lib/clients";
 
 type SimilarityNode = {
   documents: Document<HorensoMetadata>[];
@@ -11,8 +13,9 @@ type SimilarityNode = {
   topK: number;
 };
 
-export const tableName = "documents";
-export const queryName = "match_documents";
+// 定数
+const DOCUMENT_TABLE = "documents";
+const DOCUMENTS_SEARCH_QUERY = "search_similar_documents";
 
 /**
  * 正誤判定の初期化を行うノード
@@ -24,24 +27,27 @@ export async function similarityUserAnswerNode({
   userAnswer,
   topK,
 }: SimilarityNode) {
-  // ベクトルストア準備と変換
-  const [vectorStore, embedding] = await Promise.all([
-    cachedVectorStore(documents),
-    embeddings.embedQuery(userAnswer),
-  ]);
-  // supabase 保存
-  await saveEmbeddingSupabase(documents, tableName, queryName);
+  // VectorStoreをSupabaseから設定
+  const vectorStore = new SupabaseVectorStore(embeddings, {
+    client: supabaseClient(),
+    tableName: DOCUMENT_TABLE,
+    queryName: DOCUMENTS_SEARCH_QUERY,
+  });
 
-  // 値の準備
+  // ユーザーの回答設定
   const userEmbedding: UserAnswerEmbedding = {
     userAnswer: userAnswer,
-    embedding: embedding,
+    embedding: await embeddings.embedQuery(userAnswer),
   };
 
   // ベクトルストア内のドキュメントとユーザーの答えを比較
+  const question_id = documents[0].metadata.question_id;
   const similarityResults = await vectorStore.similaritySearchVectorWithScore(
     userEmbedding.embedding,
-    topK
+    topK,
+    { question_id: question_id } // RPC に渡る
   );
+
+  console.log(similarityResults);
   return { similarityResults, userEmbedding };
 }
