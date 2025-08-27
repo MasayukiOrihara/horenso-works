@@ -2,9 +2,13 @@ import { Document } from "langchain/document";
 import { Annotation, StateGraph } from "@langchain/langgraph";
 
 import {
+  DocumentScore,
+  Evaluation,
+  FuzzyScore,
   HorensoMetadata,
   MatchAnswerArgs,
   SemanticAnswerEntry,
+  UserAnswerEmbedding,
 } from "@/lib/type";
 import { MESSAGES_ERROR, UNKNOWN_ERROR } from "@/lib/message/error";
 import { measureExecution } from "@/lib/llm/graph";
@@ -13,44 +17,13 @@ import { DocumentInterface } from "@langchain/core/documents";
 import * as SEM from "./lib/semantic";
 import { semanticFilePath } from "@/lib/path";
 import { embeddings } from "@/lib/llm/models";
+import * as NODE from "./node";
 
 // 定数
 const BASE_MATCH_SCORE = 0.78; // 基準値
 const BASE_WORST_SCORE = 0.3;
 const BAD_MATCH_SCORE = 0.82; // 外れ基準値
 const SEMANTIC_MATCH_SCORE = 0.82; // 曖昧基準値
-
-// 型
-// 最終評価
-export type Evaluation = {
-  input: UserAnswerEmbedding; // 入力
-  document: Document<HorensoMetadata>; // 照合対象
-  documentScore: DocumentScore; // ドキュメント正答の結果
-  badScore?: FuzzyScore; // 外れリストの結果
-  fuzzyScore?: FuzzyScore; // あいまい正答の結果
-  answerCorrect: AnswerCorrect; // 最終結果
-};
-// 入力
-export type UserAnswerEmbedding = {
-  userAnswer: string; // ユーザーの答え
-  embedding: number[]; // ベクターデータ
-};
-// ドキュメント正答
-type DocumentScore = {
-  id: string;
-  score: number; // 類似性スコア
-  correct: AnswerCorrect; // 正解判定
-};
-// あいまい正答
-export type FuzzyScore = {
-  id: string;
-  score: number; // 類似性スコア
-  nearAnswer?: string; // 類似した答え
-  reason?: string; // このスコアになった理由
-  correct: AnswerCorrect; // 正解判定
-};
-// 正解判定
-type AnswerCorrect = "correct" | "incorrect" | "unknown";
 
 /**
  * langGraphのノード群
@@ -62,24 +35,15 @@ async function similarityUserAnswer(state: typeof StateAnnotation.State) {
   const userAnswer = state.matchAnswerArgs.userAnswer;
   const topK = state.matchAnswerArgs.topK;
 
-  // ベクトルストア準備と変換
-  const [vectorStore, embedding] = await Promise.all([
-    cachedVectorStore(documents),
-    embeddings.embedQuery(userAnswer),
-  ]);
-  // 値の準備
-  const userEmbedding: UserAnswerEmbedding = {
-    userAnswer: userAnswer,
-    embedding: embedding,
-  };
-  // ベクトルストア内のドキュメントとユーザーの答えを比較
-  const results = await vectorStore.similaritySearchVectorWithScore(
-    userEmbedding.embedding,
-    topK
-  );
+  const { similarityResults, userEmbedding } =
+    await NODE.similarityUserAnswerNode({
+      documents: documents,
+      userAnswer: userAnswer,
+      topK: topK,
+    });
 
   return {
-    similarityResults: results,
+    similarityResults: similarityResults,
     userEmbedding: userEmbedding,
     didEvaluateAnswer: false, // 初期化
   };

@@ -107,3 +107,37 @@ export type ChatRequestOptions = {
   debug: boolean;
   step: number;
 };
+
+/**
+ * ユーザーの回答を評価した結果の型
+ * 主に正誤判定処理（match）で使う
+ */
+export type Evaluation = {
+  input: UserAnswerEmbedding; // 入力
+  document: Document<HorensoMetadata>; // 照合対象
+  documentScore: DocumentScore; // ドキュメント正答の結果
+  badScore?: FuzzyScore; // 外れリストの結果
+  fuzzyScore?: FuzzyScore; // あいまい正答の結果
+  answerCorrect: AnswerCorrect; // 最終結果
+};
+// 入力
+export type UserAnswerEmbedding = {
+  userAnswer: string; // ユーザーの答え
+  embedding: number[]; // ベクターデータ
+};
+// ドキュメント正答
+export type DocumentScore = {
+  id: string;
+  score: number; // 類似性スコア
+  correct: AnswerCorrect; // 正解判定
+};
+// あいまい正答
+export type FuzzyScore = {
+  id: string;
+  score: number; // 類似性スコア
+  nearAnswer?: string; // 類似した答え
+  reason?: string; // このスコアになった理由
+  correct: AnswerCorrect; // 正解判定
+};
+// 正解判定
+export type AnswerCorrect = "correct" | "incorrect" | "unknown";

@@ -2,9 +2,8 @@ import { Document } from "langchain/document";
 
 import * as MSG from "../contents/messages";
 import * as DOC from "../contents/documents";
-import { HorensoMetadata } from "@/lib/type";
+import { Evaluation, HorensoMetadata } from "@/lib/type";
 import { findMatchStatusChanges } from "../lib/utils";
-import { Evaluation } from "../lib/match/route";
 
 let oldWhoUseDocuments = DOC.whoDocuments.map((doc) => ({
   pageContent: doc.pageContent,

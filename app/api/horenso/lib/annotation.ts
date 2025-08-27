@@ -1,8 +1,7 @@
 import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 import { Document } from "langchain/document";
 
-import { HorensoStates, QADocumentMetadata } from "@/lib/type";
-import { Evaluation } from "./match/route";
+import { Evaluation, HorensoStates, QADocumentMetadata } from "@/lib/type";
 
 /** メイングラフ内の状態を司るアノテーション */
 export const StateAnnotation = Annotation.Root({

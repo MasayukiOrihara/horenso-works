@@ -2,7 +2,12 @@ import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
 
 import * as MSG from "../contents/messages";
-import { HorensoMetadata, QADocumentMetadata, QAEntry } from "@/lib/type";
+import {
+  Evaluation,
+  HorensoMetadata,
+  QADocumentMetadata,
+  QAEntry,
+} from "@/lib/type";
 import { embeddings } from "@/lib/llm/models";
 
 import {
@@ -21,7 +26,6 @@ import { requestApi } from "@/lib/api/request";
 import { RunnableParallel } from "@langchain/core/runnables";
 import { buildQADocuments } from "../lib/entry";
 import { analyzeInput } from "../lib/llm/analyzeInput";
-import { Evaluation } from "../lib/match/route";
 
 // 定数
 const MATCH_VALIDATE = "/api/horenso/lib/match/validate";

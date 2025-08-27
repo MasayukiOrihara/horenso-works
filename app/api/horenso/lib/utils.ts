@@ -1,8 +1,7 @@
 import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
 
-import { HorensoMetadata } from "@/lib/type";
-import { Evaluation } from "./match/route";
+import { Evaluation, HorensoMetadata } from "@/lib/type";
 
 /** メッセージ形式をStringに変換する関数 */
 export function messageToText(message: BaseMessage[], index: number) {
