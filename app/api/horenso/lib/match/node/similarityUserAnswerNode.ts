@@ -3,12 +3,16 @@ import { Document } from "langchain/document";
 import { HorensoMetadata, UserAnswerEmbedding } from "@/lib/type";
 import { cachedVectorStore } from "../lib/vectorStore";
 import { embeddings } from "@/lib/llm/models";
+import { saveEmbeddingSupabase } from "../lib/supabase";
 
 type SimilarityNode = {
   documents: Document<HorensoMetadata>[];
   userAnswer: string;
   topK: number;
 };
+
+export const tableName = "documents";
+export const queryName = "match_documents";
 
 /**
  * 正誤判定の初期化を行うノード
@@ -25,6 +29,8 @@ export async function similarityUserAnswerNode({
     cachedVectorStore(documents),
     embeddings.embedQuery(userAnswer),
   ]);
+  // supabase 保存
+  await saveEmbeddingSupabase(documents, tableName, queryName);
 
   // 値の準備
   const userEmbedding: UserAnswerEmbedding = {
