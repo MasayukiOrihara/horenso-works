@@ -1,7 +1,7 @@
 import { Document } from "langchain/document";
 
 import * as TYPE from "@/lib/type";
-import { getMaxScoreSemanticMatch } from "../lib/semantic";
+import { getMaxScoreSemanticMatch, saveSemanticScoreDB } from "../lib/semantic";
 import { BADMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
 
 type BadCheckNode = {
@@ -29,6 +29,9 @@ export async function checkBadMatchNode({
       tempEvaluationRecords.map(async (record) => {
         const bestDocument = record.document as Document<TYPE.HorensoMetadata>;
         const input = record.input;
+
+        const tableName = "wronglist";
+        await saveSemanticScoreDB(notCorrectList, tableName);
 
         // ※※ 読み込みを逐一やってるっぽいんでDBに伴い早くなりそう？userAnserじゃなくて埋め込んだやつを直接使ってもいいかも
         const badScore = await getMaxScoreSemanticMatch(

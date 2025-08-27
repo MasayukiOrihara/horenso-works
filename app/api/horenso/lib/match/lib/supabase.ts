@@ -8,15 +8,14 @@ import * as ERR from "@/lib/message/error";
 /** supabase にドキュメントを埋め込む */
 export async function saveEmbeddingSupabase(
   documets: Document[],
-  tableName: string,
-  queryName: string
+  tableName: string
 ) {
   try {
     // ストアの作成
     const vectorStore = new SupabaseVectorStore(embeddings, {
       client: supabaseClient(),
       tableName: tableName,
-      queryName: queryName,
+      queryName: "",
     });
 
     // ドキュメントの追加

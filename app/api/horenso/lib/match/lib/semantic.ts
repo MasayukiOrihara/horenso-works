@@ -7,12 +7,14 @@ import * as MSG from "../../../contents/messages";
 import { jsonParser, OpenAi } from "@/lib/llm/models";
 import { timestamp } from "@/lib/path";
 import {
+  FuzzyScore,
   HorensoMetadata,
   SemanticAnswerData,
   SemanticAnswerEntry,
+  UserAnswerEmbedding,
 } from "@/lib/type";
 import { cachedVectorStore } from "./vectorStore";
-import { FuzzyScore, UserAnswerEmbedding } from "../route";
+import { saveEmbeddingSupabase } from "./supabase";
 
 /** ユーザー回答が答えに意味的に近いかLLMに判断させてJSON形式で出力する */
 export const judgeSemanticMatch = async (
@@ -181,5 +183,50 @@ const buildSupportDocs = (
       new Document({
         pageContent: phrases.nearAnswer!,
         metadata: { id: phrases.id, parentId, reason: phrases.reason },
+      })
+  );
+
+// 臨時：現在のjson形式ファイルを document 形式に変換して DB に登録
+type PhrasesMetadata = {
+  id?: string;
+  question_id: string;
+  parentId: string;
+  timestamp: string;
+  rationale?: string;
+  source: "user" | "admin" | "bot";
+};
+export const saveSemanticScoreDB = async (
+  semanticList: SemanticAnswerData,
+  tableName: string
+) => {
+  // 読み込み
+  if (Array.isArray(semanticList.who) && semanticList.who.length > 0) {
+    const phrasesWho = semanticList.who.flat();
+    const phrasesWhy = semanticList.why.flat();
+
+    const phrases = [...phrasesWho, ...phrasesWhy];
+
+    // 変換
+    const doc = buildSupportDocsEX(phrases);
+
+    // supabese にベクター変換 & 保存
+    await saveEmbeddingSupabase(doc, tableName);
+  }
+};
+const buildSupportDocsEX = (
+  phrases: SemanticAnswerEntry[]
+): Document<PhrasesMetadata>[] =>
+  phrases.map(
+    (phrases) =>
+      new Document<PhrasesMetadata>({
+        pageContent: phrases.answer,
+        metadata: {
+          id: phrases.id,
+          question_id: phrases.metadata.question_id,
+          parentId: String(phrases.metadata.parentId),
+          timestamp: phrases.metadata.timestamp,
+          rationale: phrases.reason,
+          source: phrases.metadata.source,
+        },
       })
   );

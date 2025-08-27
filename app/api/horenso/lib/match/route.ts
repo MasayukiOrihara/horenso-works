@@ -61,7 +61,6 @@ async function checkDocumentScore(state: typeof StateAnnotation.State) {
       matchAnswerArgs: matchAnswerArgs,
       userEmbedding: userEmbedding,
     });
-  console.log(tempMatchAnswerArgs);
 
   return {
     matchAnswerArgs: tempMatchAnswerArgs,
