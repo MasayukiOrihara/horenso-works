@@ -95,43 +95,12 @@ async function checkBadMatch(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
   const notCorrectList = state.matchAnswerArgs.notCorrectList;
 
-  // 外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
-  try {
-    await Promise.all(
-      evaluationRecords.map(async (record) => {
-        const bestDocument = record.document as Document<HorensoMetadata>;
-        const input = record.input;
+  const { tempEvaluationRecords } = await NODE.checkBadMatchNode({
+    evaluationRecords: evaluationRecords,
+    notCorrectList: notCorrectList,
+  });
 
-        // ※※ 読み込みを逐一やってるっぽいんでDBに伴い早くなりそう？userAnserじゃなくて埋め込んだやつを直接使ってもいいかも
-        const badScore = await SEM.getMaxScoreSemanticMatch(
-          input,
-          bestDocument,
-          notCorrectList
-        );
-        if (!badScore) throw new Error("スコアの取得に失敗しました");
-        record.badScore = badScore;
-      })
-    );
-
-    // まとめてチェック
-    evaluationRecords.map(async (record) => {
-      const badScore = record.badScore;
-      if (badScore) {
-        // 答えの結果が出てない
-        const isAnswerUnknown = record.answerCorrect === "unknown";
-        // ハズレリストの閾値以上
-        const exceedsBadMatchThreshold = badScore.score > BAD_MATCH_SCORE;
-        if (isAnswerUnknown && exceedsBadMatchThreshold) {
-          badScore.correct = "incorrect"; // 不正解
-          record.answerCorrect = badScore.correct;
-        }
-      }
-    });
-  } catch (error) {
-    console.warn("ハズレチェック中にエラーが発生しました。: " + error);
-  }
-
-  return { evaluationRecords: evaluationRecords };
+  return { evaluationRecords: tempEvaluationRecords };
 }
 
 /** あいまいチェックに進むか判断するノード */
