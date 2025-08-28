@@ -5,22 +5,23 @@ import {
   MessagesAnnotation,
   StateGraph,
 } from "@langchain/langgraph";
+import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 
-import {
-  MESSAGES_ERROR,
-  SESSIONID_ERROR,
-  UNKNOWN_ERROR,
-} from "@/lib/message/error";
-import { convertToOpenAIFormat, logShort } from "../../utils";
+import { convertToOpenAIFormat, saveSupabase } from "../../utils";
 import { memoryFilePath, timestamp } from "@/lib/path";
 import { measureExecution } from "@/lib/llm/graph";
 
-/* 保存先を判断する */
-async function decideSaveDestination() {
-  // ※※ 現在 text 出力のみ、DB 使用時に分岐
-  return "conText";
-}
+import * as ERR from "@/lib/message/error";
+
+// 会話履歴を保持する型
+export type MemoryTextData = {
+  id: string;
+  role: string;
+  content: string;
+  sessionId: string;
+  timestamp: string;
+};
 
 /** メッセージをテキスト形式にフォーマットする処理 */
 async function convertTextFormat(state: typeof GraphAnnotation.State) {
@@ -30,31 +31,38 @@ async function convertTextFormat(state: typeof GraphAnnotation.State) {
 
   // message を整形
   const openaiFormat = convertToOpenAIFormat(message);
-  const stringFormat = `${openaiFormat.role}: ${openaiFormat.content}`;
-  const cleanFormat = stringFormat.replace(/[\r\n]+/g, "");
+  const cleanFormatContent = openaiFormat.content.replace(/[\r\n]+/g, "");
 
-  // メタ情報の付与
-  const sessionIdText = `sessionId: ${sessionId}`;
-  const timestampText = `time: ${timestamp.slice(0, 16)}`;
-  const result = `${cleanFormat} \n - ${sessionIdText}  ${timestampText} \n`;
-  logShort("書き出す内容: \n" + result);
+  // メタ情報の付与してオブジェクト作成
+  const memoryTextData: MemoryTextData = {
+    id: uuidv4(),
+    role: openaiFormat.role,
+    content: cleanFormatContent,
+    sessionId: sessionId,
+    timestamp: timestamp.slice(0, 16),
+  };
 
-  return { textFormat: result };
+  return { memoryTextData: memoryTextData };
 }
 
-/** メッセージを DB に保存するためにフォーマットする処理 */
-async function convertDBFormat() {
-  console.log("📩 db format");
-  // メッセージを1つ取得
-  //const messages = state.messages[state.messages.length - 1];
+/* 保存先を判断する */
+async function decideSaveDestination() {
+  // .envで切り替え
+  if (process.env.STORAGE_TYPE === "db") {
+    return "saveDB";
+  }
 
-  return {};
+  return "saveText";
 }
 
 /* テキスト保存処理 */
 async function saveTextData(state: typeof GraphAnnotation.State) {
-  const textFormat = state.textFormat;
+  const memoryTextData = state.memoryTextData;
   const localPath = memoryFilePath;
+
+  // 形式を整える
+  const message = `${memoryTextData.role}: ${memoryTextData.content}`;
+  const textFormat = `${message}\n - sessionId: ${memoryTextData.sessionId}  time: ${memoryTextData.timestamp}`;
 
   // ローカル保存
   fs.appendFileSync(localPath, textFormat, "utf-8");
@@ -62,7 +70,16 @@ async function saveTextData(state: typeof GraphAnnotation.State) {
 }
 
 /* DB保存処理 */
-async function saveDBData() {}
+async function saveDBData(state: typeof GraphAnnotation.State) {
+  const memoryTextData = state.memoryTextData;
+
+  try {
+    await saveSupabase(memoryTextData);
+    console.log(`✅ 会話内容を データベース に保存しました。\n`);
+  } catch (error) {
+    console.error("✖ 会話内容が データベース に保存できませんでした: " + error);
+  }
+}
 
 /* 使ったメッセージを削除 */
 async function deleteMessages(state: typeof GraphAnnotation.State) {
@@ -76,9 +93,8 @@ async function deleteMessages(state: typeof GraphAnnotation.State) {
 
 // アノテーションの追加
 const GraphAnnotation = Annotation.Root({
-  summary: Annotation<string>(),
   sessionId: Annotation<string>(),
-  textFormat: Annotation<string>(),
+  memoryTextData: Annotation<MemoryTextData>(),
   ...MessagesAnnotation.spec,
 });
 
@@ -87,14 +103,12 @@ const workflow = new StateGraph(GraphAnnotation)
   // ノード追加
   .addNode("conText", convertTextFormat)
   .addNode("saveText", saveTextData)
-  .addNode("conDB", convertDBFormat)
   .addNode("saveDB", saveDBData)
   .addNode("delete", deleteMessages)
 
   // エッジ追加
-  .addConditionalEdges("__start__", decideSaveDestination)
-  .addEdge("conText", "saveText")
-  .addEdge("conDB", "saveDB")
+  .addEdge("__start__", "conText")
+  .addConditionalEdges("conText", decideSaveDestination)
   .addEdge("saveText", "delete")
   .addEdge("saveDB", "delete")
   .addEdge("delete", "__end__");
@@ -114,8 +128,10 @@ export async function POST(req: Request) {
     // メッセージ取得
     const messages = body.messages;
     if (!messages) {
-      console.error("💿 memory chat save API POST error: " + MESSAGES_ERROR);
-      return Response.json({ error: MESSAGES_ERROR }, { status: 400 });
+      console.error(
+        "💿 memory chat save API POST error: " + ERR.MESSAGES_ERROR
+      );
+      return Response.json({ error: ERR.MESSAGES_ERROR }, { status: 400 });
     }
     // 最新メッセージ取得
     const previousMessage = messages[messages.length - 1];
@@ -123,8 +139,10 @@ export async function POST(req: Request) {
     // セッションID 取得
     const sessionId = body.sessionId;
     if (!sessionId) {
-      console.error("💿 memory chat save API POST error: " + SESSIONID_ERROR);
-      return Response.json({ error: SESSIONID_ERROR }, { status: 400 });
+      console.error(
+        "💿 memory chat save API POST error: " + ERR.SESSIONID_ERROR
+      );
+      return Response.json({ error: ERR.SESSIONID_ERROR }, { status: 400 });
     }
 
     // 履歴用キー
@@ -140,7 +158,7 @@ export async function POST(req: Request) {
 
     return new Response(null, { status: 204 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
+    const message = error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
 
     console.error("💿 memory chat save API POST error: " + message);
     return Response.json({ error: message }, { status: 500 });

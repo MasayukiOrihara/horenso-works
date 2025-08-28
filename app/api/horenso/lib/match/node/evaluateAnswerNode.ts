@@ -64,6 +64,7 @@ export async function evaluateAnswerNode({
   // DB の更新
   if (goodEvaluations) {
     await saveEmbeddingSupabase(evaluate, FUZZYLIST_TABLE);
+    console.log("✅ 正解と判定した回答を データベース に保存しました。");
   }
 
   return { tempEvaluationRecords: evaluationRecords };

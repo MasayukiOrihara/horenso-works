@@ -1,4 +1,6 @@
 import { BaseMessage, MessageContent } from "@langchain/core/messages";
+import { MemoryTextData } from "./chat/save/route";
+import { supabaseClient } from "@/lib/clients";
 
 // 返り値の型を定義
 export type OpenAIMessage = {
@@ -45,4 +47,18 @@ const getContentString = (msg: BaseMessage): string => {
 export const logShort = (msg: string, max = 32) => {
   const trimmed = msg.length > max ? msg.slice(0, max) + "... " : msg;
   console.log(trimmed);
+};
+
+/** supabase に会話履歴データを保存する */
+export const saveSupabase = async (data: MemoryTextData) => {
+  const { error } = await supabaseClient().from("memory_text_data").insert({
+    id: data.id,
+    role: data.role,
+    content: data.content,
+    session_id: data.sessionId,
+    timestamp: data.timestamp,
+  });
+
+  if (error) throw error;
+  return data;
 };

@@ -1,5 +1,5 @@
 // memory api
-export const MEMORY_PATH = "/api/memory";
+export const MEMORY_PATH = "/api/memory/chat/context";
 
 // horenso api
 export const HORENSO_PATH = "/api/horenso";

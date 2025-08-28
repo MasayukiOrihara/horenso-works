@@ -1,4 +1,5 @@
 import { RemoveMessage } from "@langchain/core/messages";
+import { PromptTemplate } from "@langchain/core/prompts";
 import {
   Annotation,
   MemorySaver,
@@ -7,16 +8,11 @@ import {
 } from "@langchain/langgraph";
 
 import { strParser } from "@/lib/llm/models";
-import { MEMORY_UPDATE_PROMPT, SUMMARY_PROMPT } from "./contents";
-import {
-  SESSIONID_ERROR,
-  SUMMARY_ERROR,
-  UNKNOWN_ERROR,
-} from "@/lib/message/error";
-import { convertToOpenAIFormat } from "./utils";
+import { convertToOpenAIFormat } from "../../utils";
 import { runWithFallback } from "@/lib/llm/run";
-import { PromptTemplate } from "@langchain/core/prompts";
 import { measureExecution } from "@/lib/llm/graph";
+import * as MSG from "@/lib/contents/memory/template";
+import * as ERR from "@/lib/message/error";
 
 // 定数
 const MAX_LENGTH = 6; // 要約をする最大行
@@ -48,7 +44,7 @@ async function convertFormat(state: typeof GraphAnnotation.State) {
     let content = openaiFormat.content;
     try {
       if (role === "assistant" && content.length > MAX_CHAR_LENGTH) {
-        const prompt = PromptTemplate.fromTemplate(SUMMARY_PROMPT);
+        const prompt = PromptTemplate.fromTemplate(MSG.SUMMARY_PROMPT);
         const summary = await runWithFallback(
           prompt,
           { input: content },
@@ -57,7 +53,7 @@ async function convertFormat(state: typeof GraphAnnotation.State) {
         content = summary.content;
       }
     } catch (error) {
-      console.warn(`${SUMMARY_ERROR}: ${error} `);
+      console.warn(`${ERR.SUMMARY_ERROR}: ${error} `);
     }
     const stringFormat = `${role}: ${content}`;
     const cleanFormat = stringFormat.replace(/[\r\n]+/g, "");
@@ -87,14 +83,14 @@ async function summarizeConversation(state: typeof GraphAnnotation.State) {
   const formattedText = formatted.join("\n");
 
   // 要約の有無によって分岐
-  let summaryMessage = SUMMARY_PROMPT;
+  let summaryMessage = MSG.SUMMARY_PROMPT;
   type PromptVariables = {
     input: string;
     summary?: string;
   };
   let promptVariables: PromptVariables = { input: formattedText };
   if (summary) {
-    summaryMessage = MEMORY_UPDATE_PROMPT;
+    summaryMessage = MSG.MEMORY_UPDATE_PROMPT;
     promptVariables = { input: formattedText, summary: summary };
   }
 
@@ -111,7 +107,7 @@ async function summarizeConversation(state: typeof GraphAnnotation.State) {
     });
     responseSummary = response.content;
   } catch (error) {
-    console.warn(`${SUMMARY_ERROR}: ${error}`);
+    console.warn(`${ERR.SUMMARY_ERROR}: ${error}`);
     empty = [...formatted];
   }
 
@@ -168,8 +164,8 @@ export async function POST(req: Request) {
     const messages = body.messages ?? [];
     const sessionId = body.sessionId;
     if (!sessionId) {
-      console.error("💿 memory API POST error: " + SESSIONID_ERROR);
-      return Response.json({ error: SESSIONID_ERROR }, { status: 400 });
+      console.error("💿 memory API POST error: " + ERR.SESSIONID_ERROR);
+      return Response.json({ error: ERR.SESSIONID_ERROR }, { status: 400 });
     }
 
     // 2行取得
@@ -189,7 +185,7 @@ export async function POST(req: Request) {
 
     return Response.json(results.formatted, { status: 200 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
+    const message = error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
 
     console.error("💿 memory API POST error: " + message);
     return Response.json({ error: message }, { status: 500 });
