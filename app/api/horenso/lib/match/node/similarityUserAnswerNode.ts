@@ -1,25 +1,18 @@
 import { Document } from "langchain/document";
-import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 
 import { HorensoMetadata, UserAnswerEmbedding } from "@/lib/type";
 import { cachedVectorStore } from "../lib/vectorStore";
 import { embeddings } from "@/lib/llm/models";
-import { supabaseClient } from "@/lib/clients";
-import {
-  SUPABASE_NO_RESULT_ERROR,
-  SUPABASE_SEARCH_ERROR,
-} from "@/lib/message/error";
+import { SUPABASE_SEARCH_ERROR } from "@/lib/message/error";
 import { searchEmbeddingSupabase } from "../lib/supabase";
+
+import * as CON from "@/lib/contents/match";
 
 type SimilarityNode = {
   documents: Document<HorensoMetadata>[];
   userAnswer: string;
   topK: number;
 };
-
-// 定数
-const DOCUMENT_TABLE = "documents";
-export const DOCUMENTS_SEARCH_QUERY = "search_similar_documents";
 
 /**
  * 正誤判定の初期化を行うノード
@@ -46,8 +39,8 @@ export async function similarityUserAnswerNode({
 
     // supabase から similarityResults を取得
     similarityResults = await searchEmbeddingSupabase(
-      DOCUMENT_TABLE,
-      DOCUMENTS_SEARCH_QUERY,
+      CON.DOCUMENT_TABLE,
+      CON.DOCUMENTS_SEARCH_QUERY,
       embedding,
       topK,
       question_id

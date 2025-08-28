@@ -2,16 +2,13 @@ import { DocumentInterface } from "@langchain/core/documents";
 import { Document } from "langchain/document";
 
 import * as TYPE from "@/lib/type";
+import * as CON from "@/lib/contents/match";
 
 type DocCheckNode = {
   similarityResults: [DocumentInterface<Record<string, unknown>>, number][];
   matchAnswerArgs: TYPE.MatchAnswerArgs;
   userEmbedding: TYPE.UserAnswerEmbedding;
 };
-
-// 定数
-const BASE_MATCH_SCORE = 0.78; // 基準値
-const BASE_WORST_SCORE = 0.3;
 
 /**
  * document から正答をチェックする関数
@@ -44,12 +41,12 @@ export async function checkDocumentScoreNode({
         };
 
         // 不正解判定
-        if (score < BASE_WORST_SCORE) {
+        if (score < CON.BASE_WORST_SCORE) {
           documentScore.correct = "incorrect";
         }
 
         // 正解判定
-        if (score >= BASE_MATCH_SCORE) {
+        if (score >= CON.BASE_MATCH_SCORE) {
           // 正解ののフラグ上げる
           doc.metadata.isMatched = true; // matchAnswerArgs 内の document
           bestMatch.metadata.isMatched = true; // similarityResults 内の document

@@ -1,17 +1,12 @@
-import { Document } from "langchain/document";
-
-import * as TYPE from "@/lib/type";
 import { FUZZYMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
 import { searchEmbeddingSupabase } from "../lib/supabase";
+
+import * as TYPE from "@/lib/type";
+import * as CON from "@/lib/contents/match";
 
 type BadCheckNode = {
   evaluationRecords: TYPE.Evaluation[];
 };
-
-// 定数
-const SEMANTIC_MATCH_SCORE = 0.82; // 曖昧基準値
-const FUZZYLIST_TABLE = "fuzzylist";
-const FUZZYLIST_QUERY = "search_fuzzylist";
 
 /**
  * あいまいチェックを行うノード
@@ -36,8 +31,8 @@ export async function checkSemanticMatchNode({
 
       // supabase から あいまい正答 を取得
       const results = await searchEmbeddingSupabase(
-        FUZZYLIST_TABLE,
-        FUZZYLIST_QUERY,
+        CON.FUZZYLIST_TABLE,
+        CON.FUZZYLIST_QUERY,
         embedding,
         1,
         question_id
@@ -67,7 +62,8 @@ export async function checkSemanticMatchNode({
       // 答えの結果が出てない
       const isAnswerUnknown = record.answerCorrect === "unknown";
       // あいまいリストの閾値以上
-      const exceedsBadMatchThreshold = fuzzyScore.score > SEMANTIC_MATCH_SCORE;
+      const exceedsBadMatchThreshold =
+        fuzzyScore.score > CON.SEMANTIC_MATCH_SCORE;
       if (isAnswerUnknown && exceedsBadMatchThreshold) {
         fuzzyScore.correct = "correct"; // 正解
         record.answerCorrect = fuzzyScore.correct;

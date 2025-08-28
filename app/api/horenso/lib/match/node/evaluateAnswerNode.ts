@@ -1,14 +1,13 @@
 import { Document } from "langchain/document";
 
 import * as TYPE from "@/lib/type";
-import { judgeSemanticMatch, updateSemanticMatch } from "../lib/semantic";
+import { judgeSemanticMatch } from "../lib/semantic";
+import { AI_EVALUATE_ERROR } from "@/lib/message/error";
 
 type EvaluateNode = {
   evaluationRecords: TYPE.Evaluation[];
   documents: Document<TYPE.HorensoMetadata>[];
 };
-
-const AI_EVALUATE_ERROR = "AI のよる判定結果が得られませんでした";
 
 /**
  * AI による回答評価

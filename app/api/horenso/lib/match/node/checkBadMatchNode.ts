@@ -1,17 +1,11 @@
-import { Document } from "langchain/document";
-
 import * as TYPE from "@/lib/type";
 import { BADMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
 import { searchEmbeddingSupabase } from "../lib/supabase";
+import * as CON from "@/lib/contents/match";
 
 type BadCheckNode = {
   evaluationRecords: TYPE.Evaluation[];
 };
-
-// 定数
-const BAD_MATCH_SCORE = 0.82; // 外れ基準値
-const WRONGLIST_TABLE = "wronglist";
-const WRONGLIST_QUERY = "search_wronglist";
 
 /**
  * ハズレチェックを行うノード
@@ -33,8 +27,8 @@ export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
       //throw new Error("デバッグ用エラー");
       // supabase から ハズレ回答 を取得
       const results = await searchEmbeddingSupabase(
-        WRONGLIST_TABLE,
-        WRONGLIST_QUERY,
+        CON.WRONGLIST_TABLE,
+        CON.WRONGLIST_QUERY,
         embedding,
         1,
         question_id
@@ -64,7 +58,7 @@ export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
       // 答えの結果が出てない
       const isAnswerUnknown = record.answerCorrect === "unknown";
       // ハズレリストの閾値以上
-      const exceedsBadMatchThreshold = badScore.score > BAD_MATCH_SCORE;
+      const exceedsBadMatchThreshold = badScore.score > CON.BAD_MATCH_SCORE;
       if (isAnswerUnknown && exceedsBadMatchThreshold) {
         badScore.correct = "incorrect"; // 不正解
         record.answerCorrect = badScore.correct;
