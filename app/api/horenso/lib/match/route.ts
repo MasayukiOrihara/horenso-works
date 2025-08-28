@@ -218,31 +218,18 @@ async function updateSemanticMatchFlags(state: typeof StateAnnotation.State) {
   };
 }
 
-async function finishState(state: typeof StateAnnotation.State) {
+/** 最後にデータを整形して出力するノード */
+async function finalizeResult(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
 
-  // 中身型チェック
-  const allHaveFuzzyScore = evaluationRecords.every(
-    (r) => typeof r.fuzzyScore?.score === "number"
-  );
-  const allHaveBadScore = evaluationRecords.every(
-    (r) => typeof r.badScore?.score === "number"
-  );
-  if (allHaveFuzzyScore) {
-    evaluationRecords.sort((a, b) => b.fuzzyScore!.score - a.fuzzyScore!.score);
-  } else if (allHaveBadScore) {
-    evaluationRecords.sort((a, b) => b.badScore!.score - a.badScore!.score);
-  } else {
-    evaluationRecords.sort(
-      (a, b) => b.documentScore.score - a.documentScore.score
-    );
-  }
-  // 一番目の要素
-  const topRecord = evaluationRecords[0];
+  const { topRecord } = await NODE.finalizeResultNode({
+    evaluationRecords: evaluationRecords,
+  });
 
   return { evaluationData: topRecord };
 }
 
+/** アノテーション一覧 */
 const StateAnnotation = Annotation.Root({
   matchAnswerArgs: Annotation<MatchAnswerArgs>(),
   userEmbedding: Annotation<UserAnswerEmbedding>(),
@@ -265,7 +252,7 @@ const workflow = new StateGraph(StateAnnotation)
   .addNode("semantic", checkSemanticMatch)
   .addNode("evaluate", evaluateAnswer)
   .addNode("update", updateSemanticMatchFlags)
-  .addNode("finish", finishState)
+  .addNode("finish", finalizeResult)
   // エッジ
   .addEdge("__start__", "similarity")
   .addEdge("similarity", "docScore")
