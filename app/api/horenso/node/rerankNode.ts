@@ -3,7 +3,7 @@ import { BaseMessage } from "@langchain/core/messages";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 
-import { QADocumentMetadata, QAEntry, UsedEntry } from "@/lib/type";
+import { ClueMetadata, QAEntry, UsedEntry } from "@/lib/type";
 import { qaEntriesFilePath } from "@/lib/path";
 import { qaEntryData, writeQaEntriesQuality } from "../lib/entry";
 import { messageToText } from "../lib/utils";
@@ -15,7 +15,7 @@ type RerankNode = {
   usedEntry: UsedEntry[];
   messages: BaseMessage[];
   step: number;
-  qaEmbeddings: [Document<QADocumentMetadata>, number][];
+  qaEmbeddings: [Document<ClueMetadata>, number][];
   talkJudge: string;
 };
 

@@ -4,7 +4,7 @@ import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase"
 import { supabaseClient } from "@/lib/clients";
 import { embeddings } from "@/lib/llm/models";
 import * as ERR from "@/lib/message/error";
-import { PhrasesMetadata } from "@/lib/type";
+import { ClueMetadata, PhrasesMetadata, QAEntry } from "@/lib/type";
 
 /** ベクターデータで supabase から検索を行う */
 export const searchEmbeddingSupabase = async (
@@ -57,19 +57,18 @@ export async function saveEmbeddingSupabase(
 }
 
 /** 臨時：JSON ファイルを supabase に読ませる用 */
-export const saveFuzzyScoreDB = async (fuzzyList: any, tableName: string) => {
+export const saveListDB = async (list: any, tableName: string) => {
   // 読み込み
-  if (Array.isArray(fuzzyList.who) && fuzzyList.who.length > 0) {
-    const phrasesWho = fuzzyList.who.flat();
-    const phrasesWhy = fuzzyList.why.flat();
-
-    const phrases = [...phrasesWho, ...phrasesWhy];
-
+  const doc = buildSupportDocsEntry(list);
+  await saveEmbeddingSupabase(doc, tableName);
+  if (Array.isArray(list) && list.length > 0) {
+    // const phrasesWho = list.who.flat();
+    // const phrasesWhy = list.why.flat();
+    // const phrases = [...phrasesWho, ...phrasesWhy];
     // 変換
-    const doc = buildSupportDocsEX(phrases);
-
+    //const doc = buildSupportDocsEX(phrases);
     // supabese にベクター変換 & 保存
-    await saveEmbeddingSupabase(doc, tableName);
+    //await saveEmbeddingSupabase(doc, tableName);
   }
 };
 const buildSupportDocsEX = (phrases: any[]): Document<PhrasesMetadata>[] =>
@@ -84,6 +83,21 @@ const buildSupportDocsEX = (phrases: any[]): Document<PhrasesMetadata>[] =>
           timestamp: phrases.metadata.timestamp,
           rationale: phrases.reason,
           source: phrases.metadata.source,
+        },
+      })
+  );
+
+const buildSupportDocsEntry = (phrases: QAEntry[]): Document<ClueMetadata>[] =>
+  phrases.map(
+    (phrases) =>
+      new Document<ClueMetadata>({
+        pageContent: phrases.userAnswer,
+        metadata: {
+          id: phrases.id,
+          question_id: phrases.metadata.question_id ?? "",
+          clue: phrases.hint,
+          quality: phrases.metadata.quality,
+          source: phrases.metadata.source ?? "bot",
         },
       })
   );

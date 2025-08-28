@@ -1,13 +1,13 @@
 import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 import { Document } from "langchain/document";
 
-import { Evaluation, HorensoStates, QADocumentMetadata } from "@/lib/type";
+import { ClueMetadata, Evaluation, HorensoStates } from "@/lib/type";
 
 /** メイングラフ内の状態を司るアノテーション */
 export const StateAnnotation = Annotation.Root({
   sessionId: Annotation<string>(),
   contexts: Annotation<string[]>(),
-  qaEmbeddings: Annotation<[Document<QADocumentMetadata>, number][]>(),
+  qaEmbeddings: Annotation<[Document<ClueMetadata>, number][]>(),
   aiHint: Annotation<string>(),
   analyze: Annotation<string>(),
   evaluationData: Annotation<Evaluation[]>(),

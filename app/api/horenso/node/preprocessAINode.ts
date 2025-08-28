@@ -3,21 +3,19 @@ import { BaseMessage } from "@langchain/core/messages";
 
 import { embeddings } from "@/lib/llm/models";
 
-import { qaEntriesFilePath } from "@/lib/path";
 import { splitInputLlm } from "../lib/llm/splitInput";
 import { generateHintLlm } from "../lib/llm/generateHint";
 import { sortScore } from "../lib/match/lib/score";
-import { cachedVectorStore } from "../lib/match/lib/vectorStore";
 import { evaluatedResults, messageToText } from "../lib/utils";
 import { pushLog } from "../lib/log/logBuffer";
-import { readJson } from "@/lib/file/read";
 import { requestApi } from "@/lib/api/request";
 import { RunnableParallel } from "@langchain/core/runnables";
-import { buildQADocuments } from "../lib/entry";
 import { analyzeInput } from "../lib/llm/analyzeInput";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import * as TYPE from "@/lib/type";
+import { searchEmbeddingSupabase } from "../lib/match/lib/supabase";
+import { CLUE_QUERY, CLUE_TABLE } from "@/lib/contents/match";
 
 // 定数
 const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
@@ -47,10 +45,6 @@ export async function preprocessAiNode({
   pushLog("データの準備中です...");
   // ユーザーの答え
   const userMessage = messageToText(messages, messages.length - 1);
-  // 既存データを読み込む（なければ空配列）
-  const qaList: TYPE.QAEntry[] = readJson(qaEntriesFilePath());
-  // 埋め込み作成用にデータをマップ
-  const qaDocuments = buildQADocuments(qaList, step);
   // 回答チェック判定を取得
   const readShouldValidate = await requestApi(baseUrl, MATCH_VALIDATE, {
     method: "GET",
@@ -84,10 +78,9 @@ export async function preprocessAiNode({
   pushLog("回答の確認中です...");
   // 入力の分析
   const analyzeResultPromise = analyzeInput(userMessage, question);
-  const [userAnswer, userEmbedding, vectorStore] = await Promise.all([
+  const [userAnswer, userEmbedding] = await Promise.all([
     splitInputLlm(sepKeywordPrompt, userMessage),
     embeddings.embedQuery(userMessage),
-    cachedVectorStore(qaDocuments),
   ]);
   console.log("質問の分離した答え: ");
   console.log(userAnswer);
@@ -118,7 +111,13 @@ export async function preprocessAiNode({
   const start = Date.now();
   const [matchResultsMap, rawQaEmbeddings] = await Promise.all([
     checkUserAnswers.invoke([]), // RunnableParallel 実行
-    vectorStore.similaritySearchVectorWithScore(userEmbedding, 5),
+    searchEmbeddingSupabase(
+      CLUE_TABLE,
+      CLUE_QUERY,
+      userEmbedding,
+      5,
+      useDocuments[0].metadata.question_id
+    ),
   ]);
   const end = Date.now();
   const matchResults = Object.values(matchResultsMap);
@@ -128,7 +127,6 @@ export async function preprocessAiNode({
 
   // document 更新
   evaluatedResults(evaluationData, useDocuments);
-
   console.log(`処理時間(ms): ${end - start} ms`);
   console.log(`OpenAI Embeddings チェック完了 \n ---`);
 
@@ -141,17 +139,14 @@ export async function preprocessAiNode({
       : useDocuments.some((doc) => doc.metadata.isMatched);
 
   // ヒントの判定
-  let qaEmbeddings: [Document<TYPE.QADocumentMetadata>, number][] = [];
+  let qaEmbeddings: [Document<TYPE.ClueMetadata>, number][] = [];
   let getHint: string = "";
   if (!tempIsCorrect) {
     // ヒントの取得
     const sortData = sortScore(evaluationData);
     const getHintPromises = generateHintLlm(question, sortData, useDocuments);
 
-    qaEmbeddings = rawQaEmbeddings as [
-      Document<TYPE.QADocumentMetadata>,
-      number
-    ][];
+    qaEmbeddings = rawQaEmbeddings as [Document<TYPE.ClueMetadata>, number][];
     getHint = await getHintPromises;
     console.log("質問1のヒント: \n" + getHint);
   }

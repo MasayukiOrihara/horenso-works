@@ -1,10 +1,10 @@
 import { Document } from "langchain/document";
 
-import { Evaluation, QADocumentMetadata, UsedEntry } from "@/lib/type";
+import { ClueMetadata, Evaluation, UsedEntry } from "@/lib/type";
 
 /** データに重みづけしたスコアを計算して出力 */
 export const getRankedResults = (
-  results: [Document<QADocumentMetadata>, number][]
+  results: [Document<ClueMetadata>, number][]
 ) => {
   const rankedResults: UsedEntry[] = [];
   for (const [bestMatch, score] of results) {

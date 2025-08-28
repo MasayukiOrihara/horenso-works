@@ -54,14 +54,6 @@ export type QAEntry = {
 };
 export type UsedEntry = { entry: Document; sum: number };
 
-export type HorensoMetadata = {
-  parentId: string;
-  question_id: string;
-  question: string;
-  answerLeakWords?: string[];
-  isMatched: boolean;
-};
-
 export type ShouldValidate = {
   who: boolean;
   why: boolean;
@@ -111,7 +103,18 @@ export type FuzzyScore = {
 export type AnswerCorrect = "correct" | "incorrect" | "unknown";
 
 /**
- * あいまい検索で使う Document のメタデータ
+ * ドキュメント評価で使う Document のメタデータ
+ */
+export type HorensoMetadata = {
+  parentId: string;
+  question_id: string;
+  question: string;
+  answerLeakWords?: string[];
+  isMatched: boolean;
+};
+
+/**
+ * あいまい評価で使う Document のメタデータ
  */
 export type PhrasesMetadata = {
   id?: string;
@@ -119,5 +122,16 @@ export type PhrasesMetadata = {
   parentId: string | null;
   timestamp: string;
   rationale?: string;
+  source: "user" | "admin" | "bot";
+};
+
+/**
+ * 会話に統一感を持たせるために過去回答保存用 Document のメタデータ
+ */
+export type ClueMetadata = {
+  id: string;
+  question_id: string;
+  clue: string;
+  quality: number;
   source: "user" | "admin" | "bot";
 };

@@ -15,3 +15,7 @@ export const FUZZYLIST_QUERY = "search_fuzzylist";
 // similarityUserAnswerNode
 export const DOCUMENT_TABLE = "documents";
 export const DOCUMENTS_SEARCH_QUERY = "search_similar_documents";
+
+// clue list
+export const CLUE_TABLE = "cluelist";
+export const CLUE_QUERY = "search_cluelist";
