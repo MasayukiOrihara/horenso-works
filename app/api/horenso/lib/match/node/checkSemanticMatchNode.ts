@@ -4,7 +4,7 @@ import { searchEmbeddingSupabase } from "../lib/supabase";
 import * as TYPE from "@/lib/type";
 import * as CON from "@/lib/contents/match";
 
-type BadCheckNode = {
+type FuzzyCheckNode = {
   evaluationRecords: TYPE.Evaluation[];
 };
 
@@ -15,7 +15,7 @@ type BadCheckNode = {
  */
 export async function checkSemanticMatchNode({
   evaluationRecords,
-}: BadCheckNode) {
+}: FuzzyCheckNode) {
   const tempEvaluationRecords: TYPE.Evaluation[] = evaluationRecords;
 
   // 曖昧リストから検索し最大値スコアを取得
@@ -62,9 +62,9 @@ export async function checkSemanticMatchNode({
       // 答えの結果が出てない
       const isAnswerUnknown = record.answerCorrect === "unknown";
       // あいまいリストの閾値以上
-      const exceedsBadMatchThreshold =
+      const exceedsFuzzyMatchThreshold =
         fuzzyScore.score > CON.SEMANTIC_MATCH_SCORE;
-      if (isAnswerUnknown && exceedsBadMatchThreshold) {
+      if (isAnswerUnknown && exceedsFuzzyMatchThreshold) {
         fuzzyScore.correct = "correct"; // 正解
         record.answerCorrect = fuzzyScore.correct;
       }

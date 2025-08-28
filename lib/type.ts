@@ -116,7 +116,7 @@ export type Evaluation = {
   input: UserAnswerEmbedding; // 入力
   document: Document<HorensoMetadata>; // 照合対象
   documentScore: DocumentScore; // ドキュメント正答の結果
-  badScore?: FuzzyScore; // 外れリストの結果
+  WrongScore?: FuzzyScore; // 外れリストの結果
   fuzzyScore?: FuzzyScore; // あいまい正答の結果
   answerCorrect: AnswerCorrect; // 最終結果
 };

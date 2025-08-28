@@ -51,7 +51,7 @@ async function checkDocumentScore(state: typeof StateAnnotation.State) {
 }
 
 /** ハズレチェックに進むかどうかを判断するノード */
-async function shouldBadMatch(state: typeof StateAnnotation.State) {
+async function shouldWrongMatch(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
 
   // 1つでも正解があった場合
@@ -68,14 +68,14 @@ async function shouldBadMatch(state: typeof StateAnnotation.State) {
     return "finish";
   }
 
-  return "badMatch";
+  return "wrongMatch";
 }
 
 /** ハズレチェックを行うノード */
-async function checkBadMatch(state: typeof StateAnnotation.State) {
+async function checkWrongMatch(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
 
-  const { tempEvaluationRecords } = await NODE.checkBadMatchNode({
+  const { tempEvaluationRecords } = await NODE.checkWrongMatchNode({
     evaluationRecords: evaluationRecords,
   });
 
@@ -198,7 +198,7 @@ const workflow = new StateGraph(StateAnnotation)
   // ノード
   .addNode("similarity", similarityUserAnswer)
   .addNode("docScore", checkDocumentScore)
-  .addNode("badMatch", checkBadMatch)
+  .addNode("wrongMatch", checkWrongMatch)
   .addNode("semantic", checkSemanticMatch)
   .addNode("evaluate", evaluateAnswer)
   .addNode("update", updateSemanticMatchFlags)
@@ -206,8 +206,8 @@ const workflow = new StateGraph(StateAnnotation)
   // エッジ
   .addEdge("__start__", "similarity")
   .addEdge("similarity", "docScore")
-  .addConditionalEdges("docScore", shouldBadMatch)
-  .addConditionalEdges("badMatch", shouldSemanticMatch)
+  .addConditionalEdges("docScore", shouldWrongMatch)
+  .addConditionalEdges("wrongMatch", shouldSemanticMatch)
   .addConditionalEdges("semantic", shouldEvaluateAnswer)
   .addConditionalEdges("evaluate", shouldEvaluateAnswer)
   .addEdge("update", "finish")

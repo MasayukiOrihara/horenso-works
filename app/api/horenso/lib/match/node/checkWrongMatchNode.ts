@@ -1,9 +1,9 @@
 import * as TYPE from "@/lib/type";
-import { BADMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
+import { WRONGMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
 import { searchEmbeddingSupabase } from "../lib/supabase";
 import * as CON from "@/lib/contents/match";
 
-type BadCheckNode = {
+type WrongCheckNode = {
   evaluationRecords: TYPE.Evaluation[];
 };
 
@@ -12,7 +12,9 @@ type BadCheckNode = {
  * @param param0
  * @returns
  */
-export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
+export async function checkWrongMatchNode({
+  evaluationRecords,
+}: WrongCheckNode) {
   const tempEvaluationRecords: TYPE.Evaluation[] = evaluationRecords;
 
   // 外れリストを参照し、もし一致したら不正解としてこれ以降の処理を飛ばす
@@ -22,7 +24,7 @@ export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
     const embedding = tempEvaluationRecords[0].input.embedding;
 
     // ベクトルストア内のドキュメントとユーザーの答えを比較
-    let badScore: TYPE.FuzzyScore | null = null;
+    let WrongScore: TYPE.FuzzyScore | null = null;
     try {
       //throw new Error("デバッグ用エラー");
       // supabase から ハズレ回答 を取得
@@ -36,7 +38,7 @@ export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
 
       // 変換
       const max = results[0];
-      badScore = {
+      WrongScore = {
         id: max?.[0].metadata.id,
         score: max?.[1],
         nearAnswer: max?.[0].pageContent,
@@ -48,9 +50,9 @@ export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
     }
 
     // エラー処理（null の場合も含む）
-    if (!badScore) throw new Error(SCORE_GET_ERROR);
+    if (!WrongScore) throw new Error(SCORE_GET_ERROR);
     console.log(
-      "BAD:: score: " + badScore.score + ", match: " + badScore.nearAnswer
+      "WRONG:: score: " + WrongScore.score + ", match: " + WrongScore.nearAnswer
     );
 
     // まとめてチェック
@@ -58,16 +60,17 @@ export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
       // 答えの結果が出てない
       const isAnswerUnknown = record.answerCorrect === "unknown";
       // ハズレリストの閾値以上
-      const exceedsBadMatchThreshold = badScore.score > CON.BAD_MATCH_SCORE;
-      if (isAnswerUnknown && exceedsBadMatchThreshold) {
-        badScore.correct = "incorrect"; // 不正解
-        record.answerCorrect = badScore.correct;
+      const exceedsWrongMatchThreshold =
+        WrongScore.score > CON.WRONG_MATCH_SCORE;
+      if (isAnswerUnknown && exceedsWrongMatchThreshold) {
+        WrongScore.correct = "incorrect"; // 不正解
+        record.answerCorrect = WrongScore.correct;
       }
-      record.badScore = badScore; // 記録
+      record.WrongScore = WrongScore; // 記録
     });
     console.log(" → " + tempEvaluationRecords[0].answerCorrect);
   } catch (error) {
-    console.warn(BADMATCH_ERROR + error);
+    console.warn(WRONGMATCH_ERROR + error);
   }
 
   return { tempEvaluationRecords };

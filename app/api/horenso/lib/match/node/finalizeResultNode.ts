@@ -14,15 +14,15 @@ export async function finalizeResultNode({ evaluationRecords }: FinalizeNode) {
   const allHaveFuzzyScore = evaluationRecords.every(
     (r) => typeof r.fuzzyScore?.score === "number"
   );
-  const allHaveBadScore = evaluationRecords.every(
-    (r) => typeof r.badScore?.score === "number"
+  const allHaveWrongScore = evaluationRecords.every(
+    (r) => typeof r.WrongScore?.score === "number"
   );
 
   // ソート
   if (allHaveFuzzyScore) {
     evaluationRecords.sort((a, b) => b.fuzzyScore!.score - a.fuzzyScore!.score);
-  } else if (allHaveBadScore) {
-    evaluationRecords.sort((a, b) => b.badScore!.score - a.badScore!.score);
+  } else if (allHaveWrongScore) {
+    evaluationRecords.sort((a, b) => b.WrongScore!.score - a.WrongScore!.score);
   } else {
     evaluationRecords.sort(
       (a, b) => b.documentScore.score - a.documentScore.score

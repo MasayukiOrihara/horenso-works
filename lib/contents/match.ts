@@ -1,5 +1,5 @@
-// checkBadMatchNode
-export const BAD_MATCH_SCORE = 0.82; // 外れ基準値
+// checkWrongMatchNode
+export const WRONG_MATCH_SCORE = 0.82; // 外れ基準値
 export const WRONGLIST_TABLE = "wronglist";
 export const WRONGLIST_QUERY = "search_wronglist";
 
