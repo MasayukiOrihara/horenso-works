@@ -99,9 +99,9 @@ const getAllPrompt = async (
   const fullPrompt = await (runnable as PromptTemplate).format(input);
 
   // ログ出力
-  console.log("=== 送信するプロンプト全文 ===");
-  console.log(fullPrompt);
-  console.log("================================");
+  // console.log("=== 送信するプロンプト全文 ===");
+  // console.log(fullPrompt);
+  // console.log("================================");
 };
 
 /* ストリーム終了後の処理 */

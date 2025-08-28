@@ -28,7 +28,9 @@ export async function checkDocumentScoreNode({
   // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
   similarityResults.forEach(([bestMatch, score]) => {
     const bestDocument = bestMatch as Document<TYPE.HorensoMetadata>;
-    console.log("score: " + score + ", match: " + bestDocument.pageContent);
+    console.log(
+      "DOC:: score: " + score + ", match: " + bestDocument.pageContent
+    );
 
     for (const doc of documents) {
       if (bestDocument.pageContent === doc.pageContent) {
@@ -54,8 +56,6 @@ export async function checkDocumentScoreNode({
 
           // 評価を正解に変更
           documentScore.correct = "correct";
-
-          console.log(" → " + doc.metadata.isMatched);
         }
         // ✅ 評価を作成
         const evaluation: TYPE.Evaluation = {
@@ -65,6 +65,7 @@ export async function checkDocumentScoreNode({
           answerCorrect: documentScore.correct,
         };
         evaluationRecords.push(evaluation);
+        console.log(" → " + documentScore.correct);
       }
     }
   });

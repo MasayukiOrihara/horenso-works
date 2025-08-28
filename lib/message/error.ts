@@ -5,6 +5,7 @@ export const MESSAGES_ERROR = "messages is required";
 export const SUMMARY_ERROR = "メッセージを要約できませんでした。";
 export const SCORE_GET_ERROR = "スコアの取得に失敗しました";
 export const BADMATCH_ERROR = "ハズレチェック中にエラーが発生しました。: ";
+export const FUZZYMATCH_ERROR = "あいまい検索中にエラーが発生しました。:";
 
 // supabase
 export const SUPABASE_KEY_ERROR = "Expected SUPABASE_SERVICE_ROLE_KEY";

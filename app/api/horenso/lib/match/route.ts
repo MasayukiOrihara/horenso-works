@@ -80,9 +80,9 @@ async function shouldBadMatch(state: typeof StateAnnotation.State) {
   const hasIncorrect = evaluationRecords.every(
     (item) => item.answerCorrect === "incorrect"
   );
+  // ログ出力
+  console.log(`☑ ドキュメント 正: ${hasCorrect}  誤: ${hasIncorrect}`);
   if (hasCorrect || hasIncorrect) {
-    // ログ出力
-    console.log(`☑ ドキュメントチェック ○: ${hasCorrect}  ✖: ${hasIncorrect}`);
     return "finish";
   }
 
@@ -92,11 +92,9 @@ async function shouldBadMatch(state: typeof StateAnnotation.State) {
 /** ハズレチェックを行うノード */
 async function checkBadMatch(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
-  const notCorrectList = state.matchAnswerArgs.notCorrectList;
 
   const { tempEvaluationRecords } = await NODE.checkBadMatchNode({
     evaluationRecords: evaluationRecords,
-    notCorrectList: notCorrectList,
   });
 
   return { evaluationRecords: tempEvaluationRecords };
@@ -110,10 +108,10 @@ async function shouldSemanticMatch(state: typeof StateAnnotation.State) {
   const hasIncorrect = evaluationRecords.some(
     (item) => item.answerCorrect === "incorrect"
   );
+  // ログ出力
+  const answer = evaluationRecords[0].input.userAnswer;
+  console.log(`☑ ハズレ【ワード: ${answer}】   誤: ${hasIncorrect}`);
   if (hasIncorrect) {
-    // ログ出力
-    const answer = evaluationRecords[0].input.userAnswer;
-    console.log(`ハズレチェック（${answer}）: ${hasIncorrect}`);
     return "finish";
   }
 
@@ -121,48 +119,14 @@ async function shouldSemanticMatch(state: typeof StateAnnotation.State) {
 }
 
 /** あいまい正答チェックを行うノード */
-// ※※ この辺の処理まとめられそう
 async function checkSemanticMatch(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
-  const semanticList = state.matchAnswerArgs.semanticList;
 
-  // 曖昧リストから検索し最大値スコアを取得
-  try {
-    await Promise.all(
-      evaluationRecords.map(async (record) => {
-        const bestDocument = record.document as Document<HorensoMetadata>;
-        const input = record.input;
+  const { tempEvaluationRecords } = await NODE.checkSemanticMatchNode({
+    evaluationRecords: evaluationRecords,
+  });
 
-        const match = await SEM.getMaxScoreSemanticMatch(
-          input,
-          bestDocument,
-          semanticList
-        );
-        if (!match) throw new Error("スコアの取得に失敗しました");
-        console.log(`曖昧結果 ID: ${match.id} score: ${match.score}`);
-        record.fuzzyScore = match;
-      })
-    );
-
-    // まとめてチェック
-    evaluationRecords.map(async (record) => {
-      const fuzzyScore = record.fuzzyScore;
-      if (fuzzyScore) {
-        // 答えの結果が出てない
-        const isAnswerUnknown = record.answerCorrect === "unknown";
-        // あいまいの閾値以上
-        const exceedsfuzzyThreshold = fuzzyScore.score > SEMANTIC_MATCH_SCORE;
-        if (isAnswerUnknown && exceedsfuzzyThreshold) {
-          fuzzyScore.correct = "correct"; // 正解
-          record.answerCorrect = fuzzyScore.correct;
-        }
-      }
-    });
-  } catch (error) {
-    console.warn("あいまい検索中にエラーが発生しました。: " + error);
-  }
-
-  return { evaluationRecords: evaluationRecords };
+  return { evaluationRecords: tempEvaluationRecords };
 }
 
 /** AI回答判断に進むかどうかのノード */

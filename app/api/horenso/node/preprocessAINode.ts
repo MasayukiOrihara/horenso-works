@@ -102,7 +102,6 @@ export async function preprocessAiNode({
   ]);
   console.log("質問の分離した答え: ");
   console.log(userAnswer);
-  console.log(" --- ");
 
   /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
   pushLog("正解チェックを行っています...");
@@ -128,6 +127,7 @@ export async function preprocessAiNode({
   const checkUserAnswers = new RunnableParallel({ steps });
 
   //vectorStore検索と並列に実行(全体の処理時間も計測)
+  console.log(" --- ");
   const start = Date.now();
   const [matchResultsMap, rawQaEmbeddings] = await Promise.all([
     checkUserAnswers.invoke([]), // RunnableParallel 実行
@@ -142,7 +142,6 @@ export async function preprocessAiNode({
   // document 更新
   evaluatedResults(evaluationData, useDocuments);
 
-  console.log("\n");
   console.log(`処理時間(ms): ${end - start} ms`);
   console.log(`OpenAI Embeddings チェック完了 \n ---`);
 

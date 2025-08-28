@@ -1,7 +1,7 @@
 import { Document } from "langchain/document";
 
 import * as TYPE from "@/lib/type";
-import { BADMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
+import { FUZZYMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
 import { searchEmbeddingSupabase } from "../lib/supabase";
 
 type BadCheckNode = {
@@ -9,19 +9,21 @@ type BadCheckNode = {
 };
 
 // 定数
-const BAD_MATCH_SCORE = 0.82; // 外れ基準値
-const WRONGLIST_TABLE = "wronglist";
-const WRONGLIST_QUERY = "search_wronglist";
+const SEMANTIC_MATCH_SCORE = 0.82; // 曖昧基準値
+const FUZZYLIST_TABLE = "fuzzylist";
+const FUZZYLIST_QUERY = "search_fuzzylist";
 
 /**
- * ハズレチェックを行うノード
+ * あいまいチェックを行うノード
  * @param param0
  * @returns
  */
-export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
+export async function checkSemanticMatchNode({
+  evaluationRecords,
+}: BadCheckNode) {
   const tempEvaluationRecords: TYPE.Evaluation[] = evaluationRecords;
 
-  // 外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
+  // 曖昧リストから検索し最大値スコアを取得
   try {
     await Promise.all(
       tempEvaluationRecords.map(async (record) => {
@@ -29,15 +31,15 @@ export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
         const input = record.input;
 
         // ベクトルストア内のドキュメントとユーザーの答えを比較
-        let badScore: TYPE.FuzzyScore | null = null;
+        let fuzzyScore: TYPE.FuzzyScore | null = null;
         try {
           //throw new Error("デバッグ用エラー");
           const question_id = bestDocument.metadata.question_id;
 
-          // supabase から ハズレ回答 を取得
+          // supabase から あいまい正答 を取得
           const results = await searchEmbeddingSupabase(
-            WRONGLIST_TABLE,
-            WRONGLIST_QUERY,
+            FUZZYLIST_TABLE,
+            FUZZYLIST_QUERY,
             input.embedding,
             1,
             question_id
@@ -45,7 +47,7 @@ export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
 
           // 変換
           const max = results[0];
-          badScore = {
+          fuzzyScore = {
             id: max?.[0].metadata.id,
             score: max?.[1],
             nearAnswer: max?.[0].pageContent,
@@ -57,31 +59,35 @@ export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
         }
 
         // エラー処理
-        if (!badScore) throw new Error(SCORE_GET_ERROR);
+        if (!fuzzyScore) throw new Error(SCORE_GET_ERROR);
         console.log(
-          "BAD:: score: " + badScore.score + ", match: " + badScore.nearAnswer
+          "FUZZY:: score: " +
+            fuzzyScore.score +
+            ", match: " +
+            fuzzyScore.nearAnswer
         );
-        record.badScore = badScore;
+        record.fuzzyScore = fuzzyScore;
       })
     );
 
     // まとめてチェック
     tempEvaluationRecords.map(async (record) => {
-      const badScore = record.badScore;
-      if (badScore) {
+      const fuzzyScore = record.fuzzyScore;
+      if (fuzzyScore) {
         // 答えの結果が出てない
         const isAnswerUnknown = record.answerCorrect === "unknown";
-        // ハズレリストの閾値以上
-        const exceedsBadMatchThreshold = badScore.score > BAD_MATCH_SCORE;
+        // あいまいリストの閾値以上
+        const exceedsBadMatchThreshold =
+          fuzzyScore.score > SEMANTIC_MATCH_SCORE;
         if (isAnswerUnknown && exceedsBadMatchThreshold) {
-          badScore.correct = "incorrect"; // 不正解
-          record.answerCorrect = badScore.correct;
+          fuzzyScore.correct = "correct"; // 正解
+          record.answerCorrect = fuzzyScore.correct;
         }
       }
       console.log(" → " + record.answerCorrect);
     });
   } catch (error) {
-    console.warn(BADMATCH_ERROR + error);
+    console.warn(FUZZYMATCH_ERROR + error);
   }
 
   return { tempEvaluationRecords };
