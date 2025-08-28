@@ -3,6 +3,8 @@ import { Document } from "langchain/document";
 import * as TYPE from "@/lib/type";
 import { AI_EVALUATE_ERROR } from "@/lib/message/error";
 import { evaluateUserAnswer } from "../../llm/evaluateUserAnswer";
+import { saveEmbeddingSupabase } from "../lib/supabase";
+import { FUZZYLIST_TABLE } from "@/lib/contents/match";
 
 type EvaluateNode = {
   evaluationRecords: TYPE.Evaluation[];
@@ -30,6 +32,7 @@ export async function evaluateAnswerNode({
   }
 
   // 判定結果を取得
+  let goodEvaluations: Document<TYPE.PhrasesMetadata>[] = [];
   if (evaluate) {
     evaluationRecords.map(async (record) => {
       const bestDocument = record.document as Document<TYPE.HorensoMetadata>;
@@ -41,7 +44,8 @@ export async function evaluateAnswerNode({
           evaluateParentId === bestDocument.metadata.parentId;
         // 判定OK
         if (evaluateParentId && checkIdMatch) {
-          // DB の更新
+          // 合格判定
+          goodEvaluations.push(data);
 
           // オブジェクトの更新
           const fuzzyScore: TYPE.FuzzyScore = {
@@ -55,6 +59,11 @@ export async function evaluateAnswerNode({
         }
       }
     });
+  }
+
+  // DB の更新
+  if (goodEvaluations) {
+    await saveEmbeddingSupabase(evaluate, FUZZYLIST_TABLE);
   }
 
   return { tempEvaluationRecords: evaluationRecords };
