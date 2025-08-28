@@ -47,37 +47,6 @@ export const qaEntriesFilePath = () => {
   }
 };
 
-// semantic-match-answer.json のファイルパス
-export const semanticFilePath = () => {
-  const { host } = getBaseUrl();
-
-  if (host?.includes("vercel")) {
-    // vercel
-    return path.join("/tmp", "semantic-match-answer.json");
-  } else {
-    // ローカル
-    return path.join(
-      process.cwd(),
-      "public",
-      "semantic",
-      "semantic-match-answer.json"
-    );
-  }
-};
-
-// not-correct.json のファイルパス
-export const notCrrectFilePath = () => {
-  const { host } = getBaseUrl();
-
-  if (host?.includes("vercel")) {
-    // vercel
-    return path.join("/tmp", "not-correct.json");
-  } else {
-    // ローカル
-    return path.join(process.cwd(), "public", "semantic", "not-correct.json");
-  }
-};
-
 function toJSTISOString(date = new Date()) {
   const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000); // UTC+9
   return jstDate.toISOString().replace("Z", "+09:00");
@@ -88,19 +57,3 @@ export const timestamp = toJSTISOString();
 
 // 今日の日付
 export const named = timestamp.slice(0, 10);
-
-// マナビ & キオクのファイルパス関係
-export const memoryFileName = `memory-${named}.txt`;
-export const memoryFilePath = path.join(
-  process.cwd(),
-  "public",
-  "memory",
-  memoryFileName
-);
-export const learnFileName = `learn-${named}.txt`;
-export const learnFilePath = path.join(
-  process.cwd(),
-  "public",
-  "learn",
-  learnFileName
-);

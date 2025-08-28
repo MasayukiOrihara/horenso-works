@@ -28,20 +28,6 @@ export type MatchAnswerArgs = {
   topK: number; // 上位からの比較個数
   allTrue?: boolean; // 全問正解で正解とするか
   shouldValidate?: boolean; // 適正チェックを行うかどうかのフラグ
-  semanticList: SemanticAnswerData;
-  notCorrectList: SemanticAnswerData;
-};
-
-/** ユーザーの回答データを管理する型 */
-export type UserAnswerEvaluation = {
-  parentId: string;
-  question_id: string; // 問題番号
-  userAnswer: string; // ユーザーの答え
-  currentAnswer: string; // 正答
-  score: string; // 類似性のスコア
-  semanticId?: string; // あいまい正解リストでのID
-  semanticReason?: string; // あいまい正解リストでの理由
-  isAnswerCorrect: boolean; // 正解だったかどうか
 };
 
 /** エントリーデータを取り扱う型 */
@@ -67,24 +53,6 @@ export type QAEntry = {
   metadata: QAMetadata;
 };
 export type UsedEntry = { entry: Document; sum: number };
-
-/** semantic で使う型 */
-type SemanticMetadata = {
-  parentId: string | number;
-  question_id: string;
-  timestamp: string;
-  source: "user" | "admin" | "bot";
-};
-export type SemanticAnswerEntry = {
-  id: string;
-  answer: string;
-  reason: string;
-  metadata: SemanticMetadata;
-};
-export type SemanticAnswerData = {
-  who: SemanticAnswerEntry[][];
-  why: SemanticAnswerEntry[][];
-};
 
 export type HorensoMetadata = {
   parentId: string;
@@ -143,7 +111,7 @@ export type FuzzyScore = {
 export type AnswerCorrect = "correct" | "incorrect" | "unknown";
 
 /**
- * セマンティック検索で使う Document のメタデータ
+ * あいまい検索で使う Document のメタデータ
  */
 export type PhrasesMetadata = {
   id?: string;

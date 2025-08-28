@@ -83,7 +83,7 @@ async function checkWrongMatch(state: typeof StateAnnotation.State) {
 }
 
 /** あいまいチェックに進むか判断するノード */
-async function shouldSemanticMatch(state: typeof StateAnnotation.State) {
+async function shouldFuzzyMatch(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
 
   // ひとつでもがあった場合不正解
@@ -97,14 +97,14 @@ async function shouldSemanticMatch(state: typeof StateAnnotation.State) {
     return "finish";
   }
 
-  return "semantic";
+  return "fuzzy";
 }
 
 /** あいまい正答チェックを行うノード */
-async function checkSemanticMatch(state: typeof StateAnnotation.State) {
+async function checkFuzzyMatch(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
 
-  const { tempEvaluationRecords } = await NODE.checkSemanticMatchNode({
+  const { tempEvaluationRecords } = await NODE.checkFuzzyMatchNode({
     evaluationRecords: evaluationRecords,
   });
 
@@ -152,12 +152,12 @@ async function evaluateAnswer(state: typeof StateAnnotation.State) {
 }
 
 /** ドキュメントの正答を更新するノード */
-async function updateSemanticMatchFlags(state: typeof StateAnnotation.State) {
+async function updateFuzzyMatchFlags(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
   const matchAnswerArgs = state.matchAnswerArgs;
 
   const { tempMatchAnswerArgs, tempEvaluationRecords } =
-    await NODE.updateSemanticMatchFlagsNode({
+    await NODE.updateFuzzyMatchFlagsNode({
       evaluationRecords: evaluationRecords,
       matchAnswerArgs: matchAnswerArgs,
     });
@@ -199,16 +199,16 @@ const workflow = new StateGraph(StateAnnotation)
   .addNode("similarity", similarityUserAnswer)
   .addNode("docScore", checkDocumentScore)
   .addNode("wrongMatch", checkWrongMatch)
-  .addNode("semantic", checkSemanticMatch)
+  .addNode("fuzzy", checkFuzzyMatch)
   .addNode("evaluate", evaluateAnswer)
-  .addNode("update", updateSemanticMatchFlags)
+  .addNode("update", updateFuzzyMatchFlags)
   .addNode("finish", finalizeResult)
   // エッジ
   .addEdge("__start__", "similarity")
   .addEdge("similarity", "docScore")
   .addConditionalEdges("docScore", shouldWrongMatch)
-  .addConditionalEdges("wrongMatch", shouldSemanticMatch)
-  .addConditionalEdges("semantic", shouldEvaluateAnswer)
+  .addConditionalEdges("wrongMatch", shouldFuzzyMatch)
+  .addConditionalEdges("fuzzy", shouldEvaluateAnswer)
   .addConditionalEdges("evaluate", shouldEvaluateAnswer)
   .addEdge("update", "finish")
   .addEdge("finish", "__end__");

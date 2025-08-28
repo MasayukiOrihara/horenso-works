@@ -7,8 +7,8 @@ export const WRONGLIST_QUERY = "search_wronglist";
 export const BASE_MATCH_SCORE = 0.78; // 基準値
 export const BASE_WORST_SCORE = 0.3;
 
-// checkSemanticMatchNode
-export const SEMANTIC_MATCH_SCORE = 0.82; // 曖昧基準値
+// checkFuzzyMatchNode
+export const FUZZY_MATCH_SCORE = 0.82; // 曖昧基準値
 export const FUZZYLIST_TABLE = "fuzzylist";
 export const FUZZYLIST_QUERY = "search_fuzzylist";
 

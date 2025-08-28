@@ -4,13 +4,9 @@ import { v4 as uuidv4 } from "uuid";
 
 import { useUserMessages } from "../messages/message-provider";
 import { Button } from "../ui/button";
-import { Evaluation } from "@/app/api/horenso/lib/match/route";
 import { requestApi } from "@/lib/api/request";
-import {
-  EVALUATION_DATA_PATH,
-  SEMANTIC_MATCH_JSON,
-  SEMANTIC_MATCH_JSON_MOVE,
-} from "@/lib/api/path";
+import { EVALUATION_DATA_PATH } from "@/lib/api/path";
+import { Evaluation } from "@/lib/type";
 
 /**
  * 前ターンに正解を出したユーザーの答えは正しいのか問うUI
@@ -57,15 +53,15 @@ export const CorrectCheck: React.FC = () => {
     setDeletedIds((prev) => [...prev, id]);
     evaluationData.filter((item) => item.fuzzyScore?.id !== id);
 
-    // 記述を不正解リストに移動
-    const result = await requestApi("", `${SEMANTIC_MATCH_JSON_MOVE}${id}`, {
-      method: "POST",
-    });
-    if (result.success) {
-      await requestApi("", `${SEMANTIC_MATCH_JSON}${id}`, {
-        method: "DELETE",
-      });
-    }
+    // 記述を不正解リストに移動 ※※ ローカルjson版を削除
+    // const result = await requestApi("", `${SEMANTIC_MATCH_JSON_MOVE}${id}`, {
+    //   method: "POST",
+    // });
+    // if (result.success) {
+    //   await requestApi("", `${SEMANTIC_MATCH_JSON}${id}`, {
+    //     method: "DELETE",
+    //   });
+    // }
   };
 
   return (

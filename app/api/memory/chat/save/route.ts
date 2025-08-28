@@ -7,9 +7,10 @@ import {
 } from "@langchain/langgraph";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
+import path from "path";
 
 import { convertToOpenAIFormat, saveSupabase } from "../../utils";
-import { memoryFilePath, timestamp } from "@/lib/path";
+import { timestamp } from "@/lib/path";
 import { measureExecution } from "@/lib/llm/graph";
 
 import * as ERR from "@/lib/message/error";
@@ -58,7 +59,16 @@ async function decideSaveDestination() {
 /* テキスト保存処理 */
 async function saveTextData(state: typeof GraphAnnotation.State) {
   const memoryTextData = state.memoryTextData;
-  const localPath = memoryFilePath;
+
+  // 保存先
+  const named = timestamp.slice(0, 10);
+  const memoryFileName = `memory-${named}.txt`;
+  const localPath = path.join(
+    process.cwd(),
+    "public",
+    "memory",
+    memoryFileName
+  );
 
   // 形式を整える
   const message = `${memoryTextData.role}: ${memoryTextData.content}`;

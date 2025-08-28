@@ -62,7 +62,7 @@ export const SUMMARY_REQUEST_PROMPT =
 export const MATCH_OF_PIECE =
   "は3つの正解のうちの1つだったことをユーザーに伝えてください\n";
 
-export const JUDGE_ANSWER_SEMANTIC_MATCH_PROMPT = `あなたは、ソフトウェア開発者向けのコミュニケーション研修における回答評価の専門家です。
+export const JUDGE_ANSWER_FUZZY_MATCH_PROMPT = `あなたは、ソフトウェア開発者向けのコミュニケーション研修における回答評価の専門家です。
 
 次の質問に対して、ユーザーが答えた内容が、あらかじめ用意された正解のいずれかと**意味的に一致している**かを判断してください。  
 完全一致でなくても、意味が近ければ一致とみなしてかまいませんが、抽象的すぎる表現は一致とは見なしません。

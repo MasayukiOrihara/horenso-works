@@ -13,7 +13,7 @@ type FuzzyCheckNode = {
  * @param param0
  * @returns
  */
-export async function checkSemanticMatchNode({
+export async function checkFuzzyMatchNode({
   evaluationRecords,
 }: FuzzyCheckNode) {
   const tempEvaluationRecords: TYPE.Evaluation[] = evaluationRecords;
@@ -63,7 +63,7 @@ export async function checkSemanticMatchNode({
       const isAnswerUnknown = record.answerCorrect === "unknown";
       // あいまいリストの閾値以上
       const exceedsFuzzyMatchThreshold =
-        fuzzyScore.score > CON.SEMANTIC_MATCH_SCORE;
+        fuzzyScore.score > CON.FUZZY_MATCH_SCORE;
       if (isAnswerUnknown && exceedsFuzzyMatchThreshold) {
         fuzzyScore.correct = "correct"; // 正解
         record.answerCorrect = fuzzyScore.correct;

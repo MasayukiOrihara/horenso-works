@@ -12,7 +12,7 @@ type UpdateNode = {
  * @param param0
  * @returns
  */
-export async function updateSemanticMatchFlagsNode({
+export async function updateFuzzyMatchFlagsNode({
   evaluationRecords,
   matchAnswerArgs,
 }: UpdateNode) {

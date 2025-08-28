@@ -8,7 +8,7 @@ import { runWithFallback } from "@/lib/llm/run";
 import { timestamp } from "@/lib/path";
 import { documentsSchema } from "@/lib/schema";
 import { JSON_PARSE_ERROR } from "@/lib/message/error";
-import { JUDGE_ANSWER_SEMANTIC_MATCH_PROMPT } from "@/lib/contents/horenso/template";
+import { JUDGE_ANSWER_FUZZY_MATCH_PROMPT } from "@/lib/contents/horenso/template";
 
 /**
  * ユーザー回答が答えに意味的に近いか LLM に判断させて document型 で出力する
@@ -30,9 +30,7 @@ export const evaluateUserAnswer = async (
 
   // StructuredOutputParser を作成
   const parser = StructuredOutputParser.fromZodSchema(documentsSchema);
-  const prompt = PromptTemplate.fromTemplate(
-    JUDGE_ANSWER_SEMANTIC_MATCH_PROMPT
-  );
+  const prompt = PromptTemplate.fromTemplate(JUDGE_ANSWER_FUZZY_MATCH_PROMPT);
   const promptVariables = {
     question: question,
     current_answer: currentAnswer,

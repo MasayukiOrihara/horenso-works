@@ -3,11 +3,7 @@ import { BaseMessage } from "@langchain/core/messages";
 
 import { embeddings } from "@/lib/llm/models";
 
-import {
-  notCrrectFilePath,
-  qaEntriesFilePath,
-  semanticFilePath,
-} from "@/lib/path";
+import { qaEntriesFilePath } from "@/lib/path";
 import { splitInputLlm } from "../lib/llm/splitInput";
 import { generateHintLlm } from "../lib/llm/generateHint";
 import { sortScore } from "../lib/match/lib/score";
@@ -55,9 +51,6 @@ export async function preprocessAiNode({
   const qaList: TYPE.QAEntry[] = readJson(qaEntriesFilePath());
   // 埋め込み作成用にデータをマップ
   const qaDocuments = buildQADocuments(qaList, step);
-  // あいまい回答jsonの読み込み
-  const semanticList = readJson(semanticFilePath());
-  const notCorrectList = readJson(notCrrectFilePath());
   // 回答チェック判定を取得
   const readShouldValidate = await requestApi(baseUrl, MATCH_VALIDATE, {
     method: "GET",
@@ -114,8 +107,6 @@ export async function preprocessAiNode({
             topK: k,
             allTrue,
             shouldValidate,
-            semanticList,
-            notCorrectList,
           },
         },
       });
