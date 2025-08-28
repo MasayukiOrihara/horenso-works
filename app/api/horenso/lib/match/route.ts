@@ -19,12 +19,6 @@ import { semanticFilePath } from "@/lib/path";
 import { embeddings } from "@/lib/llm/models";
 import * as NODE from "./node";
 
-// 定数
-const BASE_MATCH_SCORE = 0.78; // 基準値
-const BASE_WORST_SCORE = 0.3;
-const BAD_MATCH_SCORE = 0.82; // 外れ基準値
-const SEMANTIC_MATCH_SCORE = 0.82; // 曖昧基準値
-
 /**
  * langGraphのノード群
  */
@@ -110,7 +104,7 @@ async function shouldSemanticMatch(state: typeof StateAnnotation.State) {
   );
   // ログ出力
   const answer = evaluationRecords[0].input.userAnswer;
-  console.log(`☑ ハズレ【ワード: ${answer}】   誤: ${hasIncorrect}`);
+  console.log(`☑ ハズレ【ワード: ${answer}】  誤: ${hasIncorrect}`);
   if (hasIncorrect) {
     return "finish";
   }
@@ -139,13 +133,14 @@ async function shouldEvaluateAnswer(state: typeof StateAnnotation.State) {
   const hasCorrect = evaluationRecords.some(
     (item) => item.answerCorrect === "correct"
   );
+  const answer = evaluationRecords[0].input.userAnswer;
+  console.log(`☑ あいまい【ワード: ${answer}】  正: ${hasCorrect}`);
   if (hasCorrect) {
-    const answer = evaluationRecords[0].input.userAnswer;
-    console.log(`☑ あいまいチェック（${answer}）: ${hasCorrect}`);
     return "update";
   }
 
   // AI による解答適正チェックがオフになってる場合もしくはすでにチェック済みの場合終了
+  console.log(`☑ AI  設定: ${shouldValidate} 済み: ${didEvaluateAnswer}`);
   if (!shouldValidate || didEvaluateAnswer) {
     return "finish";
   }
@@ -206,36 +201,24 @@ async function evaluateAnswer(state: typeof StateAnnotation.State) {
   return { evaluationRecords: evaluationRecords, didEvaluateAnswer: true };
 }
 
+/** ドキュメントの正答を更新するノード */
 async function updateSemanticMatchFlags(state: typeof StateAnnotation.State) {
-  console.log("◌ 状態更新ノード");
   const evaluationRecords = state.evaluationRecords;
-  const documents = state.matchAnswerArgs.documents;
+  const matchAnswerArgs = state.matchAnswerArgs;
 
-  // あいまい検索の結果正解だった場合の更新
-  evaluationRecords.map(async (record) => {
-    const bestDocument = record.document as Document<HorensoMetadata>;
-    const parentId = bestDocument.metadata.parentId;
-
-    // ドキュメントの正解判定を更新
-    documents.forEach((d) => {
-      const docParentId = d.metadata.parentId;
-      if (docParentId === parentId) {
-        d.metadata.isMatched = true;
-      }
+  const { tempMatchAnswerArgs, tempEvaluationRecords } =
+    await NODE.updateSemanticMatchFlagsNode({
+      evaluationRecords: evaluationRecords,
+      matchAnswerArgs: matchAnswerArgs,
     });
-  });
 
-  // 値を更新
-  const matchAnswerArgs = {
-    ...state.matchAnswerArgs,
-    documents: documents,
+  return {
+    matchAnswerArgs: tempMatchAnswerArgs,
+    evaluationRecords: tempEvaluationRecords,
   };
-
-  return { matchAnswerArgs: matchAnswerArgs };
 }
 
 async function finishState(state: typeof StateAnnotation.State) {
-  console.log("◍ 状態保存ノード");
   const evaluationRecords = state.evaluationRecords;
 
   // 中身型チェック
