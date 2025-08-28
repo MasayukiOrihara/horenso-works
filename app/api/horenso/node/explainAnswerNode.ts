@@ -1,9 +1,10 @@
 import fs from "fs";
 
-import * as MSG from "../contents/messages";
 import { QAEntry, UsedEntry } from "@/lib/type";
 import { qaEntriesFilePath } from "@/lib/path";
 import { writeQaEntriesQuality } from "../lib/entry";
+
+import * as MSG from "@/lib/contents/horenso/template";
 
 /**
  *

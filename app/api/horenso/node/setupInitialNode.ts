@@ -1,6 +1,6 @@
 import { HorensoStates } from "@/lib/type";
 
-import * as MSG from "../contents/messages";
+import * as MSG from "@/lib/contents/horenso/template";
 
 type InitialNode = {
   states: HorensoStates;

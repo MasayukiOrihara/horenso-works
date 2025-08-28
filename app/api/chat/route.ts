@@ -1,4 +1,3 @@
-import * as MSG from "./messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
 
@@ -7,9 +6,12 @@ import { ChatRequestOptionsSchema } from "@/lib/schema";
 import { getBaseUrl } from "@/lib/path";
 import { runWithFallback } from "@/lib/llm/run";
 import { requestApi } from "@/lib/api/request";
-import * as PATH from "@/lib/api/path";
+
 import { AIMessage, BaseMessage } from "@langchain/core/messages";
 import { updateEntry } from "./utils";
+
+import * as PATH from "@/lib/api/path";
+import * as MSG from "@/lib/contents/chat/template";
 
 // 外部フラグ
 let horensoContenue = false;

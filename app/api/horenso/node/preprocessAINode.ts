@@ -1,13 +1,6 @@
 import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
 
-import * as MSG from "../contents/messages";
-import {
-  Evaluation,
-  HorensoMetadata,
-  QADocumentMetadata,
-  QAEntry,
-} from "@/lib/type";
 import { embeddings } from "@/lib/llm/models";
 
 import {
@@ -27,6 +20,9 @@ import { RunnableParallel } from "@langchain/core/runnables";
 import { buildQADocuments } from "../lib/entry";
 import { analyzeInput } from "../lib/llm/analyzeInput";
 
+import * as MSG from "@/lib/contents/horenso/template";
+import * as TYPE from "@/lib/type";
+
 // 定数
 const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
 const MATCH_PATH = "/api/horenso/lib/match";
@@ -35,8 +31,8 @@ type AiNode = {
   messages: BaseMessage[];
   step: number;
   baseUrl: string;
-  whoUseDocuments: Document<HorensoMetadata>[];
-  whyUseDocuments: Document<HorensoMetadata>[];
+  whoUseDocuments: Document<TYPE.HorensoMetadata>[];
+  whyUseDocuments: Document<TYPE.HorensoMetadata>[];
 };
 
 /**
@@ -56,7 +52,7 @@ export async function preprocessAiNode({
   // ユーザーの答え
   const userMessage = messageToText(messages, messages.length - 1);
   // 既存データを読み込む（なければ空配列）
-  const qaList: QAEntry[] = readJson(qaEntriesFilePath());
+  const qaList: TYPE.QAEntry[] = readJson(qaEntriesFilePath());
   // 埋め込み作成用にデータをマップ
   const qaDocuments = buildQADocuments(qaList, step);
   // あいまい回答jsonの読み込み
@@ -69,7 +65,7 @@ export async function preprocessAiNode({
 
   // 使用するプロンプト
   let sepKeywordPrompt = "";
-  let useDocuments: Document<HorensoMetadata>[] = [];
+  let useDocuments: Document<TYPE.HorensoMetadata>[] = [];
   let k = 1;
   let allTrue = false;
   let shouldValidate = false;
@@ -135,7 +131,7 @@ export async function preprocessAiNode({
   ]);
   const end = Date.now();
   const matchResults = Object.values(matchResultsMap);
-  const evaluationData: Evaluation[] = matchResults
+  const evaluationData: TYPE.Evaluation[] = matchResults
     .map((r) => r.evaluationData)
     .flat();
 
@@ -154,14 +150,17 @@ export async function preprocessAiNode({
       : useDocuments.some((doc) => doc.metadata.isMatched);
 
   // ヒントの判定
-  let qaEmbeddings: [Document<QADocumentMetadata>, number][] = [];
+  let qaEmbeddings: [Document<TYPE.QADocumentMetadata>, number][] = [];
   let getHint: string = "";
   if (!tempIsCorrect) {
     // ヒントの取得
     const sortData = sortScore(evaluationData);
     const getHintPromises = generateHintLlm(question, sortData, useDocuments);
 
-    qaEmbeddings = rawQaEmbeddings as [Document<QADocumentMetadata>, number][];
+    qaEmbeddings = rawQaEmbeddings as [
+      Document<TYPE.QADocumentMetadata>,
+      number
+    ][];
     getHint = await getHintPromises;
     console.log("質問1のヒント: \n" + getHint);
   }

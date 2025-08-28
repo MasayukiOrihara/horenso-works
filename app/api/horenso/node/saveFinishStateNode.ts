@@ -1,8 +1,9 @@
 import { Document } from "langchain/document";
 
-import * as DOC from "../contents/documents";
-import * as MSG from "../contents/messages";
 import { HorensoMetadata, HorensoStates } from "@/lib/type";
+
+import * as MSG from "@/lib/contents/horenso/template";
+import * as DOC from "@/lib/contents/horenso/documents";
 
 type StateNode = {
   states: HorensoStates;

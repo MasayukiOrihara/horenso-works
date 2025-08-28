@@ -1,7 +1,7 @@
 import { Document } from "langchain/document";
 
-import * as MSG from "../contents/messages";
 import { HorensoMetadata } from "@/lib/type";
+import * as MSG from "@/lib/contents/horenso/template";
 
 type QuestionNode = {
   step: number;

@@ -1,26 +1,15 @@
 import { MemorySaver, StateGraph } from "@langchain/langgraph";
+import { StateAnnotation } from "./lib/annotation";
 
 import { UsedEntry } from "@/lib/type";
-import * as DOC from "./contents/documents";
-import { StateAnnotation } from "./lib/annotation";
 import { getBaseUrl } from "@/lib/path";
-
-import { setupInitialNode } from "./node/setupInitialNode";
-import { preprocessAiNode } from "./node/preprocessAINode";
-import { checkUserAnswerNode } from "./node/checkUserAnswerNode";
-import { rerankNode } from "./node/rerankNode";
-import { generateHintNode } from "./node/generateHintNode";
-import { askQuestionNode } from "./node/askQuestionNode";
-import { explainAnswerNode } from "./node/explainAnswerNode";
-import { saveFinishStateNode } from "./node/saveFinishStateNode";
-import {
-  MESSAGES_ERROR,
-  SESSIONID_ERROR,
-  UNKNOWN_ERROR,
-} from "@/lib/message/error";
 import { measureExecution } from "@/lib/llm/graph";
 import { requestApi } from "@/lib/api/request";
 import { EVALUATION_DATA_PATH } from "@/lib/api/path";
+
+import * as DOC from "@/lib/contents/horenso/documents";
+import * as NODE from "./node";
+import * as ERR from "@/lib/message/error";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -45,10 +34,9 @@ let globalBaseUrl = "";
 /**
  * langGraphのノード群
  */
+/** 初期設定を行うノード */
 async function setupInitial() {
-  console.log("📝 初期設定ノード");
-
-  const { states, contexts } = setupInitialNode({
+  const { states, contexts } = NODE.setupInitialNode({
     states: transitionStates,
     debugStep: globalDebugStep,
   });
@@ -59,11 +47,10 @@ async function setupInitial() {
   };
 }
 
+/** AI が事前準備を行うノード */
 async function preprocessAI(state: typeof StateAnnotation.State) {
-  console.log("🧠 AI 準備ノード");
-
   const { evaluationData, qaEmbeddings, getHint, analyzeResult } =
-    await preprocessAiNode({
+    await NODE.preprocessAiNode({
       messages: state.messages,
       step: state.transition.step,
       baseUrl: globalBaseUrl,
@@ -82,7 +69,7 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
 async function checkUserAnswer(state: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
 
-  const { flag } = checkUserAnswerNode({
+  const { flag } = NODE.checkUserAnswerNode({
     whoUseDocuments: whoUseDocuments,
     whyUseDocuments: whyUseDocuments,
     transition: state.transition,
@@ -93,7 +80,7 @@ async function checkUserAnswer(state: typeof StateAnnotation.State) {
 async function rerank(state: typeof StateAnnotation.State) {
   console.log("👓 過去返答検索ノード");
 
-  const { qaEntryId, usedEntry, contexts } = rerankNode({
+  const { qaEntryId, usedEntry, contexts } = NODE.rerankNode({
     usedEntry: globalUsedEntry,
     messages: state.messages,
     step: state.transition.step,
@@ -109,7 +96,7 @@ async function rerank(state: typeof StateAnnotation.State) {
 async function generateHint(state: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
 
-  const { contexts } = generateHintNode({
+  const { contexts } = NODE.generateHintNode({
     whoUseDocuments: whoUseDocuments,
     whyUseDocuments: whyUseDocuments,
     evaluationData: state.evaluationData,
@@ -124,7 +111,7 @@ async function generateHint(state: typeof StateAnnotation.State) {
 async function askQuestion(state: typeof StateAnnotation.State) {
   console.log("❓ 問題出題ノード");
 
-  const { contexts } = askQuestionNode({
+  const { contexts } = NODE.askQuestionNode({
     step: state.transition.step,
     whyUseDocuments: whyUseDocuments,
   });
@@ -134,7 +121,7 @@ async function askQuestion(state: typeof StateAnnotation.State) {
 async function explainAnswer(state: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
 
-  const { contexts } = explainAnswerNode(globalUsedEntry);
+  const { contexts } = NODE.explainAnswerNode(globalUsedEntry);
   return { contexts: [...state.contexts, ...contexts] };
 }
 
@@ -146,7 +133,7 @@ async function explainAnswer(state: typeof StateAnnotation.State) {
 async function saveFinishState(state: typeof StateAnnotation.State) {
   console.log("💾 状態保存ノード");
 
-  const { contexts } = saveFinishStateNode({
+  const { contexts } = NODE.saveFinishStateNode({
     states: transitionStates,
     transition: state.transition,
     whoUseDocuments: whoUseDocuments,
@@ -196,14 +183,14 @@ export async function POST(req: Request) {
     // メッセージを取得
     const userMessage = body.userMessage;
     if (!userMessage) {
-      console.error("🥬 horenso API POST error: " + MESSAGES_ERROR);
-      return Response.json({ error: MESSAGES_ERROR }, { status: 400 });
+      console.error("🥬 horenso API POST error: " + ERR.MESSAGES_ERROR);
+      return Response.json({ error: ERR.MESSAGES_ERROR }, { status: 400 });
     }
     // セッションID 取得
     const sessionId = body.sessionId;
     if (!sessionId) {
-      console.error("🥬 horenso API POST error: " + SESSIONID_ERROR);
-      return Response.json({ error: SESSIONID_ERROR }, { status: 400 });
+      console.error("🥬 horenso API POST error: " + ERR.SESSIONID_ERROR);
+      return Response.json({ error: ERR.SESSIONID_ERROR }, { status: 400 });
     }
     // memory server 設定
     const config = { configurable: { thread_id: sessionId } };
@@ -241,7 +228,7 @@ export async function POST(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
+    const message = error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
 
     console.error("🥬 horenso API POST error: " + message);
     return Response.json({ error: message }, { status: 500 });

@@ -1,5 +1,5 @@
 import { UNKNOWN_ERROR } from "@/lib/message/error";
-import { Evaluation } from "../horenso/lib/match/route";
+import { Evaluation } from "@/lib/type";
 
 let evaluationData: Evaluation[] = [];
 

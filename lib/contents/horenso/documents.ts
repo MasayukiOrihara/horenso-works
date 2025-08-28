@@ -5,7 +5,7 @@ import {
   FOR_REPORT_COMMUNICATION,
   REPORT_REASON_FOR_LEADER,
   THREE_ANSWER,
-} from "./messages";
+} from "./template";
 
 // 質問ドキュメント1
 export const whoDocuments: Document<HorensoMetadata>[] = [

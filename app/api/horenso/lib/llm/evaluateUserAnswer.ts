@@ -4,12 +4,11 @@ import { v4 as uuidv4 } from "uuid";
 import { StructuredOutputParser } from "langchain/output_parsers";
 
 import { HorensoMetadata, PhrasesMetadata } from "@/lib/type";
-import { JUDGE_ANSWER_SEMANTIC_MATCH_PROMPT } from "../../contents/messages";
 import { runWithFallback } from "@/lib/llm/run";
-
 import { timestamp } from "@/lib/path";
 import { documentsSchema } from "@/lib/schema";
 import { JSON_PARSE_ERROR } from "@/lib/message/error";
+import { JUDGE_ANSWER_SEMANTIC_MATCH_PROMPT } from "@/lib/contents/horenso/template";
 
 /**
  * ユーザー回答が答えに意味的に近いか LLM に判断させて document型 で出力する

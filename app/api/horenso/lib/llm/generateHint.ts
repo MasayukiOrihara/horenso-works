@@ -2,10 +2,9 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { Document } from "langchain/document";
 
 import { strParser } from "@/lib/llm/models";
-import { HorensoMetadata } from "@/lib/type";
-import { GUIDED_ANSWER_PROMPT } from "../../contents/messages";
-import { Evaluation } from "../match/route";
+import { Evaluation, HorensoMetadata } from "@/lib/type";
 import { runWithFallback } from "@/lib/llm/run";
+import { GUIDED_ANSWER_PROMPT } from "@/lib/contents/horenso/template";
 
 /** LLMを利用して答えを導くヒントを生成する */
 export const generateHintLlm = async (

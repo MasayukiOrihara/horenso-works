@@ -3,7 +3,6 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 
-import * as MSG from "../../../contents/messages";
 import { jsonParser, OpenAi } from "@/lib/llm/models";
 import { timestamp } from "@/lib/path";
 import {
@@ -16,6 +15,8 @@ import {
 } from "@/lib/type";
 import { cachedVectorStore } from "./vectorStore";
 import { saveEmbeddingSupabase } from "./supabase";
+
+import * as MSG from "@/lib/contents/horenso/template";
 
 /** ユーザー回答が答えに意味的に近いかLLMに判断させてJSON形式で出力する */
 export const judgeSemanticMatch = async (
