@@ -21,65 +21,57 @@ const WRONGLIST_QUERY = "search_wronglist";
 export async function checkBadMatchNode({ evaluationRecords }: BadCheckNode) {
   const tempEvaluationRecords: TYPE.Evaluation[] = evaluationRecords;
 
-  // 外れリストを参照する逆パターンを作成しもし一致したらこれ以降の処理を飛ばす
+  // 外れリストを参照し、もし一致したら不正解としてこれ以降の処理を飛ばす
   try {
-    await Promise.all(
-      tempEvaluationRecords.map(async (record) => {
-        const bestDocument = record.document as Document<TYPE.HorensoMetadata>;
-        const input = record.input;
+    // リスト検索に必要な情報（共通なので1つ目のレコードから取得）
+    const question_id = tempEvaluationRecords[0].document.metadata.question_id;
+    const embedding = tempEvaluationRecords[0].input.embedding;
 
-        // ベクトルストア内のドキュメントとユーザーの答えを比較
-        let badScore: TYPE.FuzzyScore | null = null;
-        try {
-          //throw new Error("デバッグ用エラー");
-          const question_id = bestDocument.metadata.question_id;
+    // ベクトルストア内のドキュメントとユーザーの答えを比較
+    let badScore: TYPE.FuzzyScore | null = null;
+    try {
+      //throw new Error("デバッグ用エラー");
+      // supabase から ハズレ回答 を取得
+      const results = await searchEmbeddingSupabase(
+        WRONGLIST_TABLE,
+        WRONGLIST_QUERY,
+        embedding,
+        1,
+        question_id
+      );
 
-          // supabase から ハズレ回答 を取得
-          const results = await searchEmbeddingSupabase(
-            WRONGLIST_TABLE,
-            WRONGLIST_QUERY,
-            input.embedding,
-            1,
-            question_id
-          );
+      // 変換
+      const max = results[0];
+      badScore = {
+        id: max?.[0].metadata.id,
+        score: max?.[1],
+        nearAnswer: max?.[0].pageContent,
+        reason: max?.[0].metadata.reason,
+        correct: "unknown",
+      };
+    } catch (error) {
+      console.error(SCORE_GET_ERROR, error);
+    }
 
-          // 変換
-          const max = results[0];
-          badScore = {
-            id: max?.[0].metadata.id,
-            score: max?.[1],
-            nearAnswer: max?.[0].pageContent,
-            reason: max?.[0].metadata.reason,
-            correct: "unknown",
-          };
-        } catch (error) {
-          console.error(SCORE_GET_ERROR, error);
-        }
-
-        // エラー処理
-        if (!badScore) throw new Error(SCORE_GET_ERROR);
-        console.log(
-          "BAD:: score: " + badScore.score + ", match: " + badScore.nearAnswer
-        );
-        record.badScore = badScore;
-      })
+    // エラー処理（null の場合も含む）
+    if (!badScore) throw new Error(SCORE_GET_ERROR);
+    console.log(
+      "BAD:: score: " + badScore.score + ", match: " + badScore.nearAnswer
     );
 
     // まとめてチェック
     tempEvaluationRecords.map(async (record) => {
-      const badScore = record.badScore;
-      if (badScore) {
-        // 答えの結果が出てない
-        const isAnswerUnknown = record.answerCorrect === "unknown";
-        // ハズレリストの閾値以上
-        const exceedsBadMatchThreshold = badScore.score > BAD_MATCH_SCORE;
-        if (isAnswerUnknown && exceedsBadMatchThreshold) {
-          badScore.correct = "incorrect"; // 不正解
-          record.answerCorrect = badScore.correct;
-        }
+      // 答えの結果が出てない
+      const isAnswerUnknown = record.answerCorrect === "unknown";
+      // ハズレリストの閾値以上
+      const exceedsBadMatchThreshold = badScore.score > BAD_MATCH_SCORE;
+      if (isAnswerUnknown && exceedsBadMatchThreshold) {
+        badScore.correct = "incorrect"; // 不正解
+        record.answerCorrect = badScore.correct;
       }
-      console.log(" → " + record.answerCorrect);
+      record.badScore = badScore; // 記録
     });
+    console.log(" → " + tempEvaluationRecords[0].answerCorrect);
   } catch (error) {
     console.warn(BADMATCH_ERROR + error);
   }

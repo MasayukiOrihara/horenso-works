@@ -154,51 +154,13 @@ async function evaluateAnswer(state: typeof StateAnnotation.State) {
   console.log("☑ 回答判定ノード");
   const evaluationRecords = state.evaluationRecords;
   const documents = state.matchAnswerArgs.documents;
-  const semanticList = state.matchAnswerArgs.semanticList;
-  const semanticPath = semanticFilePath();
 
-  // AI による判定
-  let evaluate: SemanticAnswerEntry | null = null;
-  try {
-    const userAnswer = evaluationRecords[0].input.userAnswer;
-    evaluate = await SEM.judgeSemanticMatch(userAnswer, documents);
-  } catch (error) {
-    console.warn("AI のよる判定結果が得られませんでした" + error);
-    return { didEvaluateAnswer: true };
-  }
+  const { tempEvaluationRecords } = await NODE.evaluateAnswerNode({
+    evaluationRecords: evaluationRecords,
+    documents: documents,
+  });
 
-  // 判定結果を取得
-  if (evaluate) {
-    evaluationRecords.map(async (record) => {
-      const bestDocument = record.document as Document<HorensoMetadata>;
-
-      // 比較対象回答と一致しているかの確認
-      const evaluateParentId = String(evaluate.metadata.parentId);
-      const checkIdMatch = evaluateParentId === bestDocument.metadata.parentId;
-      // 判定OK
-      if (evaluate && checkIdMatch) {
-        // jsonの更新
-        SEM.updateSemanticMatch(
-          evaluate,
-          semanticList,
-          semanticPath,
-          bestDocument.metadata.question_id
-        );
-
-        // オブジェクトの更新
-        const fuzzyScore: FuzzyScore = {
-          id: evaluate.id,
-          score: 1,
-          reason: evaluate.reason,
-          correct: "correct",
-        };
-        record.fuzzyScore = fuzzyScore;
-        record.answerCorrect = "correct";
-      }
-    });
-  }
-
-  return { evaluationRecords: evaluationRecords, didEvaluateAnswer: true };
+  return { evaluationRecords: tempEvaluationRecords, didEvaluateAnswer: true };
 }
 
 /** ドキュメントの正答を更新するノード */
