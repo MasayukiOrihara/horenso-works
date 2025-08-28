@@ -63,31 +63,32 @@ export const MATCH_OF_PIECE =
   "は3つの正解のうちの1つだったことをユーザーに伝えてください\n";
 
 export const JUDGE_ANSWER_SEMANTIC_MATCH_PROMPT = `あなたは、ソフトウェア開発者向けのコミュニケーション研修における回答評価の専門家です。
+
+次の質問に対して、ユーザーが答えた内容が、あらかじめ用意された正解のいずれかと**意味的に一致している**かを判断してください。  
+完全一致でなくても、意味が近ければ一致とみなしてかまいませんが、抽象的すぎる表現は一致とは見なしません。
+
+  ---  
+質問：
+{question}
     
-    次の質問に対して、ユーザーが答えた内容が、あらかじめ用意された正解のいずれかと**意味的に一致している**かを判断してください。  
-    完全一致でなくても、意味が近ければ一致とみなしてかまいませんが、抽象的すぎる表現は一致とは見なしません。
+想定される正解：
+{current_answer} 
     
-    ---  
-    質問：  
-    {question}
+  --- 
+ユーザーの回答：
+{user_answer}
     
-    想定される正解：  
-    {current_answer} 
-    
-    ---  
-    ユーザーの回答：  
-    「{user_answer}」
-    
-    ---  
-   以下のJSON形式で答えてください：  
-      "id": [空欄],
-      "answer": [ユーザーの回答],
-      "reason": [一致と判断した理由、もしくは一致しない理由],
-      "metadata":
-        "parentId": [一致した正解（1 / 2 /...)、一致とみなさなかった場合は(null)],
-        "question_id": [空欄],
-        "timestamp": [空欄],
-        "source": "bot"`;
+---   
+以下の形式に従って JSON で出力してください：
+{format_instructions}
+ - pageContent: {user_answer}
+ - metadata.id: ""
+ - metadata.question_id: ""
+ - metadata.parentId: [一致した正解（1 / 2 /...)、一致とみなさなかった場合は(null)]
+ - metadata.timestamp: ""
+ - metadata.source: "bot"
+ - metadata.rationale: [一致と判断した理由、もしくは一致しない理由]
+`;
 
 // ユーザーの入力意図を抽出するプロンプト
 export const USER_INTENT_PROMPT = `以下の入力対して、ユーザーの入力意図を推測し出力してください。

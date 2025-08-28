@@ -7,6 +7,7 @@ export const SCORE_GET_ERROR = "スコアの取得に失敗しました";
 export const BADMATCH_ERROR = "ハズレチェック中にエラーが発生しました。: ";
 export const FUZZYMATCH_ERROR = "あいまい検索中にエラーが発生しました。: ";
 export const AI_EVALUATE_ERROR = "AI のよる判定結果が得られませんでした";
+export const JSON_PARSE_ERROR = "JSONパース失敗";
 
 // supabase
 export const SUPABASE_KEY_ERROR = "Expected SUPABASE_SERVICE_ROLE_KEY";

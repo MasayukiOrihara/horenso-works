@@ -141,3 +141,15 @@ export type FuzzyScore = {
 };
 // 正解判定
 export type AnswerCorrect = "correct" | "incorrect" | "unknown";
+
+/**
+ * セマンティック検索で使う Document のメタデータ
+ */
+export type PhrasesMetadata = {
+  id?: string;
+  question_id: string;
+  parentId: string | null;
+  timestamp: string;
+  rationale?: string;
+  source: "user" | "admin" | "bot";
+};

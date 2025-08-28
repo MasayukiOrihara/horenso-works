@@ -1,8 +1,8 @@
 import { Document } from "langchain/document";
 
 import * as TYPE from "@/lib/type";
-import { judgeSemanticMatch } from "../lib/semantic";
 import { AI_EVALUATE_ERROR } from "@/lib/message/error";
+import { evaluateUserAnswer } from "../../llm/evaluateUserAnswer";
 
 type EvaluateNode = {
   evaluationRecords: TYPE.Evaluation[];
@@ -19,10 +19,11 @@ export async function evaluateAnswerNode({
   documents,
 }: EvaluateNode) {
   // AI による判定
-  let evaluate: TYPE.SemanticAnswerEntry | null = null;
+  let evaluate: Document<TYPE.PhrasesMetadata>[] | null = null;
   try {
     const userAnswer = evaluationRecords[0].input.userAnswer;
-    evaluate = await judgeSemanticMatch(userAnswer, documents);
+    // LLM 応答
+    evaluate = await evaluateUserAnswer(userAnswer, documents);
   } catch (error) {
     console.warn(AI_EVALUATE_ERROR + error);
     return { tempEvaluationRecords: evaluationRecords };
@@ -34,21 +35,24 @@ export async function evaluateAnswerNode({
       const bestDocument = record.document as Document<TYPE.HorensoMetadata>;
 
       // 比較対象回答と一致しているかの確認
-      const evaluateParentId = String(evaluate.metadata.parentId);
-      const checkIdMatch = evaluateParentId === bestDocument.metadata.parentId;
-      // 判定OK
-      if (evaluate && checkIdMatch) {
-        // DB の更新
+      for (const data of evaluate) {
+        const evaluateParentId = String(data.metadata.parentId);
+        const checkIdMatch =
+          evaluateParentId === bestDocument.metadata.parentId;
+        // 判定OK
+        if (evaluateParentId && checkIdMatch) {
+          // DB の更新
 
-        // オブジェクトの更新
-        const fuzzyScore: TYPE.FuzzyScore = {
-          id: evaluate.id,
-          score: 1,
-          reason: evaluate.reason,
-          correct: "correct",
-        };
-        record.fuzzyScore = fuzzyScore;
-        record.answerCorrect = "correct";
+          // オブジェクトの更新
+          const fuzzyScore: TYPE.FuzzyScore = {
+            id: data.metadata.id ?? "",
+            score: 1,
+            reason: data.metadata.rationale,
+            correct: "correct",
+          };
+          record.fuzzyScore = fuzzyScore;
+          record.answerCorrect = "correct";
+        }
       }
     });
   }

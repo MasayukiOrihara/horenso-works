@@ -9,6 +9,7 @@ import { timestamp } from "@/lib/path";
 import {
   FuzzyScore,
   HorensoMetadata,
+  PhrasesMetadata,
   SemanticAnswerData,
   SemanticAnswerEntry,
   UserAnswerEmbedding,
@@ -187,14 +188,7 @@ const buildSupportDocs = (
   );
 
 // 臨時：現在のjson形式ファイルを document 形式に変換して DB に登録
-type PhrasesMetadata = {
-  id?: string;
-  question_id: string;
-  parentId: string;
-  timestamp: string;
-  rationale?: string;
-  source: "user" | "admin" | "bot";
-};
+
 export const saveSemanticScoreDB = async (
   semanticList: SemanticAnswerData,
   tableName: string
