@@ -1,22 +1,10 @@
-import { Document } from "langchain/document";
+import { DocumentInterface } from "@langchain/core/documents";
 import { Annotation, StateGraph } from "@langchain/langgraph";
 
-import {
-  DocumentScore,
-  Evaluation,
-  FuzzyScore,
-  HorensoMetadata,
-  MatchAnswerArgs,
-  SemanticAnswerEntry,
-  UserAnswerEmbedding,
-} from "@/lib/type";
 import { MESSAGES_ERROR, UNKNOWN_ERROR } from "@/lib/message/error";
 import { measureExecution } from "@/lib/llm/graph";
-import { cachedVectorStore } from "./lib/vectorStore";
-import { DocumentInterface } from "@langchain/core/documents";
-import * as SEM from "./lib/semantic";
-import { semanticFilePath } from "@/lib/path";
-import { embeddings } from "@/lib/llm/models";
+
+import * as TYPE from "@/lib/type";
 import * as NODE from "./node";
 
 /**
@@ -193,13 +181,13 @@ async function finalizeResult(state: typeof StateAnnotation.State) {
 
 /** アノテーション一覧 */
 const StateAnnotation = Annotation.Root({
-  matchAnswerArgs: Annotation<MatchAnswerArgs>(),
-  userEmbedding: Annotation<UserAnswerEmbedding>(),
+  matchAnswerArgs: Annotation<TYPE.MatchAnswerArgs>(),
+  userEmbedding: Annotation<TYPE.UserAnswerEmbedding>(),
   similarityResults:
     Annotation<[DocumentInterface<Record<string, unknown>>, number][]>(),
   didEvaluateAnswer: Annotation<boolean>(),
-  evaluationRecords: Annotation<Evaluation[]>(),
-  evaluationData: Annotation<Evaluation>(),
+  evaluationRecords: Annotation<TYPE.Evaluation[]>(),
+  evaluationData: Annotation<TYPE.Evaluation>(),
 });
 
 /**
@@ -236,7 +224,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     // 判断材料を取得
-    const matchAnswerArgs: MatchAnswerArgs = body.matchAnswerArgs;
+    const matchAnswerArgs: TYPE.MatchAnswerArgs = body.matchAnswerArgs;
     if (!matchAnswerArgs) {
       console.error("🥬 match API POST error: " + MESSAGES_ERROR);
       return Response.json({ error: MESSAGES_ERROR }, { status: 400 });

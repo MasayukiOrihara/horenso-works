@@ -41,7 +41,7 @@ export const evaluateUserAnswer = async (
     format_instructions: parser.getFormatInstructions(),
   };
 
-  let phreases: Document<PhrasesMetadata>[] = [];
+  const phreases: Document<PhrasesMetadata>[] = [];
   try {
     // LLM応答
     const response = await runWithFallback(prompt, promptVariables, {
