@@ -1956,5 +1956,16 @@
       "question_id": "1",
       "source": "bot"
     }
+  },
+  {
+    "id": "d25a17dd-6337-48cc-b3f2-da451ea34035",
+    "userAnswer": "自分",
+    "hint": "",
+    "metadata": {
+      "timestamp": "2025-08-29T09:41:58.004+09:00",
+      "quality": 0.5,
+      "question_id": "1",
+      "source": "bot"
+    }
   }
 ]

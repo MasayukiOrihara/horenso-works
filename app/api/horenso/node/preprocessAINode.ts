@@ -6,7 +6,7 @@ import { embeddings } from "@/lib/llm/models";
 import { splitInputLlm } from "../lib/llm/splitInput";
 import { generateHintLlm } from "../lib/llm/generateHint";
 import { sortScore } from "../lib/match/lib/score";
-import { evaluatedResults, messageToText } from "../lib/utils";
+import { evaluatedResults, messageToText } from "../lib/match/lib/utils";
 import { pushLog } from "../lib/log/logBuffer";
 import { requestApi } from "@/lib/api/request";
 import { RunnableParallel } from "@langchain/core/runnables";
@@ -77,7 +77,7 @@ export async function preprocessAiNode({
   /* ① 答えの分離 と ユーザーの回答を埋め込み とベクターストア作成 */
   pushLog("回答の確認中です...");
   // 入力の分析
-  const analyzeResultPromise = analyzeInput(userMessage, question);
+  const analyzeInputResultPromise = analyzeInput(userMessage, question);
   const [userAnswer, userEmbedding] = await Promise.all([
     splitInputLlm(sepKeywordPrompt, userMessage),
     embeddings.embedQuery(userMessage),
@@ -109,7 +109,7 @@ export async function preprocessAiNode({
   //vectorStore検索と並列に実行(全体の処理時間も計測)
   console.log(" --- ");
   const start = Date.now();
-  const [matchResultsMap, rawQaEmbeddings] = await Promise.all([
+  const [matchResultsMap, rawClue] = await Promise.all([
     checkUserAnswers.invoke([]), // RunnableParallel 実行
     searchEmbeddingSupabase(
       CLUE_TABLE,
@@ -139,20 +139,28 @@ export async function preprocessAiNode({
       : useDocuments.some((doc) => doc.metadata.isMatched);
 
   // ヒントの判定
-  let qaEmbeddings: [Document<TYPE.ClueMetadata>, number][] = [];
+  let clue: [Document<TYPE.ClueMetadata>, number][] = [];
   let getHint: string = "";
   if (!tempIsCorrect) {
     // ヒントの取得
     const sortData = sortScore(evaluationData);
     const getHintPromises = generateHintLlm(question, sortData, useDocuments);
 
-    qaEmbeddings = rawQaEmbeddings as [Document<TYPE.ClueMetadata>, number][];
+    clue = rawClue as [Document<TYPE.ClueMetadata>, number][];
     getHint = await getHintPromises;
     console.log("質問1のヒント: \n" + getHint);
   }
 
-  const analyzeResult = await analyzeResultPromise;
-  console.log(analyzeResult);
+  // 入力分析
+  const analyzeInputResult = await analyzeInputResultPromise;
+  console.log(analyzeInputResult);
+  // 分類
+  const match = analyzeInputResult.match(
+    /入力意図の分類:\s*(質問|回答|冗談|その他)/
+  );
+  const category = match ? match[1] : "";
+  console.log("入力意図の分類: " + category);
+
   pushLog("返答の生成中です...");
-  return { evaluationData, qaEmbeddings, getHint, analyzeResult };
+  return { evaluationData, clue, getHint, category };
 }

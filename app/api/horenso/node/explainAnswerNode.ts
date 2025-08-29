@@ -2,7 +2,7 @@ import fs from "fs";
 
 import { QAEntry, UsedEntry } from "@/lib/type";
 import { qaEntriesFilePath } from "@/lib/path";
-import { writeQaEntriesQuality } from "../lib/entry";
+import { writeQaEntriesQuality } from "../lib/match/lib/entry";
 
 import * as MSG from "@/lib/contents/horenso/template";
 

@@ -11,6 +11,7 @@ import * as DOC from "@/lib/contents/horenso/documents";
 import * as NODE from "./node";
 import * as TYPE from "@/lib/type";
 import * as ERR from "@/lib/message/error";
+import { Anonymous_Pro } from "next/font/google";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -25,12 +26,17 @@ const whyUseDocuments = DOC.whyDocuments.map((doc) => ({
 
 // デバック用変数
 let globalDebugStep = 0;
-// エントリーデータID(送信用)
-let globalQaEntryId = "";
 // ヒントに使ったエントリーデータ(次のターンも使いまわす)
 let globalUsedEntry: TYPE.UsedEntry[] = [];
 // ベースURL の共通化
 let globalBaseUrl = "";
+
+export type AdjustedClue = {
+  id: string;
+  rankScore: number; // 返答を順位付けで取得するためのスコア
+  clue: string; // 返答のための手がかり
+  quality: number; // 信頼度
+};
 
 /**
  * langGraphのノード群
@@ -50,7 +56,7 @@ async function setupInitial() {
 
 /** AI が事前準備を行うノード */
 async function preprocessAI(state: typeof StateAnnotation.State) {
-  const { evaluationData, qaEmbeddings, getHint, analyzeResult } =
+  const { evaluationData, clue, getHint, category } =
     await NODE.preprocessAiNode({
       messages: state.messages,
       step: state.transition.step,
@@ -61,9 +67,9 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
 
   return {
     evaluationData: evaluationData,
-    qaEmbeddings: qaEmbeddings,
+    clue: clue,
     aiHint: getHint,
-    analyze: analyzeResult,
+    inputCategory: category,
   };
 }
 
@@ -81,17 +87,19 @@ async function checkUserAnswer(state: typeof StateAnnotation.State) {
 async function rerank(state: typeof StateAnnotation.State) {
   console.log("👓 過去返答検索ノード");
 
-  const { qaEntryId, usedEntry, contexts } = NODE.rerankNode({
-    usedEntry: globalUsedEntry,
+  const { newClueId, selectedClue, contexts } = await NODE.rerankNode({
+    adjustedClue: state.adjustedClue,
     messages: state.messages,
     step: state.transition.step,
-    qaEmbeddings: state.qaEmbeddings,
-    talkJudge: state.analyze,
+    clue: state.clue,
+    category: state.inputCategory,
   });
 
-  globalQaEntryId = qaEntryId;
-  globalUsedEntry = JSON.parse(JSON.stringify(usedEntry));
-  return { contexts: [...state.contexts, ...contexts] };
+  return {
+    contexts: [...state.contexts, ...contexts],
+    adjustedClue: selectedClue,
+    newClueId: newClueId,
+  };
 }
 
 async function generateHint(state: typeof StateAnnotation.State) {
@@ -103,7 +111,7 @@ async function generateHint(state: typeof StateAnnotation.State) {
     evaluationData: state.evaluationData,
     step: state.transition.step,
     aiHint: state.aiHint,
-    talkJudge: state.analyze,
+    category: state.inputCategory,
   });
 
   return { contexts: [...state.contexts, ...contexts] };
@@ -149,10 +157,12 @@ async function saveFinishState(state: typeof StateAnnotation.State) {
 const StateAnnotation = Annotation.Root({
   sessionId: Annotation<string>(), // フロントで管理しているセッションID
   contexts: Annotation<string[]>(), // 最終出力を行うコンテキスト
-  qaEmbeddings: Annotation<[Document<TYPE.ClueMetadata>, number][]>(),
+  clue: Annotation<[Document<TYPE.ClueMetadata>, number][]>(), // 以前の回答の記録
+  adjustedClue: Annotation<AdjustedClue[]>(), // 重みづけした回答の記録
   aiHint: Annotation<string>(), // ヒント出力テキスト
-  analyze: Annotation<string>(), // ユーザー入力分析出力テキスト
+  inputCategory: Annotation<string>(), // ユーザー入力分析出力テキスト
   evaluationData: Annotation<TYPE.Evaluation[]>(), // 回答評価データ
+  newClueId: Annotation<string>(), // 新しい clueID clueをstream後登録するために使う
   transition: Annotation<TYPE.HorensoStates>({
     // フラグ
     value: (
@@ -250,7 +260,7 @@ export async function POST(req: Request) {
       {
         text: aiText,
         contenue: !aiText.includes("--終了--"),
-        qaEntryId: globalQaEntryId,
+        clueId: result.newClueId,
       },
       { status: 200 }
     );

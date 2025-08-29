@@ -4,19 +4,24 @@ import { v4 as uuidv4 } from "uuid";
 import fs from "fs";
 
 import { ClueMetadata, QAEntry, UsedEntry } from "@/lib/type";
-import { qaEntriesFilePath } from "@/lib/path";
-import { qaEntryData, writeQaEntriesQuality } from "../lib/entry";
-import { messageToText } from "../lib/utils";
+import { messageToText } from "../lib/match/lib/utils";
 import { getRankedResults } from "../lib/match/lib/score";
 
 import * as MSG from "@/lib/contents/horenso/template";
+import { AdjustedClue } from "../route";
+import { generateClue, updateClueQuality } from "../lib/match/lib/entry";
+import {
+  saveEmbeddingSupabase,
+  updateMetadataSupabase,
+} from "../lib/match/lib/supabase";
+import { CLUE_TABLE } from "@/lib/contents/match";
 
 type RerankNode = {
-  usedEntry: UsedEntry[];
+  adjustedClue: AdjustedClue[];
   messages: BaseMessage[];
   step: number;
-  qaEmbeddings: [Document<ClueMetadata>, number][];
-  talkJudge: string;
+  clue: [Document<ClueMetadata>, number][];
+  category: string;
 };
 
 /**
@@ -24,52 +29,56 @@ type RerankNode = {
  * @param param0
  * @returns
  */
-export function rerankNode({
-  usedEntry,
+export async function rerankNode({
+  adjustedClue,
   messages,
   step,
-  qaEmbeddings,
-  talkJudge,
+  clue,
+  category,
 }: RerankNode) {
-  // 会話の分類
-  const match = talkJudge.match(/入力意図の分類:\s*(質問|回答|冗談|その他)/);
-  const category = match ? match[1] : "";
+  /** 前回の返答を新規 clue として追加 */
+  const previousMessage = messageToText(messages, messages.length - 1);
+  const newClue: Document<ClueMetadata> = generateClue(
+    previousMessage,
+    `${step + 1}`
+  );
+  // db保存
+  await saveEmbeddingSupabase([newClue], CLUE_TABLE);
+  const newClueId = newClue.metadata.id; // 次に渡す ID 用
 
-  let qaEntryId = ""; // 次に渡す ID 用
-  // エントリーデータ新規登録処理（会話の内容によっては登録しない）
+  /** 前回ターンの clue が役に立たなかったのでマイナス評価更新 */
+  let updateAdjustedClue: AdjustedClue[] = [];
   if (!(category === "質問" || category === "冗談")) {
-    // 既存データを読み込む（なければ空配列）
-    const qaList: QAEntry[] = writeQaEntriesQuality(usedEntry, -0.1);
-
-    // エントリーデータ蓄積用
-    qaEntryId = uuidv4();
-    const qaEntry: QAEntry = qaEntryData(
-      qaEntryId,
-      messageToText(messages, messages.length - 1),
-      `${step + 1}`
-    );
-
-    // 新しいエントリを追加 + 上書き保存（整形付き）
-    qaList.push(qaEntry);
-    fs.writeFileSync(qaEntriesFilePath(), JSON.stringify(qaList, null, 2));
+    // 今回の会話カテゴリーが回答系じゃない場合マイナス評価を免除
+    updateAdjustedClue = updateClueQuality(adjustedClue, -0.1);
   }
 
+  // DB 更新
+  for (const adjusted of updateAdjustedClue) {
+    await updateMetadataSupabase(adjusted.id, "quality", adjusted.quality);
+  }
+
+  /** 回答に一貫性を持たせるために、ユーザーの入力に対する過去回答コンテキスト作成 */
   const contexts = [];
   contexts.push(MSG.BULLET + MSG.PAST_REPLY_HINT_PROMPT);
   contexts.push(MSG.ANSWER_EXAMPLE_PREFIX_PROMPT);
 
   // データ取得
-  const rankedResults: UsedEntry[] = getRankedResults(qaEmbeddings);
+  const rankedResults: AdjustedClue[] = getRankedResults(clue);
 
-  // sum の高い順に並べて、上位2件を取得
-  usedEntry = rankedResults.sort((a, b) => b.sum - a.sum).slice(0, 2);
-  for (const result of usedEntry) {
-    console.log("エントリートップ2: " + result.entry.metadata.id);
+  // rankscore の高い順に並べて、上位2件を取得
+  const selectedClue = rankedResults
+    .sort((a, b) => b.rankScore - a.rankScore)
+    .slice(0, 2);
 
-    const response = result.entry.metadata.hint.replace(/(\r\n|\n|\r)/g, "");
+  // コンテキストに追加
+  for (const clue of selectedClue) {
+    console.log("エントリートップ2: " + clue.id);
+
+    const response = clue.clue.replace(/(\r\n|\n|\r)/g, "");
     contexts.push(`${response}\n --- \n`);
   }
   contexts.push("\n");
 
-  return { qaEntryId, usedEntry, contexts };
+  return { newClueId, selectedClue, contexts };
 }

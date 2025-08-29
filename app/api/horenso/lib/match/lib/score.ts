@@ -1,12 +1,13 @@
 import { Document } from "langchain/document";
 
-import { ClueMetadata, Evaluation, UsedEntry } from "@/lib/type";
+import { ClueMetadata, Evaluation } from "@/lib/type";
+import { AdjustedClue } from "../../../route";
 
 /** データに重みづけしたスコアを計算して出力 */
 export const getRankedResults = (
   results: [Document<ClueMetadata>, number][]
 ) => {
-  const rankedResults: UsedEntry[] = [];
+  const rankedResults: AdjustedClue[] = [];
   for (const [bestMatch, score] of results) {
     console.log("score: " + score + ", match: " + bestMatch.pageContent);
     if (score < 0.7) break;
@@ -27,13 +28,19 @@ export const getRankedResults = (
     }
 
     // 総合スコア計算（調整式は適宜チューニング）
-    const sum = score * 0.6 + qual * 0.3 + weight * 0.1;
-    console.log("総合スコア: " + sum + " ID: " + bestMatch.metadata.id);
+    const rankScore = score * 0.6 + qual * 0.3 + weight * 0.1;
 
-    rankedResults.push({
-      entry: bestMatch,
-      sum: sum,
-    });
+    // データ作成
+    const adjustedClue: AdjustedClue = {
+      id: bestMatch.metadata.id,
+      rankScore: rankScore,
+      clue: bestMatch.metadata.clue,
+      quality: bestMatch.metadata.quality,
+    };
+    console.log(
+      `ID: ${adjustedClue.id}  総合スコア: ${adjustedClue.rankScore}`
+    );
+    rankedResults.push(adjustedClue);
   }
   return rankedResults;
 };

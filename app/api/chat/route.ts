@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     /* --- --- コンテキスト 処理 --- --- */
     // 始動時の状態判定
     const aiMessages = [];
-    let qaEntryId = "";
+    let clueId = "";
     horensoContenue = true;
     if (horensoContenue && !oldHorensoContenue && !options.debug) {
       // 初回AIメッセージ
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
         body: { userMessage, sessionId, step },
       });
       aiMessages.push(horensoGraph.text);
-      qaEntryId = horensoGraph.qaEntryId;
+      clueId = horensoGraph.clueId;
 
       // 終了時の状態判定
       console.log(
@@ -118,9 +118,9 @@ export async function POST(req: Request) {
         await save([new AIMessage(response)]);
 
         // 今回のエントリーにメッセージを追記 ※※ 後で細かくチェック
-        console.log(qaEntryId);
-        if (!(qaEntryId === "")) {
-          updateEntry(qaEntryId, response);
+        console.log(clueId);
+        if (!(clueId === "")) {
+          // updateEntry(clueId, response);
         }
       },
     });

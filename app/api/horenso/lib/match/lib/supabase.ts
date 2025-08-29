@@ -56,6 +56,28 @@ export async function saveEmbeddingSupabase(
   console.log("supabade への登録完了");
 }
 
+/** supabase でメタデータの更新を行う */
+export async function updateMetadataSupabase(
+  id: string,
+  targetKey: string,
+  newValue: number
+) {
+  const { error } = await supabaseClient().rpc(
+    "update_metadata_key_by_metaid",
+    {
+      meta_id: id,
+      key: targetKey,
+      value: JSON.stringify(newValue), // jsonbなので文字列化して渡す
+    }
+  );
+
+  if (error) {
+    console.error("supabade の更新エラー:", error);
+  } else {
+    console.log("supabade への更新成功:", id);
+  }
+}
+
 /** 臨時：JSON ファイルを supabase に読ませる用 */
 export const saveListDB = async (list: any, tableName: string) => {
   // 読み込み

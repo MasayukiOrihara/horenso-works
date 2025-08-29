@@ -1,7 +1,7 @@
 import { Document } from "langchain/document";
 
 import { Evaluation, HorensoMetadata } from "@/lib/type";
-import { findMatchStatusChanges } from "../lib/utils";
+import { findMatchStatusChanges } from "../lib/match/lib/utils";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import * as DOC from "@/lib/contents/horenso/documents";
@@ -21,7 +21,7 @@ type HintNode = {
   evaluationData: Evaluation[];
   step: number;
   aiHint: string;
-  talkJudge: string;
+  category: string;
 };
 
 const ANSWER_STEP = "# 返答作成の手順\n\n";
@@ -56,7 +56,7 @@ export function generateHintNode({
   evaluationData,
   step,
   aiHint,
-  talkJudge,
+  category,
 }: HintNode) {
   const contexts = [];
   contexts.push(ANSWER_STEP);
@@ -74,11 +74,6 @@ export function generateHintNode({
       oldDocuments = oldWhyUseDocuments;
       break;
   }
-
-  // 会話糸の分離
-  const match = talkJudge.match(/入力意図の分類:\s*(質問|回答|冗談|その他)/);
-  const category = match ? match[1] : "";
-  console.log("入力意図の分類: " + category);
 
   // 部分的に正解だった場合、今回正解した差分を見つけ出す
   const changed = findMatchStatusChanges(oldDocuments, documents);
