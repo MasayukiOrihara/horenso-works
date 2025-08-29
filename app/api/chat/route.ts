@@ -12,7 +12,6 @@ import { AIMessage, BaseMessage } from "@langchain/core/messages";
 import * as PATH from "@/lib/api/path";
 import * as MSG from "@/lib/contents/chat/template";
 import { updateClueChat } from "../horenso/lib/match/lib/entry";
-import { saveListDB } from "../../../lib/file/temp";
 
 // 外部フラグ
 let horensoContenue = false;

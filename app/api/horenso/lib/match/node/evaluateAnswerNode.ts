@@ -32,7 +32,7 @@ export async function evaluateAnswerNode({
   }
 
   // 判定結果を取得
-  let goodEvaluations: Document<TYPE.PhrasesMetadata>[] = [];
+  const goodEvaluations: Document<TYPE.PhrasesMetadata>[] = [];
   if (evaluate) {
     evaluationRecords.map(async (record) => {
       const bestDocument = record.document as Document<TYPE.HorensoMetadata>;
