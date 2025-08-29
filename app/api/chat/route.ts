@@ -25,7 +25,7 @@ let oldHorensoContenue = false;
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { baseUrl } = getBaseUrl();
+    const { baseUrl } = getBaseUrl(req);
     // フロントから今までのメッセージを取得
     const messages = body.messages ?? [];
     // フロントからセッションID を取得
