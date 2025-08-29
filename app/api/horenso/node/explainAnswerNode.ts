@@ -17,7 +17,7 @@ export async function explainAnswerNode(adjustedClue: AdjustedClue[]) {
   contexts.push(MSG.BULLET + MSG.SUMMARY_REQUEST_PROMPT);
 
   // ここで使用した前回 clue の重みを変更
-  if (adjustedClue.length != 0) {
+  if ((adjustedClue ?? []).length != 0) {
     // 正解だったため過去回答の有用性を上げる
     const updateAdjustedClue: AdjustedClue[] = updateClueQuality(
       adjustedClue,

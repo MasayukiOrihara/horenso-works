@@ -11,6 +11,7 @@ import { AIMessage, BaseMessage } from "@langchain/core/messages";
 
 import * as PATH from "@/lib/api/path";
 import * as MSG from "@/lib/contents/chat/template";
+import { updateClueChat } from "../horenso/lib/match/lib/entry";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -116,11 +117,8 @@ export async function POST(req: Request) {
         // assistant メッセージ保存
         await save([new AIMessage(response)]);
 
-        // 今回のエントリーにメッセージを追記 ※※ 後で細かくチェック
-        console.log(clueId);
-        if (!(clueId === "")) {
-          // updateEntry(clueId, response);
-        }
+        // 今回のエントリーにメッセージを追記
+        if (!(clueId === "")) await updateClueChat(clueId, response);
       },
     });
 

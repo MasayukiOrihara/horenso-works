@@ -39,7 +39,7 @@ export type AdjustedClue = {
  * langGraphのノード群
  */
 /** 初期設定を行うノード */
-async function setupInitial() {
+async function setupInitial(state: typeof StateAnnotation.State) {
   const { states, contexts } = NODE.setupInitialNode({
     states: transitionStates,
     debugStep: globalDebugStep,
