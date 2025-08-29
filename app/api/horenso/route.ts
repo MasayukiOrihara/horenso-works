@@ -11,7 +11,6 @@ import * as DOC from "@/lib/contents/horenso/documents";
 import * as NODE from "./node";
 import * as TYPE from "@/lib/type";
 import * as ERR from "@/lib/message/error";
-import { Anonymous_Pro } from "next/font/google";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -26,8 +25,6 @@ const whyUseDocuments = DOC.whyDocuments.map((doc) => ({
 
 // デバック用変数
 let globalDebugStep = 0;
-// ヒントに使ったエントリーデータ(次のターンも使いまわす)
-let globalUsedEntry: TYPE.UsedEntry[] = [];
 // ベースURL の共通化
 let globalBaseUrl = "";
 
@@ -129,8 +126,9 @@ async function askQuestion(state: typeof StateAnnotation.State) {
 
 async function explainAnswer(state: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
+  const adjustedClue = state.adjustedClue;
 
-  const { contexts } = NODE.explainAnswerNode(globalUsedEntry);
+  const { contexts } = await NODE.explainAnswerNode(adjustedClue);
   return { contexts: [...state.contexts, ...contexts] };
 }
 

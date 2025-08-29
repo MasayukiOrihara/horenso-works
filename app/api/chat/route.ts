@@ -8,7 +8,6 @@ import { runWithFallback } from "@/lib/llm/run";
 import { requestApi } from "@/lib/api/request";
 
 import { AIMessage, BaseMessage } from "@langchain/core/messages";
-import { updateEntry } from "./utils";
 
 import * as PATH from "@/lib/api/path";
 import * as MSG from "@/lib/contents/chat/template";

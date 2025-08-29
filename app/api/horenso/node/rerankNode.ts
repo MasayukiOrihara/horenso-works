@@ -1,9 +1,7 @@
 import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
-import { v4 as uuidv4 } from "uuid";
-import fs from "fs";
 
-import { ClueMetadata, QAEntry, UsedEntry } from "@/lib/type";
+import { ClueMetadata } from "@/lib/type";
 import { messageToText } from "../lib/match/lib/utils";
 import { getRankedResults } from "../lib/match/lib/score";
 
