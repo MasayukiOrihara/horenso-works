@@ -1,7 +1,7 @@
 import { MemorySaver, StateGraph } from "@langchain/langgraph";
-import { StateAnnotation } from "./lib/annotation";
+import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
+import { Document } from "langchain/document";
 
-import { UsedEntry } from "@/lib/type";
 import { getBaseUrl } from "@/lib/path";
 import { measureExecution } from "@/lib/llm/graph";
 import { requestApi } from "@/lib/api/request";
@@ -9,6 +9,7 @@ import { EVALUATION_DATA_PATH } from "@/lib/api/path";
 
 import * as DOC from "@/lib/contents/horenso/documents";
 import * as NODE from "./node";
+import * as TYPE from "@/lib/type";
 import * as ERR from "@/lib/message/error";
 
 // 使用ドキュメントの初期状態準備
@@ -27,7 +28,7 @@ let globalDebugStep = 0;
 // エントリーデータID(送信用)
 let globalQaEntryId = "";
 // ヒントに使ったエントリーデータ(次のターンも使いまわす)
-let globalUsedEntry: UsedEntry[] = [];
+let globalUsedEntry: TYPE.UsedEntry[] = [];
 // ベースURL の共通化
 let globalBaseUrl = "";
 
@@ -143,6 +144,32 @@ async function saveFinishState(state: typeof StateAnnotation.State) {
     contexts: [...state.contexts, ...contexts],
   };
 }
+
+/** メイングラフ内の状態を司るアノテーション */
+const StateAnnotation = Annotation.Root({
+  sessionId: Annotation<string>(), // フロントで管理しているセッションID
+  contexts: Annotation<string[]>(), // 最終出力を行うコンテキスト
+  qaEmbeddings: Annotation<[Document<TYPE.ClueMetadata>, number][]>(),
+  aiHint: Annotation<string>(), // ヒント出力テキスト
+  analyze: Annotation<string>(), // ユーザー入力分析出力テキスト
+  evaluationData: Annotation<TYPE.Evaluation[]>(), // 回答評価データ
+  transition: Annotation<TYPE.HorensoStates>({
+    // フラグ
+    value: (
+      state: TYPE.HorensoStates = {
+        isAnswerCorrect: false,
+        hasQuestion: true,
+        step: 0,
+      },
+      action: Partial<TYPE.HorensoStates>
+    ) => ({
+      ...state,
+      ...action,
+    }),
+  }),
+
+  ...MessagesAnnotation.spec,
+});
 
 /**
  * グラフ定義
