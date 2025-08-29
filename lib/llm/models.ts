@@ -1,4 +1,4 @@
-import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
+import { ChatOpenAI } from "@langchain/openai";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { FakeListChatModel } from "@langchain/core/utils/testing";
 import {
@@ -36,12 +36,6 @@ export const OpenAi4_1Mini = new ChatOpenAI({
   model: "gpt-4.1-mini",
   temperature: 0.4, // 要約タスク
   tags: ["Horenso-works"],
-});
-
-// openAI 埋め込みモデル（large）
-export const embeddings = new OpenAIEmbeddings({
-  apiKey: process.env.OPENAI_API_KEY,
-  modelName: "text-embedding-3-large",
 });
 
 // anthropic(sonnet)(langchain経由)

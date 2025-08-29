@@ -2,11 +2,12 @@ import { Document } from "langchain/document";
 
 import { HorensoMetadata, UserAnswerEmbedding } from "@/lib/type";
 import { cachedVectorStore } from "../lib/vectorStore";
-import { embeddings } from "@/lib/llm/models";
+
 import { SUPABASE_SEARCH_ERROR } from "@/lib/message/error";
 import { searchEmbeddingSupabase } from "../lib/supabase";
 
 import * as CON from "@/lib/contents/match";
+import { embeddings } from "@/lib/llm/embedding";
 
 type SimilarityNode = {
   documents: Document<HorensoMetadata>[];

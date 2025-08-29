@@ -1,8 +1,6 @@
 import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
 
-import { embeddings } from "@/lib/llm/models";
-
 import { splitInputLlm } from "../lib/llm/splitInput";
 import { generateHintLlm } from "../lib/llm/generateHint";
 import { sortScore } from "../lib/match/lib/score";
@@ -16,6 +14,7 @@ import * as MSG from "@/lib/contents/horenso/template";
 import * as TYPE from "@/lib/type";
 import { searchEmbeddingSupabase } from "../lib/match/lib/supabase";
 import { CLUE_QUERY, CLUE_TABLE } from "@/lib/contents/match";
+import { embeddings } from "@/lib/llm/embedding";
 
 // 定数
 const MATCH_VALIDATE = "/api/horenso/lib/match/validate";

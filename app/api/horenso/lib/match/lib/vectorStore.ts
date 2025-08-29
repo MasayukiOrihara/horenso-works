@@ -1,7 +1,6 @@
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { Document } from "langchain/document";
-
-import { embeddings } from "@/lib/llm/models";
+import { embeddings } from "@/lib/llm/embedding";
 
 /** vector store が既にあるかのチェック */
 let cachedStore: MemoryVectorStore | null = null;

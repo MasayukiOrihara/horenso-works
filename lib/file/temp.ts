@@ -1,5 +1,5 @@
 import { Document } from "langchain/document";
-import { ClueMetadata, PhrasesMetadata } from "@/lib/type";
+import { PhrasesMetadata } from "@/lib/type";
 import { saveEmbeddingSupabase } from "../../app/api/horenso/lib/match/lib/supabase";
 import { readJson } from "@/lib/file/read";
 

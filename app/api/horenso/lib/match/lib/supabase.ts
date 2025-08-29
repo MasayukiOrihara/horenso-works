@@ -2,8 +2,9 @@ import { Document } from "langchain/document";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 
 import { supabaseClient } from "@/lib/clients";
-import { embeddings } from "@/lib/llm/models";
+
 import * as ERR from "@/lib/message/error";
+import { embeddings } from "@/lib/llm/embedding";
 
 /** ベクターデータで supabase から検索を行う */
 export const searchEmbeddingSupabase = async (
