@@ -30,30 +30,6 @@ export type MatchAnswerArgs = {
   shouldValidate?: boolean; // 適正チェックを行うかどうかのフラグ
 };
 
-/** エントリーデータを取り扱う型 */
-export type QADocumentMetadata = {
-  hint: string;
-  id: string;
-  timestamp: string;
-  quality: number;
-  question_id?: string;
-  source?: "user" | "admin" | "bot";
-};
-type QAMetadata = {
-  timestamp: string;
-  quality: number; // 回答の信頼度（例0.0~1.0）
-  question_id?: string; // 任意のカテゴリ
-  source?: "user" | "admin" | "bot";
-};
-export type QAEntry = {
-  id: string;
-  userAnswer: string;
-  hint: string;
-  embedding?: number[]; // ユーザーアンサーから生成されたベクトル
-  metadata: QAMetadata;
-};
-export type UsedEntry = { entry: Document; sum: number };
-
 export type ShouldValidate = {
   who: boolean;
   why: boolean;
@@ -120,7 +96,6 @@ export type PhrasesMetadata = {
   id?: string;
   question_id: string;
   parentId: string | null;
-  timestamp: string;
   rationale?: string;
   source: "user" | "admin" | "bot";
 };

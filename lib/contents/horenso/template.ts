@@ -85,7 +85,6 @@ export const JUDGE_ANSWER_FUZZY_MATCH_PROMPT = `あなたは、ソフトウェ�
  - metadata.id: ""
  - metadata.question_id: ""
  - metadata.parentId: [一致した正解（1 / 2 /...)、一致とみなさなかった場合は(null)]
- - metadata.timestamp: ""
  - metadata.source: "bot"
  - metadata.rationale: [一致と判断した理由、もしくは一致しない理由]
 `;

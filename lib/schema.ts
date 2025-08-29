@@ -15,7 +15,6 @@ const phrasesMetadataScheme = z.object({
   id: z.string(),
   question_id: z.string(),
   parentId: z.string().nullable(),
-  timestamp: z.string(),
   rationale: z.string().optional(),
   source: z.enum(["user", "bot", "admin"]),
 });

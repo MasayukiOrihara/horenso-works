@@ -1,5 +1,3 @@
-import path from "path";
-
 type BaseUrlInfo = {
   host: string;
   protocol: "http" | "https";
@@ -32,19 +30,6 @@ export const getBaseUrl = (req?: Request) => {
     baseUrl: `${protocol}://${host}`,
   };
   return cachedBaseUrl;
-};
-
-// qa-entries.json のファイルパス
-export const qaEntriesFilePath = () => {
-  const { host } = getBaseUrl();
-
-  if (host?.includes("vercel")) {
-    // vercel
-    return path.join("/tmp", "qa-entries.json");
-  } else {
-    // ローカル
-    return path.join(process.cwd(), "public", "advice", "qa-entries.json");
-  }
 };
 
 function toJSTISOString(date = new Date()) {

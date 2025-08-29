@@ -5,7 +5,6 @@ import { StructuredOutputParser } from "langchain/output_parsers";
 
 import { HorensoMetadata, PhrasesMetadata } from "@/lib/type";
 import { runWithFallback } from "@/lib/llm/run";
-import { timestamp } from "@/lib/path";
 import { documentsSchema } from "@/lib/schema";
 import { JSON_PARSE_ERROR } from "@/lib/message/error";
 import { JUDGE_ANSWER_FUZZY_MATCH_PROMPT } from "@/lib/contents/horenso/template";
@@ -56,7 +55,6 @@ export const evaluateUserAnswer = async (
           id: uuidv4(),
           question_id: question_id,
           parentId: doc.metadata.parentId,
-          timestamp: timestamp,
           rationale: doc.metadata.rationale,
           source: "bot",
         },
@@ -72,7 +70,6 @@ export const evaluateUserAnswer = async (
         id: uuidv4(),
         question_id: question_id,
         parentId: "",
-        timestamp: timestamp,
         rationale: JSON_PARSE_ERROR,
         source: "bot",
       },
