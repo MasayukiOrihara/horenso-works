@@ -3,12 +3,12 @@ import { useUserMessages } from "./message-provider";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { SendHorizontalIcon } from "lucide-react";
-import { useSwitches } from "../provider/switch-provider";
+import { useSettings } from "../provider/SettingsProvider";
 
 export const MessageInput = () => {
   const [text, setText] = useState("");
   const { addUserMessage, aiMessage, aiState } = useUserMessages();
-  const { learnOn, inputTag, setInputTag } = useSwitches();
+  const { flags, inputTag, setInputTag } = useSettings();
 
   // テキストアエリアにデバッグ用のタグを追加
   useEffect(() => {
@@ -32,9 +32,9 @@ export const MessageInput = () => {
           setText("");
         }
       }}
-      className={learnOn ? "" : "my-2"}
+      className={flags.learnOn ? "" : "my-2"}
     >
-      {learnOn && (
+      {flags.learnOn && (
         <div className="flex justify-center">
           <Button
             type="button"

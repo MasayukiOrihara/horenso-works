@@ -1,27 +1,17 @@
 import React, { useEffect } from "react";
 import { useUserMessages } from "../messages/message-provider";
 import { Button } from "../ui/button";
-import { useSwitches } from "../provider/switch-provider";
 import { Switch } from "@/components/ui/switch";
 import { requestApi } from "@/lib/api/request";
 import { MATCH_VALIDATE } from "@/lib/api/path";
+import { useSettings } from "../provider/SettingsProvider";
 
 let message = "";
 
 /** 設定画面 */
 export const Debuglog: React.FC = () => {
   const { currentUserMessage } = useUserMessages();
-  const {
-    setInputTag,
-    memoryOn,
-    setMemoryOn,
-    addPromptOn,
-    setAddPromptOn,
-    checkOn,
-    setCheckOn,
-    shouldVidateOn,
-    setShouldVidateOn,
-  } = useSwitches();
+  const { setInputTag, flags, setFlags } = useSettings();
 
   const handleEntryButtonClick = () => {
     setInputTag("【エントリー】");
@@ -43,19 +33,15 @@ export const Debuglog: React.FC = () => {
     }
   }, [currentUserMessage]);
 
-  // shouldの分解
-  const whoShouldValidate = shouldVidateOn.who;
-  const whyShouldValidate = shouldVidateOn.why;
-
   useEffect(() => {
     const fetchData = async () => {
       await requestApi("", MATCH_VALIDATE, {
         method: "POST",
-        body: shouldVidateOn,
+        body: flags.shouldValidate,
       });
     };
     fetchData();
-  }, [shouldVidateOn]);
+  }, [flags.shouldValidate]);
 
   return (
     <div className="absolute z-10 py-2 px-4 bg-zinc-600/70 text-sm rounded">
@@ -100,8 +86,8 @@ export const Debuglog: React.FC = () => {
           {/* 会話履歴を保存する */}
           <div className="flex flex-row items-center mb-1">
             <Switch
-              checked={memoryOn}
-              onCheckedChange={setMemoryOn}
+              checked={flags.memoryOn}
+              onCheckedChange={(v) => setFlags((s) => ({ ...s, memoryOn: v }))}
               className="data-[state=checked]:bg-blue-500"
             />
             <p className="ml-2">会話履歴の保存</p>
@@ -110,8 +96,8 @@ export const Debuglog: React.FC = () => {
           {/* 追加プロンプトを使用する */}
           <div className="flex flex-row items-center mb-1">
             <Switch
-              checked={addPromptOn}
-              onCheckedChange={setAddPromptOn}
+              checked={flags.addPrompt}
+              onCheckedChange={(v) => setFlags((s) => ({ ...s, addPrompt: v }))}
               className="data-[state=checked]:bg-blue-500"
             />
             <p className="ml-2">追加プロンプトの有効化</p>
@@ -120,8 +106,8 @@ export const Debuglog: React.FC = () => {
           {/* 正答判定を使用する */}
           <div className="flex flex-row items-center mb-1">
             <Switch
-              checked={checkOn}
-              onCheckedChange={setCheckOn}
+              checked={flags.checkOn}
+              onCheckedChange={(v) => setFlags((s) => ({ ...s, checkOn: v }))}
               className="data-[state=checked]:bg-blue-500"
             />
             <p className="ml-2">正答判定アンケートの有効化</p>
@@ -132,9 +118,12 @@ export const Debuglog: React.FC = () => {
             <div className="flex flex-row items-center mr-4">
               <p>「誰が」</p>
               <Switch
-                checked={whoShouldValidate}
-                onCheckedChange={(value) =>
-                  setShouldVidateOn((prev) => ({ ...prev, who: value }))
+                checked={flags.shouldValidate.who}
+                onCheckedChange={(v) =>
+                  setFlags((s) => ({
+                    ...s,
+                    shouldValidate: { ...s.shouldValidate, who: v },
+                  }))
                 }
                 className="data-[state=checked]:bg-blue-500"
               />
@@ -143,9 +132,12 @@ export const Debuglog: React.FC = () => {
             <div className="flex flex-row items-center">
               <p>「なぜ」</p>
               <Switch
-                checked={whyShouldValidate}
-                onCheckedChange={(value) =>
-                  setShouldVidateOn((prev) => ({ ...prev, why: value }))
+                checked={flags.shouldValidate.why}
+                onCheckedChange={(v) =>
+                  setFlags((s) => ({
+                    ...s,
+                    shouldValidate: { ...s.shouldValidate, why: v },
+                  }))
                 }
                 className="data-[state=checked]:bg-blue-500"
               />

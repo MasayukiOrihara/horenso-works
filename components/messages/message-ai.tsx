@@ -1,11 +1,11 @@
 import { useUserMessages } from "./message-provider";
 import { useEffect, useRef } from "react";
 import { UIMessage } from "ai";
-import { useSwitches } from "../provider/switch-provider";
 import { useStartButton } from "../provider/start-button-provider";
 import { useSessionId } from "@/hooks/useSessionId";
 import { useHorensoChat } from "@/hooks/useHorensoChat";
 import { ChatRequestOptions } from "@/lib/type";
+import { useSettings } from "../provider/SettingsProvider";
 
 // 最後のメッセージを取り出す共通化関数
 function getLatestAssistantMessage(messages: UIMessage[]) {
@@ -15,15 +15,15 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 
 export const MessageAi = () => {
   const { setAiMessage, currentUserMessage, setAiState } = useUserMessages();
-  const { memoryOn, learnOn, addPromptOn } = useSwitches();
+  const { flags } = useSettings();
   const { started, debug, step } = useStartButton();
   // 現在のセッション ID
   const sessionId = useSessionId();
   // チャットリクエストのオプションを作成
   const options: ChatRequestOptions = {
-    memoryOn,
-    learnOn,
-    addPromptOn,
+    memoryOn: flags.memoryOn,
+    learnOn: flags.learnOn,
+    addPromptOn: flags.addPrompt,
     debug,
     step,
   };
