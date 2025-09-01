@@ -29,28 +29,37 @@ export function ListModal({ open, onClose }: Props) {
   const close = () => setModal(null);
 
   return (
-    <div className="absolute z-15">
-      <FramedCard title="リストを更新する" align="center">
-        <ul>
-          <li>
-            <ActionRow title="正解リスト…" onClick={openDocuments} />
-          </li>
-          <li>
-            <ActionRow title="あいまい正解リスト…" onClick={openFuzzy} />
-          </li>
-          <li>
-            <ActionRow title="間違いリスト…" onClick={openWrong} />
-          </li>
-          <li>
-            <ActionRow title="返答の手がかり…" onClick={openClue} />
-          </li>
-        </ul>
-      </FramedCard>
+    <div
+      className="fixed inset-0 z-30"
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-68 ml-58 mt-84">
+        <FramedCard title="リストを更新する" align="center">
+          <ul>
+            <li>
+              <ActionRow title="正解リスト…" onClick={openDocuments} />
+            </li>
+            <li>
+              <ActionRow title="あいまい正解リスト…" onClick={openFuzzy} />
+            </li>
+            <li>
+              <ActionRow title="間違いリスト…" onClick={openWrong} />
+            </li>
+            <li>
+              <ActionRow title="返答の手がかり…" onClick={openClue} />
+            </li>
+          </ul>
+        </FramedCard>
 
-      <MDL.DocumentsModal open={modal === "documents"} onClose={close} />
-      <MDL.FuzzyListModal open={modal === "fuzzy"} onClose={close} />
-      <MDL.WrongListModal open={modal === "wrong"} onClose={close} />
-      <MDL.ClueListModal open={modal === "clue"} onClose={close} />
+        <MDL.DocumentsModal open={modal === "documents"} onClose={close} />
+        <MDL.FuzzyListModal open={modal === "fuzzy"} onClose={close} />
+        <MDL.WrongListModal open={modal === "wrong"} onClose={close} />
+        <MDL.ClueListModal open={modal === "clue"} onClose={close} />
+      </div>
     </div>
   );
 }

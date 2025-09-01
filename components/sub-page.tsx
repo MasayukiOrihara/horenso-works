@@ -15,11 +15,6 @@ export const SubPage: React.FC = () => {
     <MessageProvider>
       <div className="w-full max-w-2xl h-full flex flex-col m-auto px-4 py-2 overflow-hidden">
         <div>
-          {flags.learnOn && (
-            <>
-              <SettingsModal />
-            </>
-          )}
           <SCREEN />
           <MessageWindow />
         </div>

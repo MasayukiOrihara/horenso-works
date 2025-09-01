@@ -13,14 +13,6 @@ export type StartButtonProps = {
   setStarted: (val: boolean) => void;
 };
 
-/** 学び・記憶用のprops */
-export type MemorizingProps = {
-  memoryOn: boolean;
-  setMemoryOn: (val: boolean) => void;
-  learnOn: boolean;
-  setLearnOn: (val: boolean) => void;
-};
-
 /** 正解判定で使う型 */
 export type MatchAnswerArgs = {
   userAnswer: string; // 比較対象になる答え

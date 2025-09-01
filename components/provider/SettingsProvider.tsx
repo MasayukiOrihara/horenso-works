@@ -17,7 +17,7 @@ type SettingFlags = {
   memoryOn: boolean; // 会話履歴の保存フラグ
   learnOn: boolean; // 学習モードの保存フラグ
   addPrompt: boolean; // 追加プロンプトの試用フラグ
-  checkOn: boolean; // ?
+  checkOn: boolean; // 正誤判定アンケートの試用フラグ
   shouldValidate: ShouldValidate; // AI 回答チェックを行うかのフラグ
 };
 

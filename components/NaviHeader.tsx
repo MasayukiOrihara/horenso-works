@@ -1,21 +1,25 @@
 "use client";
 
-import { Switch } from "@/components/ui/switch";
-import { useSettings } from "./provider/SettingsProvider";
+import React from "react";
+import { SettingsButton } from "./SettingsModal/SettingsButton";
+import { SettingsModal } from "./SettingsModal/SettingsModal";
 
 export const Navi: React.FC = () => {
-  const { flags, setFlags } = useSettings();
+  const [open, setOpen] = React.useState(false);
 
   return (
-    <div className="sticky mx-12 my-4 flex flex-col items-end">
-      <div className="flex flex-row mb-2">
-        <p className="text-xs mr-1">設定</p>
-        <Switch
-          checked={flags.learnOn}
-          onCheckedChange={(v) => setFlags((s) => ({ ...s, learnOn: v }))}
-          className="data-[state=checked]:bg-blue-500"
+    <div className="">
+      <div className="fixed right-4 top-14 z-10">
+        <SettingsButton
+          onOpen={() => setOpen(true)}
+          controlsId="settings-modal"
         />
       </div>
+      <SettingsModal
+        id="settings-modal"
+        open={open}
+        onClose={() => setOpen(false)}
+      />
     </div>
   );
 };

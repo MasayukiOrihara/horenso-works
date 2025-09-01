@@ -1,27 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useUserMessages } from "./message-provider";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { SendHorizontalIcon } from "lucide-react";
-import { useSettings } from "../provider/SettingsProvider";
 
 export const MessageInput = () => {
   const [text, setText] = useState("");
-  const { addUserMessage, aiMessage, aiState } = useUserMessages();
-  const { flags, inputTag, setInputTag } = useSettings();
-
-  // テキストアエリアにデバッグ用のタグを追加
-  useEffect(() => {
-    if (!text.includes("【エントリー】") && !text.includes("【プロンプト】")) {
-      // ほかのタグが含まれない時
-      setText((prev) => inputTag + prev);
-      setInputTag("");
-    }
-  }, [inputTag, text, setInputTag]);
-
-  const handleAiMessageCopy = () => {
-    setText((prev) => prev + aiMessage);
-  };
+  const { addUserMessage, aiState } = useUserMessages();
 
   return (
     <form
@@ -32,20 +17,7 @@ export const MessageInput = () => {
           setText("");
         }
       }}
-      className={flags.learnOn ? "" : "my-2"}
     >
-      {flags.learnOn && (
-        <div className="flex justify-center">
-          <Button
-            type="button"
-            onClick={handleAiMessageCopy}
-            disabled={aiMessage === ""}
-            className="mb-2 hover:cursor-pointer"
-          >
-            ↓ 貼り付け ↓
-          </Button>
-        </div>
-      )}
       <div className="w-full h-12 flex overflow-hidden">
         {/* テキストエリア */}
         <Input
