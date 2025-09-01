@@ -52,7 +52,7 @@ export function ThresholdModal({ open, onClose }: Props) {
 
       {/* 本体 */}
       <div className="absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2">
-        <FramedCard title="返答例を追加">
+        <FramedCard title="判定の閾値を設定する">
           <form onSubmit={handleSubmit} className="space-y-3">
             {/** base max */}
             <label className="block">

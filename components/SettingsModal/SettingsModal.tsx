@@ -6,7 +6,7 @@ import React from "react";
 import { ActionRow } from "../ui/ActionRow";
 import { AddResponseExampleModal } from "./ResponseExamples/AddResponseExampleModal";
 import { ThresholdModal } from "./Threshold/ThresholdModal";
-import { ListModal } from "./List/ListModal";
+import { ListModal } from "./List/ListMenuModal";
 
 type SettingsModalProps = {
   label?: string;

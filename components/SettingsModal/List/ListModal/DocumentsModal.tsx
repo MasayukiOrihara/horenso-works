@@ -1,15 +1,11 @@
 import { FramedCard } from "@/components/ui/FramedCard";
-export type ResponseExample = {
-  id?: string;
-  title: string;
-  content: string;
-};
+
 type Props = {
   open: boolean;
   onClose: () => void;
 };
 
-export function ListModal({ open, onClose }: Props) {
+export function DocumentsModal({ open, onClose }: Props) {
   if (!open) return null; // ← 閉じているときは何も描画しない
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
