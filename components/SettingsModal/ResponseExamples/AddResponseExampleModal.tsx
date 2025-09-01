@@ -1,4 +1,11 @@
+import { MemoryTextData } from "@/app/api/memory/chat/save/route";
+import { Button } from "@/components/ui/button";
 import { FramedCard } from "@/components/ui/FramedCard";
+import { useSessionId } from "@/hooks/useSessionId";
+import { EVALUATION_DATA_PATH } from "@/lib/api/path";
+import { requestApi } from "@/lib/api/request";
+import { SESSIONID_ERROR } from "@/lib/message/error";
+import { useEffect, useState } from "react";
 export type ResponseExample = {
   id?: string;
   title: string;
@@ -10,12 +17,66 @@ type Props = {
   onSubmit: (example: ResponseExample) => void;
 };
 
+type LatestMessage = { user: string; assistant: string };
+
+// 定数
+const LOAD_LATEST_PATH = "/api/memory/chat/load/latest";
+
+/**
+ * 返答例を追加するモーダル
+ * @param param0
+ * @returns
+ */
 export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
+  // 受け取った LatestMessage を管理
+  const [latestMessages, setLatestMessages] = useState<LatestMessage | null>();
+  // 現在のセッション ID
+  const sessionId = useSessionId();
+
+  // 前のメッセージを取得
+  useEffect(() => {
+    // 設定を開いたときのみ
+    console.log(sessionId);
+    if (!sessionId || !open) return;
+    console.log(open);
+
+    // 直前メッセージを BD から取得
+    (async () => {
+      try {
+        const params = `?sessionId=${encodeURIComponent(sessionId)}`;
+        const res = await requestApi("", `${LOAD_LATEST_PATH}${params}`, {
+          method: "GET",
+        });
+
+        // res が { rows: [...] } か、配列か、どちらでも拾う
+        const rows: MemoryTextData[] = Array.isArray(res)
+          ? res
+          : res?.rows ?? [];
+
+        // メッセージを収納
+        const next = rows.reduce(
+          (acc, msg) => {
+            if (msg.role === "user" && !acc.user) acc.user = msg.content;
+            if (msg.role === "assistant" && !acc.assistant)
+              acc.assistant = msg.content;
+            return acc;
+          },
+          { user: "", assistant: "" }
+        );
+        setLatestMessages(next); // ← ここで state 更新（非同期）
+      } catch (error) {
+        console.warn(error);
+      }
+    })();
+  }, [sessionId, open]);
+
   if (!open) return null; // ← 閉じているときは何も描画しない
 
+  // 提出するハンドラー
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    // ここに更新したときの処理 ※※ 未登録
     onSubmit({
       title: String(fd.get("title") || ""),
       content: String(fd.get("content") || ""),
@@ -29,41 +90,35 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
 
       {/* 本体 */}
       <div className="absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2">
-        <FramedCard title="返答例を追加">
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">タイトル</span>
-              <input
-                name="title"
-                className="w-full rounded-md border px-3 py-2"
-                required
-              />
-            </label>
+        <FramedCard title="返答例を追加" align="left">
+          {/** ユーザーメッセージを表示 */}
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium">
+              前回のユーザーメッセージ
+            </span>
+            <div>{latestMessages?.user}</div>
+          </label>
 
+          <form onSubmit={handleSubmit} className="mt-2 space-y-3">
             <label className="block">
               <span className="mb-1 block text-sm font-medium">内容</span>
               <textarea
                 name="content"
                 className="w-full rounded-md border px-3 py-2"
-                rows={4}
+                rows={6}
                 required
+                defaultValue={latestMessages?.assistant}
               />
             </label>
 
+            {/** ボタン設定 */}
             <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-md border-2 border-black px-3 py-1 font-semibold hover:bg-slate-100 active:translate-y-px"
-              >
+              <Button onClick={onClose} className="hover:cursor-pointer">
                 キャンセル
-              </button>
-              <button
-                type="submit"
-                className="rounded-md border-2 border-black bg-sky-500 px-3 py-1 font-semibold text-white hover:brightness-110 active:translate-y-px"
-              >
-                追加
-              </button>
+              </Button>
+              <Button type="submit" className="hover:cursor-pointer">
+                更新
+              </Button>
             </div>
           </form>
         </FramedCard>

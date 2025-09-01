@@ -19,3 +19,5 @@ export const DOCUMENTS_SEARCH_QUERY = "search_similar_documents";
 // clue list
 export const CLUE_TABLE = "cluelist";
 export const CLUE_QUERY = "search_cluelist";
+
+export const MEMORY_TABLE = "memory_text_data";

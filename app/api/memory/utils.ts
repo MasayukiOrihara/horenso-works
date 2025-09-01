@@ -1,6 +1,7 @@
 import { BaseMessage, MessageContent } from "@langchain/core/messages";
 import { MemoryTextData } from "./chat/save/route";
 import { supabaseClient } from "@/lib/clients";
+import { MEMORY_TABLE } from "@/lib/contents/match";
 
 // 返り値の型を定義
 export type OpenAIMessage = {
@@ -49,14 +50,13 @@ export const logShort = (msg: string, max = 32) => {
   console.log(trimmed);
 };
 
-/** supabase に会話履歴データを保存する */
+/** supabase に会話履歴データを保存する(timestampはDB側で付与する) */
 export const saveSupabase = async (data: MemoryTextData) => {
-  const { error } = await supabaseClient().from("memory_text_data").insert({
+  const { error } = await supabaseClient().from(MEMORY_TABLE).insert({
     id: data.id,
     role: data.role,
     content: data.content,
     session_id: data.sessionId,
-    timestamp: data.timestamp,
   });
 
   if (error) throw error;

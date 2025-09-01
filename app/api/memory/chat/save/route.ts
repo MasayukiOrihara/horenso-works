@@ -21,7 +21,7 @@ export type MemoryTextData = {
   role: string;
   content: string;
   sessionId: string;
-  timestamp: string;
+  createdAt: string;
 };
 
 /** メッセージをテキスト形式にフォーマットする処理 */
@@ -40,7 +40,7 @@ async function convertTextFormat(state: typeof GraphAnnotation.State) {
     role: openaiFormat.role,
     content: cleanFormatContent,
     sessionId: sessionId,
-    timestamp: timestamp.slice(0, 16),
+    createdAt: timestamp.slice(0, 16),
   };
 
   return { memoryTextData: memoryTextData };
@@ -72,7 +72,7 @@ async function saveTextData(state: typeof GraphAnnotation.State) {
 
   // 形式を整える
   const message = `${memoryTextData.role}: ${memoryTextData.content}`;
-  const textFormat = `${message}\n - sessionId: ${memoryTextData.sessionId}  time: ${memoryTextData.timestamp}`;
+  const textFormat = `${message}\n - sessionId: ${memoryTextData.sessionId}  time: ${memoryTextData.createdAt}`;
 
   // ローカル保存
   fs.appendFileSync(localPath, textFormat, "utf-8");
