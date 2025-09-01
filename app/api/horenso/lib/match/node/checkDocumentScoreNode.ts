@@ -3,11 +3,13 @@ import { Document } from "langchain/document";
 
 import * as TYPE from "@/lib/type";
 import * as CON from "@/lib/contents/match";
+import { MatchThreshold } from "@/lib/contents/match";
 
 type DocCheckNode = {
   similarityResults: [DocumentInterface<Record<string, unknown>>, number][];
   matchAnswerArgs: TYPE.MatchAnswerArgs;
   userEmbedding: TYPE.UserAnswerEmbedding;
+  threshold: MatchThreshold;
 };
 
 /**
@@ -18,9 +20,13 @@ export async function checkDocumentScoreNode({
   similarityResults,
   matchAnswerArgs,
   userEmbedding,
+  threshold,
 }: DocCheckNode) {
   const documents = matchAnswerArgs.documents;
   const evaluationRecords: TYPE.Evaluation[] = []; // 評価結果オブジェクト
+
+  const maxThreshold = threshold.maxBaseThreshold ?? CON.BASE_MATCH_SCORE;
+  const minThreshold = threshold.minBaseThreshold ?? CON.BASE_WORST_SCORE;
 
   // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
   similarityResults.forEach(([bestMatch, score]) => {
@@ -41,12 +47,12 @@ export async function checkDocumentScoreNode({
         };
 
         // 不正解判定
-        if (score < CON.BASE_WORST_SCORE) {
+        if (score < minThreshold) {
           documentScore.correct = "incorrect";
         }
 
         // 正解判定
-        if (score >= CON.BASE_MATCH_SCORE) {
+        if (score >= maxThreshold) {
           // 正解ののフラグ上げる
           doc.metadata.isMatched = true; // matchAnswerArgs 内の document
           bestMatch.metadata.isMatched = true; // similarityResults 内の document

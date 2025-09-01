@@ -12,3 +12,4 @@ export const EVALUATION_DATA_PATH = "/api/evaluation-data";
 
 // match
 export const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
+export const MATCH_THRESHOLD = "/api/horenso/lib/match/threshold";

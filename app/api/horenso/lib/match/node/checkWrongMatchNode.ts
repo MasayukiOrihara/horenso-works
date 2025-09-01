@@ -2,9 +2,11 @@ import * as TYPE from "@/lib/type";
 import { WRONGMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
 import { searchEmbeddingSupabase } from "../lib/supabase";
 import * as CON from "@/lib/contents/match";
+import { MatchThreshold } from "@/lib/contents/match";
 
 type WrongCheckNode = {
   evaluationRecords: TYPE.Evaluation[];
+  threshold: MatchThreshold;
 };
 
 /**
@@ -14,8 +16,11 @@ type WrongCheckNode = {
  */
 export async function checkWrongMatchNode({
   evaluationRecords,
+  threshold,
 }: WrongCheckNode) {
   const tempEvaluationRecords: TYPE.Evaluation[] = evaluationRecords;
+
+  const maxThreshold = threshold.maxWrongThreshold ?? CON.WRONG_MATCH_SCORE;
 
   // 外れリストを参照し、もし一致したら不正解としてこれ以降の処理を飛ばす
   try {
@@ -60,8 +65,7 @@ export async function checkWrongMatchNode({
       // 答えの結果が出てない
       const isAnswerUnknown = record.answerCorrect === "unknown";
       // ハズレリストの閾値以上
-      const exceedsWrongMatchThreshold =
-        WrongScore.score > CON.WRONG_MATCH_SCORE;
+      const exceedsWrongMatchThreshold = WrongScore.score > maxThreshold;
       if (isAnswerUnknown && exceedsWrongMatchThreshold) {
         WrongScore.correct = "incorrect"; // 不正解
         record.answerCorrect = WrongScore.correct;

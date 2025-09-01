@@ -2,10 +2,9 @@ import { MemoryTextData } from "@/app/api/memory/chat/save/route";
 import { Button } from "@/components/ui/button";
 import { FramedCard } from "@/components/ui/FramedCard";
 import { useSessionId } from "@/hooks/useSessionId";
-import { EVALUATION_DATA_PATH } from "@/lib/api/path";
 import { requestApi } from "@/lib/api/request";
-import { SESSIONID_ERROR } from "@/lib/message/error";
 import { useEffect, useState } from "react";
+
 export type ResponseExample = {
   id?: string;
   title: string;

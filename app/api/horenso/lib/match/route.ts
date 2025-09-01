@@ -6,6 +6,10 @@ import { measureExecution } from "@/lib/llm/graph";
 
 import * as TYPE from "@/lib/type";
 import * as NODE from "./node";
+import { requestApi } from "@/lib/api/request";
+import { getBaseUrl } from "@/lib/path";
+import { MatchThreshold } from "@/lib/contents/match";
+import { MATCH_THRESHOLD } from "@/lib/api/path";
 
 /**
  * langGraphのノード群
@@ -36,12 +40,14 @@ async function checkDocumentScore(state: typeof StateAnnotation.State) {
   const similarityResults = state.similarityResults;
   const matchAnswerArgs = state.matchAnswerArgs;
   const userEmbedding = state.userEmbedding;
+  const threshold = state.threshold;
 
   const { tempMatchAnswerArgs, evaluationRecords } =
     await NODE.checkDocumentScoreNode({
       similarityResults: similarityResults,
       matchAnswerArgs: matchAnswerArgs,
       userEmbedding: userEmbedding,
+      threshold: threshold,
     });
 
   return {
@@ -74,9 +80,11 @@ async function shouldWrongMatch(state: typeof StateAnnotation.State) {
 /** ハズレチェックを行うノード */
 async function checkWrongMatch(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
+  const threshold = state.threshold;
 
   const { tempEvaluationRecords } = await NODE.checkWrongMatchNode({
     evaluationRecords: evaluationRecords,
+    threshold: threshold,
   });
 
   return { evaluationRecords: tempEvaluationRecords };
@@ -103,9 +111,11 @@ async function shouldFuzzyMatch(state: typeof StateAnnotation.State) {
 /** あいまい正答チェックを行うノード */
 async function checkFuzzyMatch(state: typeof StateAnnotation.State) {
   const evaluationRecords = state.evaluationRecords;
+  const threshold = state.threshold;
 
   const { tempEvaluationRecords } = await NODE.checkFuzzyMatchNode({
     evaluationRecords: evaluationRecords,
+    threshold: threshold,
   });
 
   return { evaluationRecords: tempEvaluationRecords };
@@ -188,6 +198,7 @@ const StateAnnotation = Annotation.Root({
   didEvaluateAnswer: Annotation<boolean>(),
   evaluationRecords: Annotation<TYPE.Evaluation[]>(),
   evaluationData: Annotation<TYPE.Evaluation>(),
+  threshold: Annotation<MatchThreshold>(),
 });
 
 /**
@@ -230,8 +241,21 @@ export async function POST(req: Request) {
       return Response.json({ error: MESSAGES_ERROR }, { status: 400 });
     }
 
+    // 閾値を取得
+    const { baseUrl } = getBaseUrl(req);
+    const threshold: MatchThreshold = await requestApi(
+      baseUrl,
+      MATCH_THRESHOLD,
+      {
+        method: "GET",
+      }
+    );
+
     // 実行
-    const result = await measureExecution(app, "match", { matchAnswerArgs });
+    const result = await measureExecution(app, "match", {
+      matchAnswerArgs,
+      threshold,
+    });
 
     // 出力
     // 回答評価データ

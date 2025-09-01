@@ -3,9 +3,11 @@ import { searchEmbeddingSupabase } from "../lib/supabase";
 
 import * as TYPE from "@/lib/type";
 import * as CON from "@/lib/contents/match";
+import { MatchThreshold } from "@/lib/contents/match";
 
 type FuzzyCheckNode = {
   evaluationRecords: TYPE.Evaluation[];
+  threshold: MatchThreshold;
 };
 
 /**
@@ -15,8 +17,11 @@ type FuzzyCheckNode = {
  */
 export async function checkFuzzyMatchNode({
   evaluationRecords,
+  threshold,
 }: FuzzyCheckNode) {
   const tempEvaluationRecords: TYPE.Evaluation[] = evaluationRecords;
+
+  const maxThreshold = threshold.maxFuzzyThreshold ?? CON.FUZZY_MATCH_SCORE;
 
   // 曖昧リストから検索し最大値スコアを取得
   try {
@@ -62,8 +67,7 @@ export async function checkFuzzyMatchNode({
       // 答えの結果が出てない
       const isAnswerUnknown = record.answerCorrect === "unknown";
       // あいまいリストの閾値以上
-      const exceedsFuzzyMatchThreshold =
-        fuzzyScore.score > CON.FUZZY_MATCH_SCORE;
+      const exceedsFuzzyMatchThreshold = fuzzyScore.score > maxThreshold;
       if (isAnswerUnknown && exceedsFuzzyMatchThreshold) {
         fuzzyScore.correct = "correct"; // 正解
         record.answerCorrect = fuzzyScore.correct;
