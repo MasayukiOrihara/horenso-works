@@ -8,6 +8,7 @@ import { useSwitches } from "./provider/switch-provider";
 import { CorrectCheck } from "./debug/correctCheck";
 import { MessageWindow } from "./messages/message-window";
 import { MessageAi } from "./messages/message-ai";
+import { SettingsModal } from "./SettingsModal/SettingsModal";
 
 export const SubPage: React.FC = () => {
   const { learnOn, checkOn } = useSwitches();
@@ -15,7 +16,11 @@ export const SubPage: React.FC = () => {
     <MessageProvider>
       <div className="w-full max-w-2xl h-full flex flex-col m-auto px-4 py-2 overflow-hidden">
         <div>
-          {learnOn && <Debuglog />}
+          {learnOn && (
+            <>
+              <SettingsModal />
+            </>
+          )}
           <SCREEN />
           <MessageWindow />
         </div>
