@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+
 import { useUserMessages } from "./message-provider";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
@@ -6,18 +7,25 @@ import { SendHorizontalIcon } from "lucide-react";
 
 export const MessageInput = () => {
   const [text, setText] = useState("");
+  const [oldText, setOldText] = useState(""); // ひとつ前の入力
   const { addUserMessage, aiState } = useUserMessages();
 
+  const submitHandle = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const tempText = text.trim();
+    if (tempText) {
+      // ※※ 連続入力検知
+      if (oldText !== "" && oldText === tempText) {
+        console.warn("同じ入力を検知しました。");
+      }
+      addUserMessage(tempText);
+      setOldText(tempText);
+      setText("");
+    }
+  };
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (text.trim()) {
-          addUserMessage(text.trim());
-          setText("");
-        }
-      }}
-    >
+    <form onSubmit={(e) => submitHandle(e)}>
       <div className="w-full h-12 flex overflow-hidden">
         {/* テキストエリア */}
         <Input
