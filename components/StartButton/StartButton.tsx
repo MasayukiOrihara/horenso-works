@@ -51,19 +51,23 @@ export const StartButton = () => {
     const payload = {
       name: values.name?.trim() ? values.name.trim() : null,
       gender: values.gender === "none" ? null : values.gender,
+      country: values.country === "other" ? null : values.country,
+      company: values.company?.trim() ? values.company.trim() : null,
+      organization:
+        values.organization === "other" ? null : values.organization,
     };
     console.log("submit:", payload);
+
+    setStarted(true); // 画面遷移を行う
     // API / LLMへ
+  };
+
+  const onError = (err: any) => {
+    console.error("form errors:", err);
   };
 
   // 開始中なら何もしない
   if (started || debug) return null;
-
-  // 提出用関数
-  // function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-  //   e.preventDefault();
-  //   const fd = new FormData(e.currentTarget);
-  // }
 
   return (
     <div>
@@ -74,7 +78,7 @@ export const StartButton = () => {
               <h2 className="text-zinc-500 text-sm  text-center">
                 あなたの情報を入力すると、その情報に沿った回答を返します。
               </h2>
-              <form onSubmit={handleSubmit(onSubmit)} className="p-6">
+              <form onSubmit={handleSubmit(onSubmit, onError)} className="p-6">
                 {/** 名前入力 */}
                 <div className="mb-4 space-y-2">
                   <Label htmlFor="name">👤 名前</Label>
@@ -124,7 +128,7 @@ export const StartButton = () => {
 
                 {/** 国籍 */}
                 <div className="mb-4 space-y-2">
-                  <Label htmlFor="country">🌍 国</Label>
+                  <Label htmlFor="country">🌍 出身地</Label>
                   <Controller
                     control={control}
                     name="country"
@@ -155,7 +159,7 @@ export const StartButton = () => {
                     render={({ field }) => (
                       <Input
                         id="company"
-                        placeholder="例）山田太郎"
+                        placeholder="例）株式会社フリースタイル"
                         autoComplete="company"
                         {...field}
                       />
@@ -187,11 +191,7 @@ export const StartButton = () => {
                   />
                 </div>
 
-                <Button
-                  type="submit"
-                  onClick={() => setStarted(true)}
-                  className="w-full hover:cursor-pointer"
-                >
+                <Button type="submit" className="w-full hover:cursor-pointer">
                   スタート
                 </Button>
                 <h2 className="text-zinc-500 text-sm text-center">
