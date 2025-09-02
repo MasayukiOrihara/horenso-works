@@ -23,7 +23,7 @@ import { useStartButton } from "../provider/StartButtonProvider";
  * スタートボタンとプロフィール入力
  * @returns
  */
-export const StartButton = () => {
+export const ProfileModal = () => {
   const { startButtonFlags, setStartButtonFlags } = useStartButton();
   const { push } = useErrorStore();
   // 現在のセッション ID

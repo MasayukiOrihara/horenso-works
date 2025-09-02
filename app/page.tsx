@@ -3,7 +3,7 @@ import { Footer } from "@/components/parts/footer";
 import { SideMenu } from "@/components/parts/side-menu";
 import { SubPage } from "@/components/sub-page";
 import { Navi } from "@/components/NaviHeader";
-import { StartButton } from "@/components/StartButton/StartButton";
+import { ProfileModal } from "@/components/ProfileModal/ProfileModal";
 import { StartButtonProvider } from "@/components/provider/StartButtonProvider";
 import { SettingsProvider } from "@/components/provider/SettingsProvider";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary/ErrorBoundary";
@@ -18,7 +18,7 @@ export default function Home() {
         <div className="flex flex-1">
           <StartButtonProvider>
             <SideMenu />
-            <StartButton />
+            <ProfileModal />
             <main className="flex-1 flex flex-col">
               <SettingsProvider>
                 <Navi />
