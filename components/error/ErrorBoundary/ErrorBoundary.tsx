@@ -4,6 +4,9 @@ import React from "react";
 type Props = { children: React.ReactNode };
 type State = { hasError: boolean; message?: string };
 
+/**
+ * UIコンポーネントのエラーを検知する
+ */
 export class ErrorBoundary extends React.Component<Props, State> {
   state: State = { hasError: false };
 

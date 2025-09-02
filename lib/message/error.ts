@@ -8,6 +8,8 @@ export const WRONGMATCH_ERROR = "ハズレチェック中にエラーが発生�
 export const FUZZYMATCH_ERROR = "あいまい検索中にエラーが発生しました。: ";
 export const AI_EVALUATE_ERROR = "AI のよる判定結果が得られませんでした";
 export const JSON_PARSE_ERROR = "JSONパース失敗";
+export const USERPROFILE_SEND_ERROR =
+  "ユーザープロファイルの送信に失敗しました";
 
 // supabase
 export const SUPABASE_KEY_ERROR = "Expected SUPABASE_SERVICE_ROLE_KEY";

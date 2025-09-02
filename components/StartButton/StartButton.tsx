@@ -1,30 +1,30 @@
 "use client";
-
-import { useStartButton } from "../provider/StartButtonProvider";
-import { Button } from "../ui/button";
-import { FramedCard } from "../ui/FramedCard";
-
 import { useForm, Controller } from "react-hook-form";
-
+import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useErrorStore } from "@/hooks/useErrorStore";
+
+import { Button } from "@/components/ui/button";
+import { FramedCard } from "@/components/ui/FramedCard";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import * as S from "@/components/ui/select";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { requestApi } from "@/lib/api/request";
 import { USERPROFILE_PATH } from "@/lib/api/path";
 import { userprofileFormValues, userprofileSchema } from "@/lib/schema";
+import * as ERR from "@/lib/message/error";
 
+import { useStartButton } from "../provider/StartButtonProvider";
+
+/**
+ * スタートボタンとプロフィール入力
+ * @returns
+ */
 export const StartButton = () => {
   const { startButtonFlags, setStartButtonFlags } = useStartButton();
+  const { push } = useErrorStore();
 
   // form コントロール
   const { control, handleSubmit } = useForm<userprofileFormValues>({
@@ -38,6 +38,7 @@ export const StartButton = () => {
     },
   });
 
+  // スタートボタンを押したときの処理
   const onSubmit = (values: userprofileFormValues) => {
     const payload = {
       name: values.name?.trim() ? values.name.trim() : "",
@@ -47,27 +48,24 @@ export const StartButton = () => {
       organization: values.organization,
     };
 
-    // API / LLMへ
-    try {
-      (async () => {
-        try {
-          await requestApi("", USERPROFILE_PATH, {
-            method: "POST",
-            body: { userprofile: payload },
-          });
-        } catch (error) {
-          console.warn(error);
-        }
-      })();
-    } catch (error) {
-      console.error("ユーザープロファイルの送信に失敗しました。" + error);
-    }
+    // ユーザープロファイルをサーバー側に送信
+    (async () => {
+      try {
+        await requestApi("", USERPROFILE_PATH, {
+          method: "POST",
+          body: { userprofile: payload },
+        });
+      } catch (error) {
+        toast.error(ERR.USERPROFILE_SEND_ERROR);
+
+        const message =
+          error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
+        const stack = error instanceof Error ? error.stack : ERR.UNKNOWN_ERROR;
+        push({ message: ERR.USERPROFILE_SEND_ERROR, detail: stack || message });
+      }
+    })();
     // 画面遷移を行う
     setStartButtonFlags((s) => ({ ...s, started: true }));
-  };
-
-  const onError = (err: any) => {
-    console.error("form errors:", err);
   };
 
   // 開始中なら何もしない
@@ -82,7 +80,7 @@ export const StartButton = () => {
               <h2 className="text-zinc-500 text-sm  text-center">
                 あなたの情報を入力すると、その情報に沿った回答を返します。
               </h2>
-              <form onSubmit={handleSubmit(onSubmit, onError)} className="p-6">
+              <form onSubmit={handleSubmit(onSubmit)} className="p-6">
                 {/** 名前入力 */}
                 <div className="mb-4 space-y-2">
                   <Label htmlFor="name">👤 名前</Label>
@@ -137,19 +135,19 @@ export const StartButton = () => {
                     control={control}
                     name="country"
                     render={({ field }) => (
-                      <Select
+                      <S.Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
-                        <SelectTrigger id="country">
-                          <SelectValue placeholder="国を選択" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="japan">日本</SelectItem>
-                          <SelectItem value="usa">アメリカ</SelectItem>
-                          <SelectItem value="other">その他</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <S.SelectTrigger id="country">
+                          <S.SelectValue placeholder="国を選択" />
+                        </S.SelectTrigger>
+                        <S.SelectContent>
+                          <S.SelectItem value="japan">日本</S.SelectItem>
+                          <S.SelectItem value="usa">アメリカ</S.SelectItem>
+                          <S.SelectItem value="other">その他</S.SelectItem>
+                        </S.SelectContent>
+                      </S.Select>
                     )}
                   />
                 </div>
@@ -177,20 +175,20 @@ export const StartButton = () => {
                     control={control}
                     name="organization"
                     render={({ field }) => (
-                      <Select
+                      <S.Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
-                        <SelectTrigger id="organization">
-                          <SelectValue placeholder="所属を選択" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="dev">開発</SelectItem>
-                          <SelectItem value="sales">営業</SelectItem>
-                          <SelectItem value="hr">人事</SelectItem>
-                          <SelectItem value="other">その他</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <S.SelectTrigger id="organization">
+                          <S.SelectValue placeholder="所属を選択" />
+                        </S.SelectTrigger>
+                        <S.SelectContent>
+                          <S.SelectItem value="dev">開発</S.SelectItem>
+                          <S.SelectItem value="sales">営業</S.SelectItem>
+                          <S.SelectItem value="hr">人事</S.SelectItem>
+                          <S.SelectItem value="other">その他</S.SelectItem>
+                        </S.SelectContent>
+                      </S.Select>
                     )}
                   />
                 </div>
