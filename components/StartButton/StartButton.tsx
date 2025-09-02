@@ -3,6 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useErrorStore } from "@/hooks/useErrorStore";
+import { useSessionId } from "@/hooks/useSessionId";
 
 import { Button } from "@/components/ui/button";
 import { FramedCard } from "@/components/ui/FramedCard";
@@ -12,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import * as S from "@/components/ui/select";
 
 import { requestApi } from "@/lib/api/request";
-import { USERPROFILE_PATH } from "@/lib/api/path";
+import { USERPROFILE_SAVE_PATH } from "@/lib/api/path";
 import { userprofileFormValues, userprofileSchema } from "@/lib/schema";
 import * as ERR from "@/lib/message/error";
 
@@ -25,6 +26,8 @@ import { useStartButton } from "../provider/StartButtonProvider";
 export const StartButton = () => {
   const { startButtonFlags, setStartButtonFlags } = useStartButton();
   const { push } = useErrorStore();
+  // 現在のセッション ID
+  const sessionId = useSessionId();
 
   // form コントロール
   const { control, handleSubmit } = useForm<userprofileFormValues>({
@@ -51,12 +54,13 @@ export const StartButton = () => {
     // ユーザープロファイルをサーバー側に送信
     (async () => {
       try {
-        await requestApi("", USERPROFILE_PATH, {
+        await requestApi("", USERPROFILE_SAVE_PATH, {
           method: "POST",
-          body: { userprofile: payload },
+          body: { userprofile: payload, sessionId: sessionId },
         });
       } catch (error) {
-        toast.error(ERR.USERPROFILE_SEND_ERROR);
+        // エラー表示
+        toast.error(`${ERR.USERPROFILE_SEND_ERROR}\n${ERR.RELOAD_BROWSER}`);
 
         const message =
           error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;

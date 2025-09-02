@@ -4,6 +4,10 @@ import React from "react";
 import { SettingsButton } from "./SettingsModal/SettingsButton";
 import { SettingsModal } from "./SettingsModal/SettingsModal";
 
+/**
+ * 設定とボタンの表示
+ * @returns
+ */
 export const Navi: React.FC = () => {
   const [open, setOpen] = React.useState(false);
 

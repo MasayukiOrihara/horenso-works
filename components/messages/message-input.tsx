@@ -4,6 +4,8 @@ import { useUserMessages } from "./message-provider";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { SendHorizontalIcon } from "lucide-react";
+import { toast } from "sonner";
+import { SAME_INPUT_WARNING } from "@/lib/message/error";
 
 export const MessageInput = () => {
   const [text, setText] = useState("");
@@ -14,9 +16,9 @@ export const MessageInput = () => {
     e.preventDefault();
     const tempText = text.trim();
     if (tempText) {
-      // ※※ 連続入力検知
+      // 連続入力検知
       if (oldText !== "" && oldText === tempText) {
-        console.warn("同じ入力を検知しました。");
+        toast.warning(SAME_INPUT_WARNING);
       }
       addUserMessage(tempText);
       setOldText(tempText);

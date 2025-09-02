@@ -15,4 +15,5 @@ export const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
 export const MATCH_THRESHOLD = "/api/horenso/lib/match/threshold";
 
 // userprofile
-export const USERPROFILE_PATH = "/api/userprofile";
+export const USERPROFILE_SAVE_PATH = "/api/userprofile/save";
+export const USERPROFILE_LOAD_PATH = "/api/userprofile/load/";

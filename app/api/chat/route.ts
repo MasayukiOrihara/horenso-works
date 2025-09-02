@@ -2,7 +2,7 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { LangChainAdapter } from "ai";
 
 import { SESSIONID_ERROR, UNKNOWN_ERROR } from "@/lib/message/error";
-import { ChatRequestOptionsSchema } from "@/lib/schema";
+import { ChatRequestOptionsSchema, userprofileFormValues } from "@/lib/schema";
 import { getBaseUrl } from "@/lib/path";
 import { runWithFallback } from "@/lib/llm/run";
 import { requestApi } from "@/lib/api/request";
@@ -39,6 +39,14 @@ export async function POST(req: Request) {
       method: "POST",
       body: { messages, sessionId },
     });
+    // ユーザープロファイルを取得
+    const userprofilePromise = requestApi(
+      baseUrl,
+      `${PATH.USERPROFILE_LOAD_PATH}${sessionId}`,
+      {
+        method: "GET",
+      }
+    );
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
     // フロントからオプションを取得
@@ -102,10 +110,19 @@ export async function POST(req: Request) {
 
     // 過去履歴の同期
     const memoryResponse = await memoryResponsePromise;
+    // ユーザープロファイルの動機
+    const userprofile: userprofileFormValues = await userprofilePromise;
+
+    // ユーザー情報を整形
+    const excludeValues = ["", "none", "other"]; // 除外条件
+    const userprofileFiltered = Object.entries(userprofile)
+      .filter(([_, v]) => !excludeValues.includes(v))
+      .map(([k, v]) => `${k}: ${v}`);
 
     // プロンプト全文を取得して表示
     const promptVariables = {
       chat_history: memoryResponse,
+      userprofile: userprofileFiltered.join(", "),
       user_message: userMessage,
       ai_message: aiMessages.join("\n\n"),
     };

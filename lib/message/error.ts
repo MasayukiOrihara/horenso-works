@@ -2,14 +2,17 @@
 export const UNKNOWN_ERROR = "Unknown error occurred";
 export const SESSIONID_ERROR = "sessionId is required";
 export const MESSAGES_ERROR = "messages is required";
+export const RECUESTBODY_ERROR = "request body is required";
 export const SUMMARY_ERROR = "メッセージを要約できませんでした。";
 export const SCORE_GET_ERROR = "スコアの取得に失敗しました";
 export const WRONGMATCH_ERROR = "ハズレチェック中にエラーが発生しました。: ";
 export const FUZZYMATCH_ERROR = "あいまい検索中にエラーが発生しました。: ";
 export const AI_EVALUATE_ERROR = "AI のよる判定結果が得られませんでした";
 export const JSON_PARSE_ERROR = "JSONパース失敗";
-export const USERPROFILE_SEND_ERROR =
-  "ユーザープロファイルの送信に失敗しました";
+export const RECUEST_ERROR = "✖ APIリクエストエラー: ";
+export const RETRY_ERROR = "最大リトライ回数を超えました";
+export const DATA_SAVE_ERROR = "✖ データ保存に失敗しました";
+export const DATA_LOAD_ERROR = "✖ データ取得に失敗しました";
 
 // supabase
 export const SUPABASE_KEY_ERROR = "Expected SUPABASE_SERVICE_ROLE_KEY";
@@ -19,3 +22,12 @@ export const SUPABASE_STORE_ERROR =
 export const SUPABASE_SEARCH_ERROR = "Error searching Supabase";
 export const SUPABASE_NO_RESULT_ERROR =
   "No results from Supabase, fallback search";
+export const SUPABASE_UPSERT_ERROR = "Supabase upsert error: ";
+
+// ユーザーへ表示
+// エラー
+export const USERPROFILE_SEND_ERROR =
+  "ユーザープロファイルの送信に失敗しました";
+export const RELOAD_BROWSER = "ブラウザを再読み込みしてください";
+// 警告
+export const SAME_INPUT_WARNING = "同じ入力は送信されません";

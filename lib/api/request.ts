@@ -1,5 +1,5 @@
 import axios from "axios";
-import { UNKNOWN_ERROR } from "../message/error";
+import * as ERR from "../message/error";
 
 // 型
 type RequestBody = Record<string, unknown>;
@@ -36,7 +36,8 @@ export const requestApi = async (
       });
       return response.data; // axiosはレスポンスデータがここに入る
     } catch (error) {
-      const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
+      const message =
+        error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
 
       let isRetryable = true;
       if (axios.isAxiosError(error)) {
@@ -48,8 +49,7 @@ export const requestApi = async (
       }
 
       if (attempt === maxRetries || !isRetryable) {
-        console.error("APIリクエストエラー:", message);
-        throw error;
+        throw new Error(ERR.RECUEST_ERROR + message);
       }
 
       const delay = Math.min(baseDelay * 2 ** attempt, 5000); // 最大5秒
@@ -63,5 +63,5 @@ export const requestApi = async (
       await new Promise((res) => setTimeout(res, delay + jitter));
     }
   }
-  throw new Error("最大リトライ回数を超えました");
+  throw new Error(ERR.RETRY_ERROR);
 };
