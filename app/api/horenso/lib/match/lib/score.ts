@@ -1,13 +1,12 @@
 import { Document } from "langchain/document";
 
-import { ClueMetadata, Evaluation } from "@/lib/type";
-import { AdjustedClue } from "../../../route";
+import * as TYPE from "@/lib/type";
 
 /** データに重みづけしたスコアを計算して出力 */
 export const getRankedResults = (
-  results: [Document<ClueMetadata>, number][]
+  results: [Document<TYPE.ClueMetadata>, number][]
 ) => {
-  const rankedResults: AdjustedClue[] = [];
+  const rankedResults: TYPE.AdjustedClue[] = [];
   for (const [bestMatch, score] of results) {
     console.log("score: " + score + ", match: " + bestMatch.pageContent);
     if (score < 0.7) break;
@@ -31,7 +30,7 @@ export const getRankedResults = (
     const rankScore = score * 0.6 + qual * 0.3 + weight * 0.1;
 
     // データ作成
-    const adjustedClue: AdjustedClue = {
+    const adjustedClue: TYPE.AdjustedClue = {
       id: bestMatch.metadata.id,
       rankScore: rankScore,
       clue: bestMatch.metadata.clue,
@@ -46,7 +45,7 @@ export const getRankedResults = (
 };
 
 /** 余分なデータフィルターし、スコア順に並べ替える */
-export const sortScore = (data: Evaluation[]) => {
+export const sortScore = (data: TYPE.Evaluation[]) => {
   // 不正解のみを残してソート
   return data
     .filter((r) => r.answerCorrect !== "correct")

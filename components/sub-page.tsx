@@ -5,7 +5,7 @@ import { MessageInput } from "./messages/message-input";
 import { SCREEN } from "./screen";
 import { CorrectCheck } from "./debug/correctCheck";
 import { MessageWindow } from "./messages/message-window";
-import { MessageAi } from "./messages/message-ai";
+import { ChatConnector } from "./messages/ChatConnector";
 import { useSettings } from "./provider/SettingsProvider";
 
 export const SubPage: React.FC = () => {
@@ -18,7 +18,7 @@ export const SubPage: React.FC = () => {
           <MessageWindow />
         </div>
         <div>
-          <MessageAi />
+          <ChatConnector />
           <MessageInput />
         </div>
         {flags.checkOn && <CorrectCheck />}

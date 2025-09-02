@@ -1,5 +1,5 @@
+import { AdjustedClue } from "@/lib/type";
 import { updateClueQuality } from "../lib/match/lib/entry";
-import { AdjustedClue } from "../route";
 import { updateMetadataSupabase } from "../lib/match/lib/supabase";
 
 import * as MSG from "@/lib/contents/horenso/template";

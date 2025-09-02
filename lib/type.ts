@@ -7,12 +7,6 @@ export type HorensoStates = {
   step: number; // ステップ数
 };
 
-/** スタートボタン用のprops */
-export type StartButtonProps = {
-  started: boolean;
-  setStarted: (val: boolean) => void;
-};
-
 /** 正解判定で使う型 */
 export type MatchAnswerArgs = {
   userAnswer: string; // 比較対象になる答え
@@ -20,15 +14,6 @@ export type MatchAnswerArgs = {
   topK: number; // 上位からの比較個数
   allTrue?: boolean; // 全問正解で正解とするか
   shouldValidate?: boolean; // 適正チェックを行うかどうかのフラグ
-};
-
-/* フロントからバックへ送るチャットリクエスト設定 */
-export type ChatRequestOptions = {
-  memoryOn: boolean;
-  learnOn: boolean;
-  addPromptOn: boolean;
-  debug: boolean;
-  step: number;
 };
 
 /**
@@ -96,6 +81,13 @@ export type ClueMetadata = {
   clue: string;
   quality: number;
   source: "user" | "admin" | "bot";
+};
+/** 評価済みの clue */
+export type AdjustedClue = {
+  id: string;
+  rankScore: number; // 返答を順位付けで取得するためのスコア
+  clue: string; // 返答のための手がかり
+  quality: number; // 信頼度
 };
 
 /**

@@ -28,13 +28,6 @@ let globalDebugStep = 0;
 // ベースURL の共通化
 let globalBaseUrl = "";
 
-export type AdjustedClue = {
-  id: string;
-  rankScore: number; // 返答を順位付けで取得するためのスコア
-  clue: string; // 返答のための手がかり
-  quality: number; // 信頼度
-};
-
 /**
  * langGraphのノード群
  */
@@ -156,25 +149,12 @@ const StateAnnotation = Annotation.Root({
   sessionId: Annotation<string>(), // フロントで管理しているセッションID
   contexts: Annotation<string[]>(), // 最終出力を行うコンテキスト
   clue: Annotation<[Document<TYPE.ClueMetadata>, number][]>(), // 以前の回答の記録
-  adjustedClue: Annotation<AdjustedClue[]>(), // 重みづけした回答の記録
+  adjustedClue: Annotation<TYPE.AdjustedClue[]>(), // 重みづけした回答の記録
   aiHint: Annotation<string>(), // ヒント出力テキスト
   inputCategory: Annotation<string>(), // ユーザー入力分析出力テキスト
   evaluationData: Annotation<TYPE.Evaluation[]>(), // 回答評価データ
   newClueId: Annotation<string>(), // 新しい clueID clueをstream後登録するために使う
-  transition: Annotation<TYPE.HorensoStates>({
-    // フラグ
-    value: (
-      state: TYPE.HorensoStates = {
-        isAnswerCorrect: false,
-        hasQuestion: true,
-        step: 0,
-      },
-      action: Partial<TYPE.HorensoStates>
-    ) => ({
-      ...state,
-      ...action,
-    }),
-  }),
+  transition: Annotation<TYPE.HorensoStates>(), // 全体のフラグ管理
 
   ...MessagesAnnotation.spec,
 });

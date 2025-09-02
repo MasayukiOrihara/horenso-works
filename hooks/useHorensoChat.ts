@@ -1,4 +1,4 @@
-import { ChatRequestOptions } from "@/lib/type";
+import { ChatRequestOptions } from "@/lib/schema";
 import { useChat } from "@ai-sdk/react";
 
 /**

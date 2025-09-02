@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/**
+ * フロントとバックでフラグのやり取りをするスキーマ
+ */
 export const ChatRequestOptionsSchema = z.object({
   memoryOn: z.boolean(),
   learnOn: z.boolean(),
@@ -7,6 +10,7 @@ export const ChatRequestOptionsSchema = z.object({
   debug: z.boolean(),
   step: z.number(),
 });
+export type ChatRequestOptions = z.infer<typeof ChatRequestOptionsSchema>;
 
 /**
  * LLM からオブジェクトを取得するときのスキーマ

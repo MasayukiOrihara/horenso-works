@@ -1,12 +1,11 @@
 import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
 
-import { ClueMetadata } from "@/lib/type";
+import { AdjustedClue, ClueMetadata } from "@/lib/type";
 import { messageToText } from "../lib/match/lib/utils";
 import { getRankedResults } from "../lib/match/lib/score";
 
 import * as MSG from "@/lib/contents/horenso/template";
-import { AdjustedClue } from "../route";
 import { generateClue, updateClueQuality } from "../lib/match/lib/entry";
 import {
   saveEmbeddingSupabase,

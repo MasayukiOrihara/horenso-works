@@ -1,8 +1,7 @@
 import { Document } from "langchain/document";
 import { v4 as uuidv4 } from "uuid";
 
-import { ClueMetadata } from "@/lib/type";
-import { AdjustedClue } from "../../../route";
+import { AdjustedClue, ClueMetadata } from "@/lib/type";
 import { deleteOldCluelist, updateMetadataSupabase } from "./supabase";
 
 /** clue 新規作成 */

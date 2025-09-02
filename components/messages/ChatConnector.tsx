@@ -1,11 +1,17 @@
 import { useUserMessages } from "./message-provider";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, use } from "react";
 import { UIMessage } from "ai";
 import { useStartButton } from "../provider/StartButtonProvider";
 import { useSessionId } from "@/hooks/useSessionId";
 import { useHorensoChat } from "@/hooks/useHorensoChat";
-import { ChatRequestOptions } from "@/lib/type";
 import { useSettings } from "../provider/SettingsProvider";
+import { ChatRequestOptions } from "@/lib/schema";
+import { toast } from "sonner";
+import * as ERR from "@/lib/message/error";
+import { useErrorStore } from "@/hooks/useErrorStore";
+
+// 定数
+const FIRST_CHAT = "研修よろしくお願いします。";
 
 // 最後のメッセージを取り出す共通化関数
 function getLatestAssistantMessage(messages: UIMessage[]) {
@@ -13,10 +19,11 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
   return assistantMessages[assistantMessages.length - 1];
 }
 
-export const MessageAi = () => {
+export const ChatConnector = () => {
   const { setAiMessage, currentUserMessage, setAiState } = useUserMessages();
   const { flags } = useSettings();
   const { startButtonFlags } = useStartButton();
+  const { push } = useErrorStore();
   // 現在のセッション ID
   const sessionId = useSessionId();
   // チャットリクエストのオプションを作成
@@ -29,7 +36,7 @@ export const MessageAi = () => {
   };
 
   // カスタムフックから報連相ワークAI の準備
-  const { messages, status, append } = useHorensoChat(
+  const { messages, status, append, error } = useHorensoChat(
     "api/chat",
     sessionId,
     options
@@ -52,7 +59,7 @@ export const MessageAi = () => {
       hasRun.current = true;
       appendRef.current({
         role: "user",
-        content: "研修よろしくお願いします。",
+        content: FIRST_CHAT,
       });
     }
   }, [startButtonFlags.started]);
@@ -73,6 +80,18 @@ export const MessageAi = () => {
   useEffect(() => {
     setAiState(status);
   }, [status, setAiState]);
+
+  // エラー処理
+  useEffect(() => {
+    if (error) {
+      toast.error(`${ERR.FATAL_ERROR}\n${ERR.RELOAD_BROWSER}`);
+
+      const message =
+        error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
+      const stack = error instanceof Error ? error.stack : ERR.UNKNOWN_ERROR;
+      push({ message: ERR.USERPROFILE_SEND_ERROR, detail: stack || message });
+    }
+  }, [error]);
 
   return null;
 };
