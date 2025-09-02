@@ -35,10 +35,12 @@
     "langsmith": "^0.3.30",
     "lucide-react": "^0.512.0",
     "next": "15.3.3",
+    "next-themes": "^0.4.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.62.0",
     "select": "^1.1.2",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.0",
     "zod": "^3.25.50",
     "zustand": "^5.0.8"

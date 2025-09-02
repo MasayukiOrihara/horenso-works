@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Host_Grotesk, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 const notoSansJp = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
@@ -31,6 +32,7 @@ export default function RootLayout({
         className={`${notoSansJp.variable} ${host_Grotesk.className} antialiased font-noto-sans-jp`}
       >
         {children}
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

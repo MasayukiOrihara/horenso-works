@@ -8,7 +8,6 @@ import { StartButtonProvider } from "@/components/provider/StartButtonProvider";
 import { SettingsProvider } from "@/components/provider/SettingsProvider";
 import { ErrorBoundary } from "@/components/error/ErrorBoundary/ErrorBoundary";
 import { ErrorBanner } from "@/components/error/ErrorBanner/ErrorBanner";
-import { BuggyComponent } from "@/components/error/BuggyComponent";
 
 export default function Home() {
   return (
@@ -18,7 +17,6 @@ export default function Home() {
         <Header />
         <div className="flex flex-1">
           <StartButtonProvider>
-            <BuggyComponent />
             <SideMenu />
             <StartButton />
             <main className="flex-1 flex flex-col">
