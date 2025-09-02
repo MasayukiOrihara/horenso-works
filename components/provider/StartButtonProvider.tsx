@@ -9,17 +9,26 @@ import React, {
 } from "react";
 
 type StartButtonContextType = {
-  started: boolean;
-  setStarted: (value: boolean) => void;
-  debug: boolean;
-  setDebug: (value: boolean) => void;
-  step: number;
-  setStep: Dispatch<SetStateAction<number>>;
+  startButtonFlags: StartButtonFlags;
+  setStartButtonFlags: React.Dispatch<React.SetStateAction<StartButtonFlags>>;
 };
 
-const StartButtonContext = React.createContext<
-  StartButtonContextType | undefined
->(undefined);
+const StartButtonContext = React.createContext<StartButtonContextType | null>(
+  null
+);
+
+type StartButtonFlags = {
+  started: boolean;
+  debug: boolean;
+  step: number;
+};
+
+// 初期値
+const DEFAULT_FLAGS: StartButtonFlags = {
+  started: false,
+  debug: false,
+  step: 0,
+};
 
 /**
  * StartButtonProvider コンポーネント
@@ -27,14 +36,16 @@ const StartButtonContext = React.createContext<
  * @returns
  */
 export const StartButtonProvider = ({ children }: { children: ReactNode }) => {
-  const [started, setStarted] = useState(false);
-  const [debug, setDebug] = useState(false);
-  const [step, setStep] = useState(0);
+  const [startButtonFlags, setStartButtonFlags] =
+    React.useState<StartButtonFlags>(DEFAULT_FLAGS);
+
+  const value = React.useMemo(
+    () => ({ startButtonFlags, setStartButtonFlags }),
+    [startButtonFlags]
+  );
 
   return (
-    <StartButtonContext.Provider
-      value={{ started, setStarted, debug, setDebug, step, setStep }}
-    >
+    <StartButtonContext.Provider value={value}>
       {children}
     </StartButtonContext.Provider>
   );

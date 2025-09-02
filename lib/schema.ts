@@ -24,3 +24,15 @@ const documentSchema = z.object({
 });
 // 複数 Document に対応するスキーマ
 export const documentsSchema = z.array(documentSchema);
+
+/**
+ * ユーザープロファイルを管理するスキーマ
+ */
+export const userprofileSchema = z.object({
+  name: z.string().trim().max(50),
+  gender: z.enum(["male", "female", "none"]),
+  country: z.enum(["japan", "usa", "other"]),
+  company: z.string().trim().max(50),
+  organization: z.enum(["dev", "sales", "hr", "other"]),
+});
+export type userprofileFormValues = z.infer<typeof userprofileSchema>;

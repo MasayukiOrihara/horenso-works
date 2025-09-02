@@ -22,11 +22,6 @@ export type MatchAnswerArgs = {
   shouldValidate?: boolean; // 適正チェックを行うかどうかのフラグ
 };
 
-export type ShouldValidate = {
-  who: boolean;
-  why: boolean;
-};
-
 /* フロントからバックへ送るチャットリクエスト設定 */
 export type ChatRequestOptions = {
   memoryOn: boolean;
@@ -101,4 +96,19 @@ export type ClueMetadata = {
   clue: string;
   quality: number;
   source: "user" | "admin" | "bot";
+};
+
+/**
+ * フロント側から渡す設定関連のフラグ
+ */
+export type SettingFlags = {
+  memoryOn: boolean; // 会話履歴の保存フラグ
+  learnOn: boolean; // 学習モードの保存フラグ
+  addPrompt: boolean; // 追加プロンプトの試用フラグ
+  checkOn: boolean; // 正誤判定アンケートの試用フラグ
+  shouldValidate: ShouldValidate; // AI 回答チェックを行うかのフラグ
+};
+export type ShouldValidate = {
+  who: boolean;
+  why: boolean;
 };

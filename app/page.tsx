@@ -4,7 +4,7 @@ import { SideMenu } from "@/components/parts/side-menu";
 import { SubPage } from "@/components/sub-page";
 import { Navi } from "@/components/NaviHeader";
 import { StartButton } from "@/components/StartButton/StartButton";
-import { StartButtonProvider } from "@/components/provider/start-button-provider";
+import { StartButtonProvider } from "@/components/provider/StartButtonProvider";
 import { SettingsProvider } from "@/components/provider/SettingsProvider";
 
 export default function Home() {

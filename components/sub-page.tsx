@@ -6,7 +6,6 @@ import { SCREEN } from "./screen";
 import { CorrectCheck } from "./debug/correctCheck";
 import { MessageWindow } from "./messages/message-window";
 import { MessageAi } from "./messages/message-ai";
-import { SettingsModal } from "./SettingsModal/SettingsModal";
 import { useSettings } from "./provider/SettingsProvider";
 
 export const SubPage: React.FC = () => {

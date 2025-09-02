@@ -1,26 +1,16 @@
 "use client";
 
-import { ShouldValidate } from "@/lib/type";
-import React, { ReactNode, useContext, useState } from "react";
+import { SettingFlags } from "@/lib/type";
+import React, { ReactNode } from "react";
 
-type SettingsContextValue = {
+type SettingsContextType = {
   flags: SettingFlags;
   setFlags: React.Dispatch<React.SetStateAction<SettingFlags>>;
-  inputTag: string;
-  setInputTag: (value: string) => void;
 };
 
-const SettingsContext = React.createContext<SettingsContextValue | null>(null);
+const SettingsContext = React.createContext<SettingsContextType | null>(null);
 
-// ShouldValidate
-type SettingFlags = {
-  memoryOn: boolean; // 会話履歴の保存フラグ
-  learnOn: boolean; // 学習モードの保存フラグ
-  addPrompt: boolean; // 追加プロンプトの試用フラグ
-  checkOn: boolean; // 正誤判定アンケートの試用フラグ
-  shouldValidate: ShouldValidate; // AI 回答チェックを行うかのフラグ
-};
-
+// 初期値
 const DEFAULT_FLAGS: SettingFlags = {
   memoryOn: true,
   learnOn: false,
@@ -36,12 +26,8 @@ const DEFAULT_FLAGS: SettingFlags = {
  */
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [flags, setFlags] = React.useState<SettingFlags>(DEFAULT_FLAGS);
-  const [inputTag, setInputTag] = useState("");
 
-  const value = React.useMemo(
-    () => ({ flags, setFlags, inputTag, setInputTag }),
-    [flags, inputTag]
-  );
+  const value = React.useMemo(() => ({ flags, setFlags }), [flags]);
 
   return (
     <SettingsContext.Provider value={value}>

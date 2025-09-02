@@ -1,7 +1,7 @@
 import { useUserMessages } from "./message-provider";
 import { useEffect, useRef } from "react";
 import { UIMessage } from "ai";
-import { useStartButton } from "../provider/start-button-provider";
+import { useStartButton } from "../provider/StartButtonProvider";
 import { useSessionId } from "@/hooks/useSessionId";
 import { useHorensoChat } from "@/hooks/useHorensoChat";
 import { ChatRequestOptions } from "@/lib/type";
@@ -16,7 +16,7 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 export const MessageAi = () => {
   const { setAiMessage, currentUserMessage, setAiState } = useUserMessages();
   const { flags } = useSettings();
-  const { started, debug, step } = useStartButton();
+  const { startButtonFlags } = useStartButton();
   // 現在のセッション ID
   const sessionId = useSessionId();
   // チャットリクエストのオプションを作成
@@ -24,8 +24,8 @@ export const MessageAi = () => {
     memoryOn: flags.memoryOn,
     learnOn: flags.learnOn,
     addPromptOn: flags.addPrompt,
-    debug,
-    step,
+    debug: startButtonFlags.debug,
+    step: startButtonFlags.step,
   };
 
   // カスタムフックから報連相ワークAI の準備
@@ -48,14 +48,14 @@ export const MessageAi = () => {
   // システムの開始処理
   useEffect(() => {
     // 初回の実行処理
-    if (started && !hasRun.current) {
+    if (startButtonFlags.started && !hasRun.current) {
       hasRun.current = true;
       appendRef.current({
         role: "user",
         content: "研修よろしくお願いします。",
       });
     }
-  }, [started]);
+  }, [startButtonFlags.started]);
 
   // ユーザーメッセージの送信
   useEffect(() => {

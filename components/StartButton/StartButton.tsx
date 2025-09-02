@@ -1,8 +1,6 @@
 "use client";
 
-import { z } from "zod";
-
-import { useStartButton } from "../provider/start-button-provider";
+import { useStartButton } from "../provider/StartButtonProvider";
 import { Button } from "../ui/button";
 import { FramedCard } from "../ui/FramedCard";
 
@@ -21,23 +19,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const Schema = z.object({
-  name: z.string().trim().max(50),
-  gender: z.enum(["male", "female", "none"]),
-  country: z.enum(["japan", "usa", "other"]),
-  company: z.string().trim().max(50),
-  organization: z.enum(["dev", "sales", "hr", "other"]),
-});
-type FormValues = z.infer<typeof Schema>;
+import { requestApi } from "@/lib/api/request";
+import { USERPROFILE_PATH } from "@/lib/api/path";
+import { userprofileFormValues, userprofileSchema } from "@/lib/schema";
 
 export const StartButton = () => {
-  const { started, setStarted, debug, setDebug, step, setStep } =
-    useStartButton();
+  const { startButtonFlags, setStartButtonFlags } = useStartButton();
 
   // form コントロール
-  const { control, handleSubmit } = useForm<FormValues>({
-    resolver: zodResolver(Schema),
+  const { control, handleSubmit } = useForm<userprofileFormValues>({
+    resolver: zodResolver(userprofileSchema),
     defaultValues: {
       name: "",
       gender: "none",
@@ -47,19 +38,32 @@ export const StartButton = () => {
     },
   });
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = (values: userprofileFormValues) => {
     const payload = {
-      name: values.name?.trim() ? values.name.trim() : null,
-      gender: values.gender === "none" ? null : values.gender,
-      country: values.country === "other" ? null : values.country,
-      company: values.company?.trim() ? values.company.trim() : null,
-      organization:
-        values.organization === "other" ? null : values.organization,
+      name: values.name?.trim() ? values.name.trim() : "",
+      gender: values.gender,
+      country: values.country,
+      company: values.company?.trim() ? values.company.trim() : "",
+      organization: values.organization,
     };
-    console.log("submit:", payload);
 
-    setStarted(true); // 画面遷移を行う
     // API / LLMへ
+    try {
+      (async () => {
+        try {
+          await requestApi("", USERPROFILE_PATH, {
+            method: "POST",
+            body: { userprofile: payload },
+          });
+        } catch (error) {
+          console.warn(error);
+        }
+      })();
+    } catch (error) {
+      console.error("ユーザープロファイルの送信に失敗しました。" + error);
+    }
+    // 画面遷移を行う
+    setStartButtonFlags((s) => ({ ...s, started: true }));
   };
 
   const onError = (err: any) => {
@@ -67,11 +71,11 @@ export const StartButton = () => {
   };
 
   // 開始中なら何もしない
-  if (started || debug) return null;
+  if (startButtonFlags.started || startButtonFlags.debug) return null;
 
   return (
     <div>
-      {!started && (
+      {!startButtonFlags.started && (
         <div className="absolute [width:calc(100%-3.5rem)] [height:calc(100%-2.75rem)] bg-zinc-600/60 z-30 overflow-hidden">
           <div className="flex flex-col items-center justify-start pt-44 h-screen ">
             <FramedCard title="プロフィールを入力(任意)" align="center">
@@ -202,7 +206,9 @@ export const StartButton = () => {
               {/** デバックボタン */}
               <div className="flex items-center justify-center">
                 <Button
-                  onClick={() => setDebug(true)}
+                  onClick={() =>
+                    setStartButtonFlags((s) => ({ ...s, debug: true }))
+                  }
                   variant={"ghost"}
                   size={"md"}
                   className="mb-1 h-7"
@@ -212,15 +218,27 @@ export const StartButton = () => {
                 {/** この辺にデバック用のステッパー */}
                 <div className="flex items-center gap-2 text-xs">
                   <Button
-                    onClick={() => setStep((v) => Math.max(0, v - 1))}
+                    onClick={() => {
+                      setStartButtonFlags((s) => ({
+                        ...s,
+                        step: Math.max(0, s.step - 1),
+                      }));
+                    }}
                     variant={"ghost"}
                     className="px-2 py-1 bg-gray-200/20"
                   >
                     -
                   </Button>
-                  <span className="w-2 text-center">{step}</span>
+                  <span className="w-2 text-center">
+                    {startButtonFlags.step}
+                  </span>
                   <Button
-                    onClick={() => setStep((v) => Math.min(1, v + 1))}
+                    onClick={() => {
+                      setStartButtonFlags((s) => ({
+                        ...s,
+                        step: Math.min(1, s.step + 1),
+                      }));
+                    }}
                     variant={"ghost"}
                     className="px-2 py-1 bg-gray-200/20"
                   >

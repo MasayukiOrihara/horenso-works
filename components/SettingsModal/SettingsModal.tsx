@@ -17,7 +17,7 @@ type ModalKind = null | "add" | "threshold" | "list";
 
 export const SettingsModal = ({ open, onClose }: SettingsModalProps) => {
   const [modal, setModal] = React.useState<ModalKind>(null);
-  const { setInputTag, flags, setFlags } = useSettings();
+  const { flags, setFlags } = useSettings();
 
   if (!open) return null; // ← 閉じているときは何も描画しない
 
