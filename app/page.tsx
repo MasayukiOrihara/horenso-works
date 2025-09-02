@@ -3,7 +3,7 @@ import { Footer } from "@/components/parts/footer";
 import { SideMenu } from "@/components/parts/side-menu";
 import { SubPage } from "@/components/sub-page";
 import { Navi } from "@/components/NaviHeader";
-import { StartButton } from "@/components/start-button";
+import { StartButton } from "@/components/StartButton/StartButton";
 import { StartButtonProvider } from "@/components/provider/start-button-provider";
 import { SettingsProvider } from "@/components/provider/SettingsProvider";
 
