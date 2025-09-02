@@ -29,8 +29,6 @@ export const ChatConnector = () => {
   // チャットリクエストのオプションを作成
   const options: ChatRequestOptions = {
     memoryOn: flags.memoryOn,
-    learnOn: flags.learnOn,
-    addPromptOn: flags.addPrompt,
     debug: startButtonFlags.debug,
     step: startButtonFlags.step,
   };

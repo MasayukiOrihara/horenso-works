@@ -2,13 +2,14 @@ import { MemoryTextData } from "@/app/api/memory/chat/save/route";
 import { Button } from "@/components/ui/button";
 import { FramedCard } from "@/components/ui/FramedCard";
 import { useSessionId } from "@/hooks/useSessionId";
+import { LOAD_LATEST_PATH } from "@/lib/api/path";
 import { requestApi } from "@/lib/api/request";
 import { useEffect, useState } from "react";
 
 export type ResponseExample = {
   id?: string;
-  title: string;
-  content: string;
+  latestMessages: LatestMessages;
+  updatedContent: string;
 };
 type Props = {
   open: boolean;
@@ -16,10 +17,7 @@ type Props = {
   onSubmit: (example: ResponseExample) => void;
 };
 
-type LatestMessage = { user: string; assistant: string };
-
-// 定数
-const LOAD_LATEST_PATH = "/api/memory/chat/load/latest";
+type LatestMessages = { user: string; assistant: string };
 
 /**
  * 返答例を追加するモーダル
@@ -28,7 +26,7 @@ const LOAD_LATEST_PATH = "/api/memory/chat/load/latest";
  */
 export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
   // 受け取った LatestMessage を管理
-  const [latestMessages, setLatestMessages] = useState<LatestMessage | null>();
+  const [latestMessages, setLatestMessages] = useState<LatestMessages | null>();
   // 現在のセッション ID
   const sessionId = useSessionId();
 
@@ -75,10 +73,10 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    // ここに更新したときの処理 ※※ 未登録
+    // ここに更新したときの処理 ※※
     onSubmit({
-      title: String(fd.get("title") || ""),
-      content: String(fd.get("content") || ""),
+      latestMessages: latestMessages!,
+      updatedContent: String(fd.get("content") || ""),
     });
   }
 
@@ -108,6 +106,9 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
                 required
                 defaultValue={latestMessages?.assistant}
               />
+              <p className="text-xs text-zinc-500 text-right">
+                会話履歴を保存してない場合、前回メッセージは取得できません
+              </p>
             </label>
 
             {/** ボタン設定 */}

@@ -222,7 +222,6 @@ export async function POST(req: Request) {
       { messages: userMessage, sessionId },
       config
     );
-    // console.log(result.contexts);
     const aiText = result.contexts.join("");
 
     // ユーザー答えデータの管理

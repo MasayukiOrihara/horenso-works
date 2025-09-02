@@ -99,7 +99,8 @@ export const SettingsModal = ({ open, onClose }: SettingsModalProps) => {
             open={modal === "add"}
             onClose={close}
             onSubmit={(ex) => {
-              // ここで保存処理など
+              // 保存処理
+              // cluelistを更新する
               console.log("submitted:", ex);
               close();
             }}
