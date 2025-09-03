@@ -3,7 +3,7 @@ import * as ERR from "../message/error";
 
 // 型
 type RequestBody = Record<string, unknown>;
-type HttpMethod = "GET" | "POST" | "DELETE";
+type HttpMethod = "GET" | "POST" | "DELETE" | "PATCH";
 type RequestOptions = {
   method?: HttpMethod;
   body?: RequestBody;
@@ -27,7 +27,7 @@ export const requestApi = async (
       const response = await axios.request({
         url: baseUrl + path,
         method,
-        data: method === "POST" ? body : undefined,
+        data: ["POST", "PATCH"].includes(method) ? body : undefined,
         withCredentials: true,
         headers: {
           Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,

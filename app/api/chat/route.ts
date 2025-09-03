@@ -139,7 +139,16 @@ export async function POST(req: Request) {
       },
     });
 
-    return LangChainAdapter.toDataStreamResponse(stream);
+    const baseResponse = LangChainAdapter.toDataStreamResponse(stream);
+
+    return new Response(baseResponse.body, {
+      status: baseResponse.status,
+      statusText: baseResponse.statusText,
+      headers: {
+        ...Object.fromEntries(baseResponse.headers),
+        "x-clue-id": clueId,
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
 

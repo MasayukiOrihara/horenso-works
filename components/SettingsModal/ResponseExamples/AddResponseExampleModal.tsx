@@ -1,14 +1,16 @@
-import { MemoryTextData } from "@/app/api/memory/chat/save/route";
 import { Button } from "@/components/ui/button";
 import { FramedCard } from "@/components/ui/FramedCard";
+import { useClueId } from "@/hooks/useClueId";
+import { useErrorStore } from "@/hooks/useErrorStore";
 import { useSessionId } from "@/hooks/useSessionId";
-import { LOAD_LATEST_PATH } from "@/lib/api/path";
 import { requestApi } from "@/lib/api/request";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import * as ERR from "@/lib/message/error";
+import { CLUELIST_LOAD_PATH } from "@/lib/api/path";
 
 export type ResponseExample = {
-  id?: string;
-  latestMessages: LatestMessages;
+  id?: string | null;
   updatedContent: string;
 };
 type Props = {
@@ -29,40 +31,36 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
   const [latestMessages, setLatestMessages] = useState<LatestMessages | null>();
   // 現在のセッション ID
   const sessionId = useSessionId();
+  // clueId 取得
+  const { clueId } = useClueId();
+  const { push } = useErrorStore();
 
   // 前のメッセージを取得
   useEffect(() => {
     // 設定を開いたときのみ
-    console.log(sessionId);
     if (!sessionId || !open) return;
-    console.log(open);
+    console.log(clueId);
 
     // 直前メッセージを BD から取得
     (async () => {
       try {
-        const params = `?sessionId=${encodeURIComponent(sessionId)}`;
-        const res = await requestApi("", `${LOAD_LATEST_PATH}${params}`, {
+        const res = await requestApi("", `${CLUELIST_LOAD_PATH}${clueId}`, {
           method: "GET",
         });
+        // 型チェックしてない
+        const message: LatestMessages = {
+          user: res.content,
+          assistant: res.metadata.clue.replace(/["\\n]/g, ""),
+        };
 
-        // res が { rows: [...] } か、配列か、どちらでも拾う
-        const rows: MemoryTextData[] = Array.isArray(res)
-          ? res
-          : res?.rows ?? [];
-
-        // メッセージを収納
-        const next = rows.reduce(
-          (acc, msg) => {
-            if (msg.role === "user" && !acc.user) acc.user = msg.content;
-            if (msg.role === "assistant" && !acc.assistant)
-              acc.assistant = msg.content;
-            return acc;
-          },
-          { user: "", assistant: "" }
-        );
-        setLatestMessages(next); // ← ここで state 更新（非同期）
+        setLatestMessages(message); // ← ここで state 更新（非同期）
       } catch (error) {
-        console.warn(error);
+        toast.error(`${ERR.FATAL_ERROR}\n${ERR.RELOAD_BROWSER}`);
+
+        const message =
+          error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
+        const stack = error instanceof Error ? error.stack : ERR.UNKNOWN_ERROR;
+        push({ message: ERR.USERPROFILE_SEND_ERROR, detail: stack || message });
       }
     })();
   }, [sessionId, open]);
@@ -73,9 +71,9 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    // ここに更新したときの処理 ※※
+    // 更新
     onSubmit({
-      latestMessages: latestMessages!,
+      id: clueId,
       updatedContent: String(fd.get("content") || ""),
     });
   }

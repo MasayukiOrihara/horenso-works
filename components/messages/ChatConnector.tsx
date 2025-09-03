@@ -6,9 +6,6 @@ import { useSessionId } from "@/hooks/useSessionId";
 import { useHorensoChat } from "@/hooks/useHorensoChat";
 import { useSettings } from "../provider/SettingsProvider";
 import { ChatRequestOptions } from "@/lib/schema";
-import { toast } from "sonner";
-import * as ERR from "@/lib/message/error";
-import { useErrorStore } from "@/hooks/useErrorStore";
 
 // 定数
 const FIRST_CHAT = "研修よろしくお願いします。";
@@ -23,7 +20,6 @@ export const ChatConnector = () => {
   const { setAiMessage, currentUserMessage, setAiState } = useUserMessages();
   const { flags } = useSettings();
   const { startButtonFlags } = useStartButton();
-  const { push } = useErrorStore();
   // 現在のセッション ID
   const sessionId = useSessionId();
   // チャットリクエストのオプションを作成
@@ -34,7 +30,7 @@ export const ChatConnector = () => {
   };
 
   // カスタムフックから報連相ワークAI の準備
-  const { messages, status, append, error } = useHorensoChat(
+  const { messages, status, append } = useHorensoChat(
     "api/chat",
     sessionId,
     options
@@ -78,18 +74,6 @@ export const ChatConnector = () => {
   useEffect(() => {
     setAiState(status);
   }, [status, setAiState]);
-
-  // エラー処理
-  useEffect(() => {
-    if (error) {
-      toast.error(`${ERR.FATAL_ERROR}\n${ERR.RELOAD_BROWSER}`);
-
-      const message =
-        error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
-      const stack = error instanceof Error ? error.stack : ERR.UNKNOWN_ERROR;
-      push({ message: ERR.USERPROFILE_SEND_ERROR, detail: stack || message });
-    }
-  }, [error]);
 
   return null;
 };

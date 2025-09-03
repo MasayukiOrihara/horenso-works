@@ -2,10 +2,18 @@ import { ToggleRow } from "../ui/ToggleRow";
 import { FramedCard } from "../ui/FramedCard";
 import React from "react";
 import { ActionRow } from "../ui/ActionRow";
-import { AddResponseExampleModal } from "./ResponseExamples/AddResponseExampleModal";
+import {
+  AddResponseExampleModal,
+  ResponseExample,
+} from "./ResponseExamples/AddResponseExampleModal";
 import { ThresholdModal } from "./Threshold/ThresholdModal";
 import { ListModal } from "./List/ListMenuModal";
 import { useSettings } from "../provider/SettingsProvider";
+import { requestApi } from "@/lib/api/request";
+import { toast } from "sonner";
+import * as ERR from "@/lib/message/error";
+import { useErrorStore } from "@/hooks/useErrorStore";
+import { CLUELIST_UPDATE_PATH } from "@/lib/api/path";
 
 type SettingsModalProps = {
   id: string;
@@ -18,6 +26,7 @@ type ModalKind = null | "add" | "threshold" | "list";
 export const SettingsModal = ({ open, onClose }: SettingsModalProps) => {
   const [modal, setModal] = React.useState<ModalKind>(null);
   const { flags, setFlags } = useSettings();
+  const { push } = useErrorStore();
 
   if (!open) return null; // ← 閉じているときは何も描画しない
 
@@ -27,6 +36,40 @@ export const SettingsModal = ({ open, onClose }: SettingsModalProps) => {
   const openList = () => setModal("list");
   // 閉じる
   const close = () => setModal(null);
+
+  // AddResponseExample の更新用
+  async function handleAddResponseExampleSubmit(ex: ResponseExample) {
+    // id が確認できなかったら更新しない
+    if (!ex.id) {
+      close();
+      return;
+    }
+
+    try {
+      // 保存処理(cluelistを更新する)
+
+      const res = await requestApi("", `${CLUELIST_UPDATE_PATH}${ex.id}`, {
+        method: "PATCH",
+        body: { clue: ex.updatedContent },
+      });
+
+      // 更新したら閉じる
+      close();
+      toast.success("返答例を更新しました");
+    } catch (error) {
+      toast.error(`${ERR.FATAL_ERROR}\n${ERR.RELOAD_BROWSER}`);
+
+      const message =
+        error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
+      const stack = error instanceof Error ? error.stack : ERR.UNKNOWN_ERROR;
+      push({
+        message: ERR.USERPROFILE_SEND_ERROR,
+        detail: stack || message,
+      });
+    } finally {
+      close();
+    }
+  }
 
   return (
     <div
@@ -98,12 +141,7 @@ export const SettingsModal = ({ open, onClose }: SettingsModalProps) => {
           <AddResponseExampleModal
             open={modal === "add"}
             onClose={close}
-            onSubmit={(ex) => {
-              // 保存処理
-              // cluelistを更新する
-              console.log("submitted:", ex);
-              close();
-            }}
+            onSubmit={(ex) => handleAddResponseExampleSubmit(ex)}
           />
           <ThresholdModal open={modal === "threshold"} onClose={close} />
           <ListModal open={modal === "list"} onClose={close} />
