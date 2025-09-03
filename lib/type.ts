@@ -7,6 +7,19 @@ export type HorensoStates = {
   step: number; // ステップ数
 };
 
+/** 法会連想ワークグラフから返すオブジェクトの型 */
+export type HorensoWorkResponse = {
+  text: string;
+  contenue: boolean;
+  clueId: string;
+};
+export type ChatGraphResult = {
+  memory: string;
+  userprofile: string;
+  userMessage: string;
+  context: string;
+};
+
 /** 正解判定で使う型 */
 export type MatchAnswerArgs = {
   userAnswer: string; // 比較対象になる答え

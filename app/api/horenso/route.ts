@@ -233,14 +233,14 @@ export async function POST(req: Request) {
       body: { sendEvaluationData },
     });
 
-    return Response.json(
-      {
-        text: aiText,
-        contenue: !aiText.includes("--終了--"),
-        clueId: result.newClueId,
-      },
-      { status: 200 }
-    );
+    // 返すオブジェクト
+    const response: TYPE.HorensoWorkResponse = {
+      text: aiText,
+      contenue: !aiText.includes("--終了--"),
+      clueId: result.newClueId,
+    };
+
+    return Response.json(response, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
 
