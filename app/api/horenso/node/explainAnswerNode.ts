@@ -1,5 +1,8 @@
 import { updateClueQuality } from "../lib/match/lib/entry";
-import { updateMetadataSupabase } from "../lib/match/lib/supabase";
+import {
+  insertGradeSimilaritiesSupabase,
+  updateMetadataSupabase,
+} from "../lib/match/lib/supabase";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import { supabaseClient } from "@/lib/clients";
@@ -28,8 +31,8 @@ export async function explainAnswerNode({
   contexts.push(MSG.BULLET + MSG.SUMMARY_REQUEST_PROMPT);
 
   // ここで grade を更新
-  type Similarities = { expectedAnswerId: string; similarity: number };
-  const pairs: Similarities[] = [];
+
+  const pairs: TYPE.Similarities[] = [];
   evaluationData.map((data) => {
     const isCorrect = data.answerCorrect === "correct";
     const hasSome = pairs.some(
@@ -43,16 +46,7 @@ export async function explainAnswerNode({
       pairs.push(pair);
     }
   });
-  const { error } = await supabaseClient()
-    .from("question_similarities")
-    .insert(
-      pairs.map((s) => ({
-        parent_id: session.id, // 共通の親IDを付与
-        expected_answer_id: s.expectedAnswerId,
-        similarity: s.similarity,
-      }))
-    );
-  console.log(error);
+  await insertGradeSimilaritiesSupabase(session.id, pairs);
   console.log(`${session.count} 回目で正解`);
 
   // ここで使用した前回 clue の重みを変更

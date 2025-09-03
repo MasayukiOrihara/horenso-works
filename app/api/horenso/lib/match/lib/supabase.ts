@@ -5,6 +5,7 @@ import { supabaseClient } from "@/lib/clients";
 
 import * as ERR from "@/lib/message/error";
 import { embeddings } from "@/lib/llm/embedding";
+import { Similarities } from "@/lib/type";
 
 /** ベクターデータで supabase から検索を行う */
 export const searchEmbeddingSupabase = async (
@@ -75,6 +76,62 @@ export async function updateMetadataSupabase(
     console.error("supabade の更新エラー:", error);
   } else {
     console.log("supabade への更新成功:", id);
+  }
+}
+
+// グレードデータの親を作成する
+export async function insertGradeSupabase(
+  sessionId: string,
+  questionId: number
+) {
+  try {
+    await supabaseClient()
+      .from("session_question_grade")
+      .upsert(
+        {
+          session_id: sessionId,
+          question_id: questionId,
+          difficulty_coeff: 1.2,
+        },
+        {
+          onConflict: "session_id",
+          ignoreDuplicates: true, // ★存在すれば insert しない
+        }
+      )
+      .select()
+      .maybeSingle()
+      .throwOnError();
+
+    console.log("supabade への登録完了");
+  } catch (error) {
+    console.error("supabade の更新エラー:", error);
+  }
+}
+
+/** グレードデータの子を更新する */
+export async function insertGradeSimilaritiesSupabase(
+  sessionId: string,
+  similarities: Similarities[]
+) {
+  try {
+    await supabaseClient()
+      .from("question_similarities")
+      .upsert(
+        similarities.map((s) => ({
+          parent_id: sessionId, // 共通の親IDを付与
+          expected_answer_id: s.expectedAnswerId,
+          similarity: s.similarity,
+        })),
+        {
+          onConflict: "parent_id,expected_answer_id",
+          ignoreDuplicates: true, // ← 既存があれば DO NOTHING（= 挿入しない）
+        }
+      )
+      .throwOnError();
+
+    console.log("supabade への登録完了");
+  } catch (error) {
+    console.error("supabade の更新エラー:", error);
   }
 }
 

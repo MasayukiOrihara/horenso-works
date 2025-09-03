@@ -49,10 +49,13 @@ async function setupInitial(state: typeof StateAnnotation.State) {
 
 /** AI が事前準備を行うノード */
 async function preprocessAI(state: typeof StateAnnotation.State) {
+  const session = state.session;
+
   const { evaluationData, clue, getHint, category } =
     await NODE.preprocessAiNode({
       messages: state.messages,
       step: state.transition.step,
+      session: session,
       baseUrl: globalBaseUrl,
       whoUseDocuments: whoUseDocuments,
       whyUseDocuments: whyUseDocuments,

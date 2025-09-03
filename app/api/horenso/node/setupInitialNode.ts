@@ -1,7 +1,8 @@
 import { HorensoStates, Session } from "@/lib/type";
 
 import * as MSG from "@/lib/contents/horenso/template";
-import { supabaseClient } from "@/lib/clients";
+import { insertGradeSupabase } from "../lib/match/lib/supabase";
+import { UNKNOWN_ERROR } from "@/lib/message/error";
 
 type InitialNode = {
   states: HorensoStates;
@@ -25,24 +26,6 @@ export async function setupInitialNode({
   // 前回ターンの状態を反映
   console.log("前回ターンの状態変数");
   console.log(states);
-
-  // グレードデータを事前に
-  const { error } = await supabaseClient()
-    .from("session_question_grade")
-    .upsert(
-      {
-        session_id: session.id,
-        question_id: states.step + 1,
-        difficulty_coeff: 1.2,
-      },
-      {
-        onConflict: "session_id",
-        ignoreDuplicates: true, // ★存在すれば insert しない
-      }
-    )
-    .select()
-    .single();
-  console.log(error);
 
   // 前提・背景・状況
   const contexts = [];

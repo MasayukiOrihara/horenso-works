@@ -12,7 +12,10 @@ import { analyzeInput } from "../lib/llm/analyzeInput";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import * as TYPE from "@/lib/type";
-import { searchEmbeddingSupabase } from "../lib/match/lib/supabase";
+import {
+  insertGradeSupabase,
+  searchEmbeddingSupabase,
+} from "../lib/match/lib/supabase";
 import { CLUE_QUERY, CLUE_TABLE } from "@/lib/contents/match";
 import { embeddings } from "@/lib/llm/embedding";
 
@@ -23,6 +26,7 @@ const MATCH_PATH = "/api/horenso/lib/match";
 type AiNode = {
   messages: BaseMessage[];
   step: number;
+  session: TYPE.Session;
   baseUrl: string;
   whoUseDocuments: Document<TYPE.HorensoMetadata>[];
   whyUseDocuments: Document<TYPE.HorensoMetadata>[];
@@ -36,6 +40,7 @@ type AiNode = {
 export async function preprocessAiNode({
   messages,
   step,
+  session,
   baseUrl,
   whoUseDocuments,
   whyUseDocuments,
@@ -73,13 +78,14 @@ export async function preprocessAiNode({
       break;
   }
 
-  /* ① 答えの分離 と ユーザーの回答を埋め込み とベクターストア作成 */
+  /* ① 答えの分離 と ユーザーの回答を埋め込み とベクターストア作成, グレードデータを事前に作成 */
   pushLog("回答の確認中です...");
   // 入力の分析
   const analyzeInputResultPromise = analyzeInput(userMessage, question);
-  const [userAnswer, userEmbedding] = await Promise.all([
+  const [userAnswer, userEmbedding, _] = await Promise.all([
     splitInputLlm(sepKeywordPrompt, userMessage),
     embeddings.embedQuery(userMessage),
+    insertGradeSupabase(session.id, step + 1),
   ]);
   console.log("質問の分離した答え: ");
   console.log(userAnswer);

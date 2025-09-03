@@ -123,3 +123,6 @@ export type Session = {
   id: string;
   count: number;
 };
+
+/** グレード関連 */
+export type Similarities = { expectedAnswerId: string; similarity: number };
