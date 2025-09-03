@@ -4,13 +4,14 @@ import { useErrorStore } from "@/hooks/useErrorStore";
 import { toast } from "sonner";
 import * as ERR from "@/lib/message/error";
 import { useClueId } from "./useClueId";
+import { Session } from "@/lib/type";
 
 /**
  * 報連相ワークAI 使うためのフック
  */
 export function useHorensoChat(
   apiPath: string,
-  sessionId: string | null,
+  session: Session | null,
   options: ChatRequestOptions
 ) {
   const { push } = useErrorStore();
@@ -18,7 +19,7 @@ export function useHorensoChat(
 
   return useChat({
     api: apiPath,
-    body: { sessionId, options },
+    body: { session, options },
     onResponse: (res) => {
       const id = res.headers.get("x-clue-id");
       setClueId(id);

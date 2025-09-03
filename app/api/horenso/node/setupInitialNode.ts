@@ -1,9 +1,11 @@
-import { HorensoStates } from "@/lib/type";
+import { HorensoStates, Session } from "@/lib/type";
 
 import * as MSG from "@/lib/contents/horenso/template";
+import { supabaseClient } from "@/lib/clients";
 
 type InitialNode = {
   states: HorensoStates;
+  session: Session;
   debugStep: number;
 };
 
@@ -12,13 +14,35 @@ type InitialNode = {
  * @param transitionStates
  * @param debugStep
  */
-export function setupInitialNode({ states, debugStep }: InitialNode) {
+export async function setupInitialNode({
+  states,
+  session,
+  debugStep,
+}: InitialNode) {
   // デバッグ時にstepを設定
   if (debugStep != 0) states.step = debugStep;
 
   // 前回ターンの状態を反映
   console.log("前回ターンの状態変数");
   console.log(states);
+
+  // グレードデータを事前に
+  const { error } = await supabaseClient()
+    .from("session_question_grade")
+    .upsert(
+      {
+        session_id: session.id,
+        question_id: states.step + 1,
+        difficulty_coeff: 1.2,
+      },
+      {
+        onConflict: "session_id",
+        ignoreDuplicates: true, // ★存在すれば insert しない
+      }
+    )
+    .select()
+    .single();
+  console.log(error);
 
   // 前提・背景・状況
   const contexts = [];

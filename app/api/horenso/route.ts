@@ -32,9 +32,12 @@ let globalBaseUrl = "";
  * langGraphのノード群
  */
 /** 初期設定を行うノード */
-async function setupInitial() {
-  const { states, contexts } = NODE.setupInitialNode({
+async function setupInitial(state: typeof StateAnnotation.State) {
+  const session = state.session;
+
+  const { states, contexts } = await NODE.setupInitialNode({
     states: transitionStates,
+    session: session,
     debugStep: globalDebugStep,
   });
   return {
@@ -120,8 +123,14 @@ async function askQuestion(state: typeof StateAnnotation.State) {
 async function explainAnswer(state: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
   const adjustedClue = state.adjustedClue;
+  const session = state.session;
+  const evaluationData = state.evaluationData;
 
-  const { contexts } = await NODE.explainAnswerNode(adjustedClue);
+  const { contexts } = await NODE.explainAnswerNode({
+    adjustedClue: adjustedClue,
+    evaluationData: evaluationData,
+    session: session,
+  });
   return { contexts: [...state.contexts, ...contexts] };
 }
 
@@ -146,7 +155,7 @@ async function saveFinishState(state: typeof StateAnnotation.State) {
 
 /** メイングラフ内の状態を司るアノテーション */
 const StateAnnotation = Annotation.Root({
-  sessionId: Annotation<string>(), // フロントで管理しているセッションID
+  session: Annotation<TYPE.Session>(), // フロントで管理しているセッションID
   contexts: Annotation<string[]>(), // 最終出力を行うコンテキスト
   clue: Annotation<[Document<TYPE.ClueMetadata>, number][]>(), // 以前の回答の記録
   adjustedClue: Annotation<TYPE.AdjustedClue[]>(), // 重みづけした回答の記録
@@ -202,13 +211,13 @@ export async function POST(req: Request) {
       return Response.json({ error: ERR.MESSAGES_ERROR }, { status: 400 });
     }
     // セッションID 取得
-    const sessionId = body.sessionId;
-    if (!sessionId) {
+    const session: TYPE.Session = body.session;
+    if (!session) {
       console.error("🥬 horenso API POST error: " + ERR.SESSIONID_ERROR);
       return Response.json({ error: ERR.SESSIONID_ERROR }, { status: 400 });
     }
     // memory server 設定
-    const config = { configurable: { thread_id: sessionId } };
+    const config = { configurable: { thread_id: session.id } };
     // デバック用のステップ数を取得
     globalDebugStep = body.step ?? 0;
     // url の取得
@@ -219,7 +228,7 @@ export async function POST(req: Request) {
     const result = await measureExecution(
       app,
       "horenso",
-      { messages: userMessage, sessionId },
+      { messages: userMessage, session },
       config
     );
     const aiText = result.contexts.join("");

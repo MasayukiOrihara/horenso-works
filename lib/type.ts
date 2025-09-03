@@ -117,3 +117,9 @@ export type ShouldValidate = {
   who: boolean;
   why: boolean;
 };
+
+/** セッション情報の取り扱い */
+export type Session = {
+  id: string;
+  count: number;
+};

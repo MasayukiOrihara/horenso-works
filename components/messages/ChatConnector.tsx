@@ -1,11 +1,13 @@
 import { useUserMessages } from "./message-provider";
-import { useEffect, useRef, use } from "react";
+import { useEffect, useRef } from "react";
 import { UIMessage } from "ai";
 import { useStartButton } from "../provider/StartButtonProvider";
 import { useSessionId } from "@/hooks/useSessionId";
 import { useHorensoChat } from "@/hooks/useHorensoChat";
 import { useSettings } from "../provider/SettingsProvider";
 import { ChatRequestOptions } from "@/lib/schema";
+import { useSendCount } from "@/hooks/useSentCount";
+import { Session } from "@/lib/type";
 
 // 定数
 const FIRST_CHAT = "研修よろしくお願いします。";
@@ -22,6 +24,8 @@ export const ChatConnector = () => {
   const { startButtonFlags } = useStartButton();
   // 現在のセッション ID
   const sessionId = useSessionId();
+  // 現在のセッション中に何回 LLM に送っているか
+  const { count, increment } = useSendCount();
   // チャットリクエストのオプションを作成
   const options: ChatRequestOptions = {
     memoryOn: flags.memoryOn,
@@ -29,10 +33,14 @@ export const ChatConnector = () => {
     step: startButtonFlags.step,
   };
 
+  // session 情報の作成
+  const session: Session | null =
+    sessionId !== null ? { id: sessionId, count } : null;
+
   // カスタムフックから報連相ワークAI の準備
   const { messages, status, append } = useHorensoChat(
     "api/chat",
-    sessionId,
+    session,
     options
   );
   // append の状態を固定する
@@ -62,6 +70,8 @@ export const ChatConnector = () => {
   useEffect(() => {
     if (!currentUserMessage) return;
     appendRef.current({ role: "user", content: currentUserMessage });
+    // 送信回数を増やす
+    increment();
   }, [currentUserMessage]);
 
   // Aimessage の送信

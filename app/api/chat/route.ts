@@ -39,7 +39,7 @@ async function init(state: typeof StateAnnotation.State) {
   console.log("🚪 初回ノード");
   const baseUrl = state.baseUrl;
   const messages = state.messages;
-  const sessionId = state.sessionId;
+  const sessionId = state.session.id;
 
   oldHorensoContenue = true;
 
@@ -75,15 +75,15 @@ async function horensoWork(state: typeof StateAnnotation.State) {
   const baseUrl = state.baseUrl;
   const messages = state.messages;
   const userMessage = state.userMessage;
-  const sessionId = state.sessionId;
+  const session = state.session;
   const options = state.options;
 
   // 過去の履歴取得（非同期）
-  const fetchMemory = REQ.requestMemory(baseUrl, messages, sessionId);
+  const fetchMemory = REQ.requestMemory(baseUrl, messages, session.id);
   // ユーザープロファイルを取得
-  const fetchUserprofile = REQ.requestUserprofile(baseUrl, sessionId);
+  const fetchUserprofile = REQ.requestUserprofile(baseUrl, session.id);
   // メッセージ保存: フロントエンドから記憶設定を取得
-  const fetchSave = REQ.requestSave(baseUrl, messages, sessionId);
+  const fetchSave = REQ.requestSave(baseUrl, messages, session.id);
 
   // 報連相ワークAPI呼び出し
   const contexts: string[] = [];
@@ -91,7 +91,7 @@ async function horensoWork(state: typeof StateAnnotation.State) {
   const fetchHorensoGraph = REQ.requestHorensoGraph(
     baseUrl,
     userMessage,
-    sessionId,
+    session,
     step
   );
 
@@ -133,6 +133,17 @@ async function endHorensoWork(state: typeof StateAnnotation.State) {
   return { contexts: contexts };
 }
 
+async function calcGrade() {
+  console.log("📐 グレード計算ノード");
+  // 取得するもの
+  // 1. コサイン類似度
+  // 2. 回答回数
+  // 3. ヒント回数
+  // 4. 難易度係数
+
+  return;
+}
+
 /** 研修終了ノード */
 async function finalization() {
   console.log("🚪終了ノード");
@@ -166,7 +177,7 @@ async function contextMerger(state: typeof StateAnnotation.State) {
 
 /** メイングラフ内の状態を司るアノテーション */
 const StateAnnotation = Annotation.Root({
-  sessionId: Annotation<string>(), // フロントで管理しているセッションID
+  session: Annotation<TYPE.Session>(), // フロントで管理しているセッションID
   userMessage: Annotation<string>(), // 最新のユーザーメッセージ
   baseUrl: Annotation<string>(), // ベースURL
   options: Annotation<SCM.ChatRequestOptions>(), // フロントから送られてきたオプション
@@ -214,8 +225,8 @@ export async function POST(req: Request) {
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
     // フロントからセッションID を取得
-    const sessionId: string = body.sessionId;
-    if (!sessionId) {
+    const session: TYPE.Session = body.session;
+    if (!session) {
       console.error("💬 chat API POST error: " + ERR.SESSIONID_ERROR);
       return Response.json({ error: ERR.SESSIONID_ERROR }, { status: 400 });
     }
@@ -225,7 +236,7 @@ export async function POST(req: Request) {
     // langgraph
     const result = await measureExecution(app, "chat", {
       messages: messages,
-      sessionId: sessionId,
+      session: session,
       userMessage: userMessage,
       baseUrl: baseUrl,
       options: options,
@@ -250,7 +261,7 @@ export async function POST(req: Request) {
       mode: "stream",
       onStreamEnd: async (response: string) => {
         // assistant メッセージ保存
-        await REQ.requestSave(baseUrl, messages, sessionId);
+        await REQ.requestSave(baseUrl, messages, session.id);
 
         // 今回のエントリーにメッセージを追記
         if (!(clueId === "")) await updateClueChat(clueId, response);
