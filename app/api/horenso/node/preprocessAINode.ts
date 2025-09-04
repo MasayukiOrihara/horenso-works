@@ -12,12 +12,10 @@ import { analyzeInput } from "../lib/llm/analyzeInput";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import * as TYPE from "@/lib/type";
-import {
-  insertGradeSupabase,
-  searchEmbeddingSupabase,
-} from "../lib/match/lib/supabase";
+import { insertGradeSupabase } from "../lib/match/lib/supabase";
 import { CLUE_QUERY, CLUE_TABLE } from "@/lib/contents/match";
 import { embeddings } from "@/lib/llm/embedding";
+import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
 
 // 定数
 const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
@@ -82,7 +80,7 @@ export async function preprocessAiNode({
   pushLog("回答の確認中です...");
   // 入力の分析
   const analyzeInputResultPromise = analyzeInput(userMessage, question);
-  const [userAnswer, userEmbedding, _] = await Promise.all([
+  const [userAnswer, userVector, _] = await Promise.all([
     splitInputLlm(sepKeywordPrompt, userMessage),
     embeddings.embedQuery(userMessage),
     insertGradeSupabase(session.id, step + 1),
@@ -112,16 +110,19 @@ export async function preprocessAiNode({
   const checkUserAnswers = new RunnableParallel({ steps });
 
   //vectorStore検索と並列に実行(全体の処理時間も計測)
+  const question_id = useDocuments[0].metadata.question_id;
   console.log(" --- ");
   const start = Date.now();
   const [matchResultsMap, rawClue] = await Promise.all([
     checkUserAnswers.invoke([]), // RunnableParallel 実行
-    searchEmbeddingSupabase(
+    // ベクタ検索（Service 側で throw 済み前提）
+    EmbeddingService.searchByVector(
+      embeddings,
       CLUE_TABLE,
       CLUE_QUERY,
-      userEmbedding,
+      userVector,
       5,
-      useDocuments[0].metadata.question_id
+      { question_id }
     ),
   ]);
   const end = Date.now();

@@ -4,7 +4,6 @@ import { HorensoMetadata, UserAnswerEmbedding } from "@/lib/type";
 import { cachedVectorStore } from "../lib/vectorStore";
 
 import { SUPABASE_SEARCH_ERROR } from "@/lib/message/error";
-import { searchEmbeddingSupabase } from "../lib/supabase";
 
 import * as CON from "@/lib/contents/match";
 import { embeddings } from "@/lib/llm/embedding";
@@ -39,7 +38,7 @@ export async function similarityUserAnswerNode({
   let similarityResults;
   try {
     // ベクタ検索（Service 側で throw 済み前提）
-    const results = await EmbeddingService.searchByVector(
+    const similarityResults = await EmbeddingService.searchByVector(
       embeddings,
       CON.DOCUMENT_TABLE,
       CON.DOCUMENTS_SEARCH_QUERY,
@@ -47,6 +46,8 @@ export async function similarityUserAnswerNode({
       topK,
       { question_id }
     );
+
+    return { similarityResults, userEmbedding };
   } catch (error) {
     const err = error as DbError;
     console.warn(SUPABASE_SEARCH_ERROR, err);
@@ -54,8 +55,6 @@ export async function similarityUserAnswerNode({
     // エラー時のフォールバック
     similarityResults = await doFallbackSearch(documents, userVector, topK);
   }
-
-  return { similarityResults, userEmbedding };
 }
 
 // ベクトルストアを作り document を変換して検索
