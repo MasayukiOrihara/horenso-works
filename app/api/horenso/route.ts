@@ -128,13 +128,9 @@ async function askQuestion(state: typeof StateAnnotation.State) {
 async function explainAnswer(state: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
   const adjustedClue = state.adjustedClue;
-  const session = state.session;
-  const evaluationData = state.evaluationData;
 
   const { contexts } = await NODE.explainAnswerNode({
     adjustedClue: adjustedClue,
-    evaluationData: evaluationData,
-    session: session,
   });
   return { contexts: [...state.contexts, ...contexts] };
 }

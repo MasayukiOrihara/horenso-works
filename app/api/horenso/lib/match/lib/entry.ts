@@ -2,9 +2,9 @@ import { Document } from "langchain/document";
 import { v4 as uuidv4 } from "uuid";
 
 import { AdjustedClue, ClueMetadata } from "@/lib/type";
-import { deleteOldCluelist } from "./supabase";
 import { METADATA_CLUE_KEY } from "@/lib/contents/match";
 import { MetadataRepo } from "@/lib/supabase/repositories/metadata.repo";
+import { GenericRepo } from "@/lib/supabase/repositories/generic.repo";
 
 /** clue 新規作成 */
 export const generateClue = (
@@ -50,14 +50,14 @@ export async function updateClueChat(clueId: string, response: string) {
   const censored = response.replace(/\d/g, "*");
 
   // DB の更新
-  const r = await MetadataRepo.updateByMetaId(
+  const r1 = await MetadataRepo.updateByMetaId(
     clueId,
     METADATA_CLUE_KEY,
     censored
   );
-  if (!r.ok) {
-    throw r.error;
-  }
+  if (!r1.ok) throw r1.error;
+
   // ついでにリセット
-  await deleteOldCluelist();
+  const r2 = await GenericRepo.callDeleteOldCluelist();
+  if (!r2.ok) throw r2.error; // 上位で共通ハンドリング
 }
