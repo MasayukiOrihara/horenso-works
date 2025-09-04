@@ -2,7 +2,7 @@ import { dbTry } from "@/lib/supabase/db";
 import { supabaseClient } from "../clients";
 
 export const SessionQuestionGradeRepo = {
-  upsert: async (sessionId: string, questionId: number, difficulty = 1.2) =>
+  ensure: async (sessionId: string, questionId: number, difficulty = 1.2) =>
     dbTry(async () => {
       const { data, error } = await supabaseClient()
         .from("session_question_grade")

@@ -12,10 +12,10 @@ import { analyzeInput } from "../lib/llm/analyzeInput";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import * as TYPE from "@/lib/type";
-import { insertGradeSupabase } from "../lib/match/lib/supabase";
 import { CLUE_QUERY, CLUE_TABLE } from "@/lib/contents/match";
 import { embeddings } from "@/lib/llm/embedding";
 import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
+import { SessionQuestionGradeRepo } from "@/lib/supabase/repositories/sessionQuestionGrade.repo";
 
 // 定数
 const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
@@ -83,7 +83,7 @@ export async function preprocessAiNode({
   const [userAnswer, userVector, _] = await Promise.all([
     splitInputLlm(sepKeywordPrompt, userMessage),
     embeddings.embedQuery(userMessage),
-    insertGradeSupabase(session.id, step + 1),
+    SessionQuestionGradeRepo.ensure(session.id, step + 1),
   ]);
   console.log("質問の分離した答え: ");
   console.log(userAnswer);

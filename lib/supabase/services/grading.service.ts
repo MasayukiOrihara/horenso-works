@@ -13,7 +13,7 @@ export const GradingService = {
     sims: { expectedAnswerId: string | number; similarity: number }[]
   ): Promise<Result<true>> => {
     // 1) 親
-    const parent = await SessionQuestionGradeRepo.upsert(sessionId, questionId);
+    const parent = await SessionQuestionGradeRepo.ensure(sessionId, questionId);
     if (!parent.ok) return { ok: false, error: parent.error };
 
     // 2) 子

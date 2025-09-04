@@ -3,38 +3,7 @@ import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase"
 
 import { supabaseClient } from "@/lib/supabase/clients";
 
-import * as ERR from "@/lib/message/error";
-import { embeddings } from "@/lib/llm/embedding";
 import { Similarities } from "@/lib/type";
-
-// グレードデータの親を作成する
-export async function insertGradeSupabase(
-  sessionId: string,
-  questionId: number
-) {
-  try {
-    await supabaseClient()
-      .from("session_question_grade")
-      .upsert(
-        {
-          session_id: sessionId,
-          question_id: questionId,
-          difficulty_coeff: 1.2,
-        },
-        {
-          onConflict: "session_id",
-          ignoreDuplicates: true, // ★存在すれば insert しない
-        }
-      )
-      .select()
-      .maybeSingle()
-      .throwOnError();
-
-    console.log("supabade への登録完了");
-  } catch (error) {
-    console.error("supabade の更新エラー:", error);
-  }
-}
 
 /** グレードデータの子を更新する */
 export async function insertGradeSimilaritiesSupabase(

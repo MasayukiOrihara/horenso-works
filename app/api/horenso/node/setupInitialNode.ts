@@ -1,8 +1,6 @@
 import { HorensoStates, Session } from "@/lib/type";
 
 import * as MSG from "@/lib/contents/horenso/template";
-import { insertGradeSupabase } from "../lib/match/lib/supabase";
-import { UNKNOWN_ERROR } from "@/lib/message/error";
 
 type InitialNode = {
   states: HorensoStates;
