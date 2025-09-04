@@ -7,11 +7,10 @@ import { getRankedResults } from "../lib/match/lib/score";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import { generateClue, updateClueQuality } from "../lib/match/lib/entry";
-import {
-  saveEmbeddingSupabase,
-  updateMetadataSupabase,
-} from "../lib/match/lib/supabase";
+import { updateMetadataSupabase } from "../lib/match/lib/supabase";
 import { CLUE_TABLE } from "@/lib/contents/match";
+import { embeddings } from "@/lib/llm/embedding";
+import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
 
 type RerankNode = {
   adjustedClue: AdjustedClue[];
@@ -40,7 +39,17 @@ export async function rerankNode({
     `${step + 1}`
   );
   // db保存
-  await saveEmbeddingSupabase([newClue], CLUE_TABLE);
+  const r = await EmbeddingService.save(embeddings, [newClue], CLUE_TABLE);
+  if (!r.ok) {
+    // エラー時: 保存失敗しても内部ログのみ
+    console.error(
+      "保存に失敗:",
+      r.error.message,
+      r.error.code,
+      r.error.details
+    );
+  }
+  console.log("✅ 新規clue を データベース に保存しました。");
   const newClueId = newClue.metadata.id; // 次に渡す ID 用
 
   /** 前回ターンの clue が役に立たなかったのでマイナス評価更新 */

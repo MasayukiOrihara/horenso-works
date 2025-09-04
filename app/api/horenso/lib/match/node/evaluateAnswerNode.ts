@@ -3,7 +3,6 @@ import { Document } from "langchain/document";
 import * as TYPE from "@/lib/type";
 import { AI_EVALUATE_ERROR } from "@/lib/message/error";
 import { evaluateUserAnswer } from "../../llm/evaluateUserAnswer";
-import { saveEmbeddingSupabase } from "../lib/supabase";
 import { FUZZYLIST_TABLE } from "@/lib/contents/match";
 import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
 import { embeddings } from "@/lib/llm/embedding";

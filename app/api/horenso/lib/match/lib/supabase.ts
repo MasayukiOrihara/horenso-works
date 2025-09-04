@@ -7,27 +7,6 @@ import * as ERR from "@/lib/message/error";
 import { embeddings } from "@/lib/llm/embedding";
 import { Similarities } from "@/lib/type";
 
-/** supabase にドキュメントを埋め込む */
-export async function saveEmbeddingSupabase(
-  documets: Document[],
-  tableName: string
-) {
-  try {
-    // ストアの作成
-    const vectorStore = new SupabaseVectorStore(embeddings, {
-      client: supabaseClient(),
-      tableName: tableName,
-      queryName: "",
-    });
-
-    // ドキュメントの追加
-    await vectorStore.addDocuments(documets);
-  } catch (error) {
-    throw new Error(`${ERR.SUPABASE_STORE_ERROR} ${error}`);
-  }
-  console.log("supabade への登録完了");
-}
-
 /** supabase でメタデータの更新を行う */
 export async function updateMetadataSupabase(
   id: string,
