@@ -28,10 +28,10 @@ export async function checkFuzzyMatchNode({
 
   // 2) 共通値の抽出（存在しないときは即エラー）
   const first = evaluationRecords[0];
-  const question_id = first?.document?.metadata?.questionId;
+  const questionId = first?.document?.metadata?.questionId;
   const vector = first?.input?.vector;
-  if (!question_id || !vector) {
-    throw new Error(SCORE_GET_ERROR + ": missing question_id or vector");
+  if (!questionId || !vector) {
+    throw new Error(SCORE_GET_ERROR + ": missing questionId or vector");
   }
 
   const maxThreshold = threshold.maxFuzzyThreshold ?? CON.FUZZY_MATCH_SCORE;
@@ -45,7 +45,7 @@ export async function checkFuzzyMatchNode({
       CON.FUZZYLIST_QUERY,
       vector,
       1,
-      { question_id }
+      { questionId }
     );
 
     // 4) 結果の整形（0件は業務的にあり得るならここで明示 throw か、単に unknown 扱いに）
@@ -55,6 +55,7 @@ export async function checkFuzzyMatchNode({
     const [doc, score] = results[0];
     const baseFuzzy: TYPE.FuzzyScore = {
       id: doc.metadata.id,
+      expectedAnswerId: doc.metadata.expectedAnswerId,
       score,
       nearAnswer: doc.pageContent,
       reason: doc.metadata.reason,
@@ -64,6 +65,13 @@ export async function checkFuzzyMatchNode({
     // 5) 閾値判定（map(async..) は使わない。非同期が無いなら普通の for/for..of で）
     const exceeds = score > maxThreshold;
     const tempEvaluationRecords = evaluationRecords.map((record) => {
+      // 既存のまま
+      if (
+        record.document.metadata.expectedAnswerId != baseFuzzy.expectedAnswerId
+      )
+        return { ...record };
+
+      // 近い回答のみ更新
       const answerUnknown = record.answerCorrect === "unknown";
       // FuzzyScore は不変にして、必要時のみ correct を上書きしたコピーを持たせる
       const fuzzyScore =

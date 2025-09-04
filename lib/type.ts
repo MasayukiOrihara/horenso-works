@@ -56,6 +56,7 @@ export type DocumentScore = {
 // あいまい正答
 export type FuzzyScore = {
   id: string;
+  expectedAnswerId: string; // 回答識別番号
   score: number; // 類似性スコア
   nearAnswer?: string; // 類似した答え
   reason?: string; // このスコアになった理由

@@ -27,10 +27,10 @@ export async function checkWrongMatchNode({
 
   // 2) 共通値の抽出（なければ即エラー）
   const first = evaluationRecords[0];
-  const question_id = first?.document?.metadata?.questionId;
-  const vector = first?.input?.vector;
-  if (!question_id || !vector) {
-    throw new Error(SCORE_GET_ERROR + ": missing question_id or vector");
+  const questionId = first.document.metadata.questionId;
+  const vector = first.input.vector;
+  if (!questionId || !vector) {
+    throw new Error(SCORE_GET_ERROR + ": missing questionId or vector");
   }
   const maxThreshold = threshold.maxWrongThreshold ?? CON.WRONG_MATCH_SCORE;
   // ベクトルストア内のドキュメントとユーザーの答えを比較
@@ -43,7 +43,7 @@ export async function checkWrongMatchNode({
       CON.WRONGLIST_QUERY,
       vector,
       1,
-      { question_id }
+      { questionId }
     );
 
     // 4) 結果の整形（0件は仕様次第：throw か、何もしないで返すか）
@@ -53,6 +53,7 @@ export async function checkWrongMatchNode({
     const [doc, score] = results[0];
     const baseWrong: TYPE.FuzzyScore = {
       id: doc.metadata.id,
+      expectedAnswerId: doc.metadata.expectedAnswerId,
       score,
       nearAnswer: doc.pageContent,
       reason: doc.metadata.reason,
@@ -61,6 +62,13 @@ export async function checkWrongMatchNode({
     // 5) 閾値超えかどうかを一度だけ計算
     const exceeds = score > maxThreshold;
     const tempEvaluationRecords = evaluationRecords.map((record) => {
+      // 既存のまま
+      if (
+        record.document.metadata.expectedAnswerId != baseWrong.expectedAnswerId
+      )
+        return { ...record };
+
+      // 近い回答のみ更新
       const answerUnknown = record.answerCorrect === "unknown";
       const wrongScore =
         answerUnknown && exceeds

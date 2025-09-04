@@ -1,4 +1,5 @@
 import { Document } from "langchain/document";
+import { v4 as uuidv4 } from "uuid";
 
 import * as TYPE from "@/lib/type";
 import { AI_EVALUATE_ERROR } from "@/lib/message/error";
@@ -51,7 +52,8 @@ export async function evaluateAnswerNode({
 
           // オブジェクトの更新
           const fuzzyScore: TYPE.FuzzyScore = {
-            id: data.metadata.id ?? "",
+            id: data.metadata.id ?? uuidv4(),
+            expectedAnswerId: evaluateExpectedAnswerId,
             score: 1,
             reason: data.metadata.rationale,
             correct: "correct",

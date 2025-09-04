@@ -111,30 +111,39 @@ export async function preprocessAiNode({
   const checkUserAnswers = new RunnableParallel({ steps });
 
   //vectorStore検索と並列に実行(全体の処理時間も計測)
-  const question_id = useDocuments[0].metadata.questionId;
+  const questionId = useDocuments[0].metadata.questionId;
   console.log(" --- ");
-  const start = Date.now();
-  const [matchResultsMap, rawClue] = await Promise.all([
-    checkUserAnswers.invoke([]), // RunnableParallel 実行
-    // ベクタ検索（Service 側で throw 済み前提）
-    EmbeddingService.searchByVector(
-      embeddings,
-      CLUE_TABLE,
-      CLUE_QUERY,
-      userVector,
-      5,
-      { question_id }
-    ),
-  ]);
-  const end = Date.now();
-  const matchResults = Object.values(matchResultsMap);
-  const evaluationData: TYPE.Evaluation[] = matchResults
-    .map((r) => r.evaluationData)
-    .flat();
 
-  // document 更新
-  evaluatedResults(evaluationData, useDocuments);
-  console.log(`処理時間(ms): ${end - start} ms`);
+  let evaluationData: TYPE.Evaluation[] = [];
+  let clue: [Document<TYPE.ClueMetadata>, number][] = [];
+  try {
+    const start = Date.now();
+    const [matchResultsMap, rawClue] = await Promise.all([
+      checkUserAnswers.invoke([]), // RunnableParallel 実行
+      // ベクタ検索（Service 側で throw 済み前提）
+      EmbeddingService.searchByVector(
+        embeddings,
+        CLUE_TABLE,
+        CLUE_QUERY,
+        userVector,
+        5,
+        { questionId }
+      ),
+    ]);
+
+    const end = Date.now();
+    const matchResults = Object.values(matchResultsMap);
+    evaluationData = matchResults.map((r) => r.evaluationData).flat();
+
+    // document 更新
+    evaluatedResults(evaluationData, useDocuments);
+    console.log(`処理時間(ms): ${end - start} ms`);
+
+    clue = rawClue as [Document<TYPE.ClueMetadata>, number][];
+  } catch (error) {
+    console.error(error);
+  }
+
   console.log(`OpenAI Embeddings チェック完了 \n ---`);
 
   /* ③ ヒントの取得（正解していたときは飛ばす） */
@@ -146,14 +155,12 @@ export async function preprocessAiNode({
       : useDocuments.some((doc) => doc.metadata.isMatched);
 
   // ヒントの判定
-  let clue: [Document<TYPE.ClueMetadata>, number][] = [];
   let getHint: string = "";
   if (!tempIsCorrect) {
     // ヒントの取得
     const sortData = sortScore(evaluationData);
     const getHintPromises = generateHintLlm(question, sortData, useDocuments);
 
-    clue = rawClue as [Document<TYPE.ClueMetadata>, number][];
     getHint = await getHintPromises;
     console.log("質問1のヒント: \n" + getHint);
   }

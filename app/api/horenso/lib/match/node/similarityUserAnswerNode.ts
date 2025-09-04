@@ -28,7 +28,7 @@ export async function similarityUserAnswerNode({
 }: SimilarityNode) {
   // ユーザーの回答設定
   const userVector = await embeddings.embedQuery(userAnswer);
-  const question_id = documents[0].metadata.questionId;
+  const questionId = documents[0].metadata.questionId;
   const userEmbedding: UserAnswerEmbedding = {
     userAnswer: userAnswer,
     vector: userVector,
@@ -44,7 +44,7 @@ export async function similarityUserAnswerNode({
       CON.DOCUMENTS_SEARCH_QUERY,
       userVector,
       topK,
-      { question_id }
+      { questionId }
     );
   } catch (error) {
     const err = error as DbError;
