@@ -13,6 +13,9 @@ export const CLUE_QUERY = "search_cluelist";
 
 export const MEMORY_TABLE = "memory_text_data";
 
+export const METADATA_CLUE_KEY = "clue";
+export const METADATA_QUALITY_KEY = "quality";
+
 /** 基準値 */
 export const BASE_MATCH_SCORE = 0.78; // 基準値
 export const BASE_WORST_SCORE = 0.3;

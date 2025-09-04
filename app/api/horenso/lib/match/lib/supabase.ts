@@ -7,28 +7,6 @@ import * as ERR from "@/lib/message/error";
 import { embeddings } from "@/lib/llm/embedding";
 import { Similarities } from "@/lib/type";
 
-/** supabase でメタデータの更新を行う */
-export async function updateMetadataSupabase(
-  id: string,
-  targetKey: string,
-  newValue: number | string
-) {
-  const { error } = await supabaseClient().rpc(
-    "update_metadata_key_by_metaid",
-    {
-      meta_id: id,
-      key: targetKey,
-      value: JSON.stringify(newValue), // jsonbなので文字列化して渡す
-    }
-  );
-
-  if (error) {
-    console.error("supabade の更新エラー:", error);
-  } else {
-    console.log("supabade への更新成功:", id);
-  }
-}
-
 // グレードデータの親を作成する
 export async function insertGradeSupabase(
   sessionId: string,

@@ -7,10 +7,10 @@ import { getRankedResults } from "../lib/match/lib/score";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import { generateClue, updateClueQuality } from "../lib/match/lib/entry";
-import { updateMetadataSupabase } from "../lib/match/lib/supabase";
-import { CLUE_TABLE } from "@/lib/contents/match";
+import { CLUE_TABLE, METADATA_QUALITY_KEY } from "@/lib/contents/match";
 import { embeddings } from "@/lib/llm/embedding";
 import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
+import { MetadataRepo } from "@/lib/supabase/repositories/metadata.repo";
 
 type RerankNode = {
   adjustedClue: AdjustedClue[];
@@ -61,7 +61,15 @@ export async function rerankNode({
 
   // DB 更新
   for (const adjusted of updateAdjustedClue) {
-    await updateMetadataSupabase(adjusted.id, "quality", adjusted.quality);
+    const r = await MetadataRepo.updateByMetaId(
+      adjusted.id,
+      METADATA_QUALITY_KEY,
+      adjusted.quality
+    );
+    if (!r.ok) {
+      // エラー時: 更新失敗でも止めない
+      console.warn("quality の更新失敗しました: " + r.error);
+    }
   }
 
   /** 回答に一貫性を持たせるために、ユーザーの入力に対する過去回答コンテキスト作成 */
