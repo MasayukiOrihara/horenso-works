@@ -1,7 +1,7 @@
 import { Document } from "langchain/document";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 
-import { supabaseClient } from "@/lib/clients";
+import { supabaseClient } from "@/lib/supabase/clients";
 
 import * as ERR from "@/lib/message/error";
 import { embeddings } from "@/lib/llm/embedding";

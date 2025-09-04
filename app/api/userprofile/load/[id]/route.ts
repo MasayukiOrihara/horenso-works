@@ -1,4 +1,4 @@
-import { supabaseClient } from "@/lib/clients";
+import { supabaseClient } from "@/lib/supabase/clients";
 import * as ERR from "@/lib/message/error";
 import { userprofileFormValues } from "@/lib/schema";
 

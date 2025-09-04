@@ -1,6 +1,6 @@
 import { BaseMessage, MessageContent } from "@langchain/core/messages";
 import { MemoryTextData } from "./chat/save/route";
-import { supabaseClient } from "@/lib/clients";
+import { supabaseClient } from "@/lib/supabase/clients";
 import { MEMORY_TABLE } from "@/lib/contents/match";
 
 // 返り値の型を定義

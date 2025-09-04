@@ -1,14 +1,10 @@
-import { Client } from "langsmith";
 import { createClient } from "@supabase/supabase-js";
 
-import * as ERR from "./message/error";
+import * as ERR from "../message/error";
 
-// langSmithクライアント
-export const LangSmithClient = new Client({
-  apiKey: process.env.LANGSMITH_API_KEY,
-});
-
-// supabase のクライアント
+/**
+ * 共通部分: supabase のクライアント
+ */
 export const supabaseClient = () => {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseKey) throw new Error(ERR.SUPABASE_KEY_ERROR);

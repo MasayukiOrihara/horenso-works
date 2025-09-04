@@ -5,7 +5,7 @@ import {
 } from "../lib/match/lib/supabase";
 
 import * as MSG from "@/lib/contents/horenso/template";
-import { supabaseClient } from "@/lib/clients";
+import { supabaseClient } from "@/lib/supabase/clients";
 import * as TYPE from "@/lib/type";
 
 type ExplainNode = {

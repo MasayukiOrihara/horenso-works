@@ -1,4 +1,4 @@
-import { supabaseClient } from "@/lib/clients";
+import { supabaseClient } from "@/lib/supabase/clients";
 import { CLUE_TABLE } from "@/lib/contents/match";
 import { UNKNOWN_ERROR } from "@/lib/message/error";
 
