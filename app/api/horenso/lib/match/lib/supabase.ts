@@ -7,35 +7,6 @@ import * as ERR from "@/lib/message/error";
 import { embeddings } from "@/lib/llm/embedding";
 import { Similarities } from "@/lib/type";
 
-/** ベクターデータで supabase から検索を行う */
-export const searchEmbeddingSupabase = async (
-  tableName: string,
-  queryName: string,
-  vectorData: number[],
-  k: number,
-  question_id: string
-) => {
-  // VectorStoreをSupabaseから設定
-  const vectorStore = new SupabaseVectorStore(embeddings, {
-    client: supabaseClient(),
-    tableName: tableName,
-    queryName: queryName,
-  });
-
-  // 検索
-  const result = await vectorStore.similaritySearchVectorWithScore(
-    vectorData,
-    k,
-    { question_id: question_id } // RPC に渡る
-  );
-
-  // 検索結果が空の場合も考慮するならここでチェック
-  if (!result || result.length === 0) {
-    throw new Error(ERR.SUPABASE_NO_RESULT_ERROR);
-  }
-  return result;
-};
-
 /** supabase にドキュメントを埋め込む */
 export async function saveEmbeddingSupabase(
   documets: Document[],

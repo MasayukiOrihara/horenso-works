@@ -5,6 +5,8 @@ import { AI_EVALUATE_ERROR } from "@/lib/message/error";
 import { evaluateUserAnswer } from "../../llm/evaluateUserAnswer";
 import { saveEmbeddingSupabase } from "../lib/supabase";
 import { FUZZYLIST_TABLE } from "@/lib/contents/match";
+import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
+import { embeddings } from "@/lib/llm/embedding";
 
 type EvaluateNode = {
   evaluationRecords: TYPE.Evaluation[];
@@ -27,6 +29,7 @@ export async function evaluateAnswerNode({
     // LLM 応答
     evaluate = await evaluateUserAnswer(userAnswer, documents);
   } catch (error) {
+    // エラー時: 取得できなかった場合でも内部でのログのみ
     console.warn(AI_EVALUATE_ERROR + error);
     return { tempEvaluationRecords: evaluationRecords };
   }
@@ -63,7 +66,20 @@ export async function evaluateAnswerNode({
 
   // DB の更新
   if (goodEvaluations) {
-    await saveEmbeddingSupabase(evaluate, FUZZYLIST_TABLE);
+    const r = await EmbeddingService.save(
+      embeddings,
+      evaluate,
+      FUZZYLIST_TABLE
+    );
+    if (!r.ok) {
+      // エラー時: 保存失敗しても内部ログのみ
+      console.error(
+        "保存に失敗:",
+        r.error.message,
+        r.error.code,
+        r.error.details
+      );
+    }
     console.log("✅ 正解と判定した回答を データベース に保存しました。");
   }
 

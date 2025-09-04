@@ -5,6 +5,7 @@ import { getVectorStore } from "../vector/store";
 import { DbError } from "../error";
 
 export const EmbeddingService = {
+  /** document データをストアに入れて DB に保存する処理 */
   save: async (
     embeddings: Embeddings,
     docs: Document[],
@@ -19,7 +20,7 @@ export const EmbeddingService = {
     }
   },
 
-  // ベクターから検索する処理（0件は例外扱いにする）
+  /** ベクターから検索する処理（0件は例外扱いにする）*/
   searchByVector: async (
     embeddings: Embeddings,
     tableName: string,
