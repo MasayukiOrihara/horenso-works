@@ -3,6 +3,9 @@ import { WRONGMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
 import { searchEmbeddingSupabase } from "../lib/supabase";
 import * as CON from "@/lib/contents/match";
 import { MatchThreshold } from "@/lib/contents/match";
+import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
+import { embeddings } from "@/lib/llm/embedding";
+import { DbError } from "@/lib/supabase/error";
 
 type WrongCheckNode = {
   evaluationRecords: TYPE.Evaluation[];
@@ -18,64 +21,72 @@ export async function checkWrongMatchNode({
   evaluationRecords,
   threshold,
 }: WrongCheckNode) {
-  const tempEvaluationRecords: TYPE.Evaluation[] = evaluationRecords;
-
-  const maxThreshold = threshold.maxWrongThreshold ?? CON.WRONG_MATCH_SCORE;
-
-  // 外れリストを参照し、もし一致したら不正解としてこれ以降の処理を飛ばす
-  try {
-    // リスト検索に必要な情報（共通なので1つ目のレコードから取得）
-    const question_id = tempEvaluationRecords[0].document.metadata.question_id;
-    const embedding = tempEvaluationRecords[0].input.embedding;
-
-    // ベクトルストア内のドキュメントとユーザーの答えを比較
-    let WrongScore: TYPE.FuzzyScore | null = null;
-    try {
-      //throw new Error("デバッグ用エラー");
-      // supabase から ハズレ回答 を取得
-      const results = await searchEmbeddingSupabase(
-        CON.WRONGLIST_TABLE,
-        CON.WRONGLIST_QUERY,
-        embedding,
-        1,
-        question_id
-      );
-
-      // 変換
-      const max = results[0];
-      WrongScore = {
-        id: max?.[0].metadata.id,
-        score: max?.[1],
-        nearAnswer: max?.[0].pageContent,
-        reason: max?.[0].metadata.reason,
-        correct: "unknown",
-      };
-    } catch (error) {
-      console.error(SCORE_GET_ERROR, error);
-    }
-
-    // エラー処理（null の場合も含む）
-    if (!WrongScore) throw new Error(SCORE_GET_ERROR);
-    console.log(
-      "WRONG:: score: " + WrongScore.score + ", match: " + WrongScore.nearAnswer
-    );
-
-    // まとめてチェック
-    tempEvaluationRecords.map(async (record) => {
-      // 答えの結果が出てない
-      const isAnswerUnknown = record.answerCorrect === "unknown";
-      // ハズレリストの閾値以上
-      const exceedsWrongMatchThreshold = WrongScore.score > maxThreshold;
-      if (isAnswerUnknown && exceedsWrongMatchThreshold) {
-        WrongScore.correct = "incorrect"; // 不正解
-        record.answerCorrect = WrongScore.correct;
-      }
-      record.WrongScore = WrongScore; // 記録
-    });
-    console.log(" → " + tempEvaluationRecords[0].answerCorrect);
-  } catch (error) {
-    console.warn(WRONGMATCH_ERROR + error);
+  // 1) 入力ガード
+  if (evaluationRecords.length === 0) {
+    return { tempEvaluationRecords: [] as TYPE.Evaluation[] };
   }
 
-  return { tempEvaluationRecords };
+  // 2) 共通値の抽出（なければ即エラー）
+  const first = evaluationRecords[0];
+  const question_id = first?.document?.metadata?.question_id;
+  const vector = first?.input?.embedding;
+  if (!question_id || !vector) {
+    throw new Error(SCORE_GET_ERROR + ": missing question_id or vector");
+  }
+  const maxThreshold = threshold.maxWrongThreshold ?? CON.WRONG_MATCH_SCORE;
+  // ベクトルストア内のドキュメントとユーザーの答えを比較
+
+  try {
+    // 3) ベクター検索（Service 側で throw 済み前提）
+    const results = await EmbeddingService.searchByVector(
+      embeddings,
+      CON.WRONGLIST_TABLE,
+      CON.WRONGLIST_QUERY,
+      vector,
+      1,
+      { question_id }
+    );
+
+    // 4) 結果の整形（0件は仕様次第：throw か、何もしないで返すか）
+    if (!results?.length) {
+      throw new DbError("No wrong result");
+    }
+    const [doc, score] = results[0];
+    const baseWrong: TYPE.FuzzyScore = {
+      id: doc.metadata.id,
+      score,
+      nearAnswer: doc.pageContent,
+      reason: doc.metadata.reason,
+      correct: "unknown",
+    };
+    // 5) 閾値超えかどうかを一度だけ計算
+    const exceeds = score > maxThreshold;
+    const tempEvaluationRecords = evaluationRecords.map((record) => {
+      const answerUnknown = record.answerCorrect === "unknown";
+      const wrongScore =
+        answerUnknown && exceeds
+          ? ({ ...baseWrong, correct: "incorrect" } as const)
+          : baseWrong;
+      return {
+        ...record,
+        answerCorrect:
+          answerUnknown && exceeds
+            ? ("incorrect" as const)
+            : record.answerCorrect,
+        wrongScore,
+      };
+    });
+
+    // ログは最小限で有用なものだけ
+    console.log(
+      `WRONG:: score:${baseWrong.score}, match:${baseWrong.nearAnswer}`
+    );
+    console.log(" → ", tempEvaluationRecords[0].answerCorrect);
+
+    return { tempEvaluationRecords };
+  } catch (error) {
+    const err = error as DbError;
+    console.warn(WRONGMATCH_ERROR, err);
+    throw err; // 上に投げる
+  }
 }
