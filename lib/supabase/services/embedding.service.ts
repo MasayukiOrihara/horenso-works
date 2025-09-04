@@ -19,6 +19,7 @@ export const EmbeddingService = {
     }
   },
 
+  // ベクターから検索する処理（0件は例外扱いにする）
   searchByVector: async (
     embeddings: Embeddings,
     tableName: string,
@@ -26,7 +27,7 @@ export const EmbeddingService = {
     vectorData: number[],
     k: number,
     filter: Record<string, any>
-  ): Promise<Result<Array<[any, number]>>> => {
+  ) => {
     try {
       const store = getVectorStore(embeddings, tableName, queryName);
       const res = await store.similaritySearchVectorWithScore(
@@ -34,12 +35,10 @@ export const EmbeddingService = {
         k,
         filter
       );
-      if (!res?.length) {
-        return { ok: false, error: new DbError("No result") };
-      }
-      return { ok: true, value: res };
+      if (!res?.length) throw new DbError("No result");
+      return res;
     } catch (e: any) {
-      return { ok: false, error: new DbError(e?.message ?? "search error") };
+      throw new DbError(e?.message ?? "search error");
     }
   },
 };
