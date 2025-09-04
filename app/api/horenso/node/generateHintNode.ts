@@ -5,6 +5,7 @@ import { findMatchStatusChanges } from "../lib/match/lib/utils";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import * as DOC from "@/lib/contents/horenso/documents";
+import { QuestionStatsRepo } from "@/lib/supabase/repositories/questionStats.repo";
 
 let oldWhoUseDocuments = DOC.whoDocuments.map((doc) => ({
   pageContent: doc.pageContent,
@@ -22,6 +23,7 @@ type HintNode = {
   step: number;
   aiHint: string;
   category: string;
+  sessionId: string;
 };
 
 const ANSWER_STEP = "# 返答作成の手順\n\n";
@@ -50,13 +52,14 @@ const matchedSummaryMessage = (
  * @param param0
  * @returns
  */
-export function generateHintNode({
+export async function generateHintNode({
   whoUseDocuments,
   whyUseDocuments,
   evaluationData,
   step,
   aiHint,
   category,
+  sessionId,
 }: HintNode) {
   const contexts = [];
   contexts.push(ANSWER_STEP);
@@ -97,6 +100,13 @@ export function generateHintNode({
   // 会話の種類次第で反応を変える
   switch (category) {
     case "質問":
+      // ヒント回数を記録
+      const r = await QuestionStatsRepo.incHint(
+        sessionId,
+        documents[0].metadata.questionId
+      );
+      if (!r.ok) throw r.error;
+      console.log("✅ inc_retry_count テーブル を 更新しました。");
       contexts.push(MSG.BULLET + ANSWER_INSTRUCTION_PROMPT);
       break;
     case "冗談":

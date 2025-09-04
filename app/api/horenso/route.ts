@@ -100,14 +100,16 @@ async function rerank(state: typeof StateAnnotation.State) {
 
 async function generateHint(state: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
+  const sessionId = state.session.id;
 
-  const { contexts } = NODE.generateHintNode({
+  const { contexts } = await NODE.generateHintNode({
     whoUseDocuments: whoUseDocuments,
     whyUseDocuments: whyUseDocuments,
     evaluationData: state.evaluationData,
     step: state.transition.step,
     aiHint: state.aiHint,
     category: state.inputCategory,
+    sessionId: sessionId,
   });
 
   return { contexts: [...state.contexts, ...contexts] };

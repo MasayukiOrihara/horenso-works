@@ -1,6 +1,7 @@
 import { HorensoStates, Session } from "@/lib/type";
 
 import * as MSG from "@/lib/contents/horenso/template";
+import { QuestionStatsRepo } from "@/lib/supabase/repositories/questionStats.repo";
 
 type InitialNode = {
   states: HorensoStates;
@@ -24,6 +25,13 @@ export async function setupInitialNode({
   // 前回ターンの状態を反映
   console.log("前回ターンの状態変数");
   console.log(states);
+
+  // リトライ回数更新
+  const r = await QuestionStatsRepo.incRetry(
+    session.id,
+    String(states.step + 1)
+  );
+  if (!r.ok) throw r.error;
 
   // 前提・背景・状況
   const contexts = [];
