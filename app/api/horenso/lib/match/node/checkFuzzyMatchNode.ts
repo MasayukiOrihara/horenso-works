@@ -29,7 +29,7 @@ export async function checkFuzzyMatchNode({
   // 2) 共通値の抽出（存在しないときは即エラー）
   const first = evaluationRecords[0];
   const question_id = first?.document?.metadata?.question_id;
-  const vector = first?.input?.embedding;
+  const vector = first?.input?.vector;
   if (!question_id || !vector) {
     throw new Error(SCORE_GET_ERROR + ": missing question_id or vector");
   }

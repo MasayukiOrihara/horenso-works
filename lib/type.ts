@@ -44,7 +44,7 @@ export type Evaluation = {
 // 入力
 export type UserAnswerEmbedding = {
   userAnswer: string; // ユーザーの答え
-  embedding: number[]; // ベクターデータ
+  vector: number[]; // ベクターデータ
 };
 // ドキュメント正答
 export type DocumentScore = {
