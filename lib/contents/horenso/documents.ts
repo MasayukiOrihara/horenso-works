@@ -12,8 +12,8 @@ export const whoDocuments: Document<HorensoMetadata>[] = [
   {
     pageContent: "リーダー",
     metadata: {
-      parentId: "1",
-      question_id: "1",
+      expectedAnswerId: "1",
+      questionId: "1",
       question: FOR_REPORT_COMMUNICATION,
       answerLeakWords: [
         "リーダー",
@@ -31,8 +31,8 @@ export const whyDocuments: Document<HorensoMetadata>[] = [
   {
     pageContent: "納期や期限を守るために早めの情報共有が必要",
     metadata: {
-      parentId: "1",
-      question_id: "2",
+      expectedAnswerId: "1",
+      questionId: "2",
       question: REPORT_REASON_FOR_LEADER + THREE_ANSWER,
       answerLeakWords: ["納期", "期限", "情報共有"],
       isMatched: false,
@@ -42,8 +42,8 @@ export const whyDocuments: Document<HorensoMetadata>[] = [
     pageContent:
       "機能の過不足がないように仕様のズレを防ぎ、適切な機能範囲を守る",
     metadata: {
-      parentId: "2",
-      question_id: "2",
+      expectedAnswerId: "2",
+      questionId: "2",
       question: REPORT_REASON_FOR_LEADER + THREE_ANSWER,
       answerLeakWords: ["機能", "仕様"],
       isMatched: false,
@@ -52,8 +52,8 @@ export const whyDocuments: Document<HorensoMetadata>[] = [
   {
     pageContent: "品質を保証しバグを未然に防ぐ",
     metadata: {
-      parentId: "3",
-      question_id: "2",
+      expectedAnswerId: "3",
+      questionId: "2",
       question: REPORT_REASON_FOR_LEADER + THREE_ANSWER,
       answerLeakWords: ["品質", "バグ"],
       isMatched: false,

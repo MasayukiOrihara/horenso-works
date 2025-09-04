@@ -27,7 +27,8 @@ export function findMatchStatusChanges(
 ) {
   return before.filter((beforeItem) => {
     const afterItem = after.find(
-      (a) => a.metadata.parentId === beforeItem.metadata.parentId
+      (a) =>
+        a.metadata.expectedAnswerId === beforeItem.metadata.expectedAnswerId
     );
     return (
       afterItem &&
@@ -43,7 +44,10 @@ export const evaluatedResults = (
 ) => {
   for (const data of evaluationData) {
     documents.forEach((doc) => {
-      if (data.document.metadata.parentId === doc.metadata.parentId) {
+      if (
+        data.document.metadata.expectedAnswerId ===
+        doc.metadata.expectedAnswerId
+      ) {
         if (data.document.metadata.isMatched) {
           doc.metadata.isMatched = data.document.metadata.isMatched; // ← 更新
         }

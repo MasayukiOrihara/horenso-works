@@ -4,6 +4,7 @@ import { Document } from "langchain/document";
 import * as TYPE from "@/lib/type";
 import * as CON from "@/lib/contents/match";
 import { MatchThreshold } from "@/lib/contents/match";
+import { AnswerStatusRepo } from "@/lib/supabase/repositories/answerStatus.repo";
 
 type DocCheckNode = {
   similarityResults: [DocumentInterface<Record<string, unknown>>, number][];
@@ -29,49 +30,70 @@ export async function checkDocumentScoreNode({
   const minThreshold = threshold.minBaseThreshold ?? CON.BASE_WORST_SCORE;
 
   // スコアが閾値以上の場合3つのそれぞれのフラグを上げる(閾値スコアは固定で良い気がする)
-  similarityResults.forEach(([bestMatch, score]) => {
+  for (const [bestMatch, score] of similarityResults) {
     const bestDocument = bestMatch as Document<TYPE.HorensoMetadata>;
     console.log(
       "DOC:: score: " + score + ", match: " + bestDocument.pageContent
     );
 
-    for (const doc of documents) {
-      if (bestDocument.pageContent === doc.pageContent) {
-        const bestParentId = bestDocument.metadata.parentId;
+    for (const doc of documents as Document<TYPE.HorensoMetadata>[]) {
+      if (bestDocument.pageContent !== doc.pageContent) continue;
+      const bestExpectedAnswerId = bestDocument.metadata.expectedAnswerId;
 
-        // ✅ 結果の作成
-        const documentScore: TYPE.DocumentScore = {
-          id: bestParentId,
-          score: score,
-          correct: "unknown",
-        };
+      // ✅ 結果の作成
+      const documentScore: TYPE.DocumentScore = {
+        id: bestExpectedAnswerId,
+        score: score,
+        correct: "unknown",
+      };
 
-        // 不正解判定
-        if (score < minThreshold) {
-          documentScore.correct = "incorrect";
-        }
-
-        // 正解判定
-        if (score >= maxThreshold) {
-          // 正解ののフラグ上げる
-          doc.metadata.isMatched = true; // matchAnswerArgs 内の document
-          bestMatch.metadata.isMatched = true; // similarityResults 内の document
-
-          // 評価を正解に変更
-          documentScore.correct = "correct";
-        }
-        // ✅ 評価を作成
-        const evaluation: TYPE.Evaluation = {
-          input: userEmbedding,
-          document: bestDocument,
-          documentScore: documentScore,
-          answerCorrect: documentScore.correct,
-        };
-        evaluationRecords.push(evaluation);
-        console.log(" → " + documentScore.correct);
+      // 不正解判定
+      if (score < minThreshold) {
+        documentScore.correct = "incorrect";
       }
+
+      // 正解判定
+      if (score >= maxThreshold) {
+        // 値の更新
+        const r = await AnswerStatusRepo.upsert(
+          matchAnswerArgs.sessionId,
+          doc.metadata.questionId,
+          doc.metadata.expectedAnswerId,
+          true,
+          score
+        );
+        if (!r.ok) throw r.error;
+        console.log("✅ session_answer_status テーブルを更新しました");
+
+        // matchAnswerArgs 内の document
+        doc.metadata.isMatched = true;
+        // ベクターデータの更新
+        doc.metadata.maxVector = Math.max(
+          doc.metadata.maxVector ?? -Infinity,
+          score
+        );
+
+        // similarityResults 内の document
+        bestDocument.metadata.isMatched = true;
+        bestDocument.metadata.maxVector = Math.max(
+          bestDocument.metadata.maxVector ?? -Infinity,
+          score
+        );
+
+        // 評価を正解に変更
+        documentScore.correct = "correct";
+      }
+      // ✅ 評価を作成
+      const evaluation: TYPE.Evaluation = {
+        input: userEmbedding,
+        document: bestDocument,
+        documentScore: documentScore,
+        answerCorrect: documentScore.correct,
+      };
+      evaluationRecords.push(evaluation);
+      console.log(" → " + documentScore.correct);
     }
-  });
+  }
 
   // 値を更新
   const tempMatchAnswerArgs = {

@@ -28,7 +28,7 @@ export async function similarityUserAnswerNode({
 }: SimilarityNode) {
   // ユーザーの回答設定
   const userVector = await embeddings.embedQuery(userAnswer);
-  const question_id = documents[0].metadata.question_id;
+  const question_id = documents[0].metadata.questionId;
   const userEmbedding: UserAnswerEmbedding = {
     userAnswer: userAnswer,
     vector: userVector,
@@ -38,7 +38,7 @@ export async function similarityUserAnswerNode({
   let similarityResults;
   try {
     // ベクタ検索（Service 側で throw 済み前提）
-    const similarityResults = await EmbeddingService.searchByVector(
+    similarityResults = await EmbeddingService.searchByVector(
       embeddings,
       CON.DOCUMENT_TABLE,
       CON.DOCUMENTS_SEARCH_QUERY,
@@ -46,8 +46,6 @@ export async function similarityUserAnswerNode({
       topK,
       { question_id }
     );
-
-    return { similarityResults, userEmbedding };
   } catch (error) {
     const err = error as DbError;
     console.warn(SUPABASE_SEARCH_ERROR, err);
@@ -55,6 +53,8 @@ export async function similarityUserAnswerNode({
     // エラー時のフォールバック
     similarityResults = await doFallbackSearch(documents, userVector, topK);
   }
+
+  return { similarityResults, userEmbedding };
 }
 
 // ベクトルストアを作り document を変換して検索

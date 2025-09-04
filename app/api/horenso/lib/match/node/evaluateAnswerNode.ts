@@ -41,11 +41,11 @@ export async function evaluateAnswerNode({
 
       // 比較対象回答と一致しているかの確認
       for (const data of evaluate) {
-        const evaluateParentId = String(data.metadata.parentId);
+        const evaluateExpectedAnswerId = String(data.metadata.expectedAnswerId);
         const checkIdMatch =
-          evaluateParentId === bestDocument.metadata.parentId;
+          evaluateExpectedAnswerId === bestDocument.metadata.expectedAnswerId;
         // 判定OK
-        if (evaluateParentId && checkIdMatch) {
+        if (evaluateExpectedAnswerId && checkIdMatch) {
           // 合格判定
           goodEvaluations.push(data);
 

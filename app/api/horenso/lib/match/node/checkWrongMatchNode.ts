@@ -27,7 +27,7 @@ export async function checkWrongMatchNode({
 
   // 2) 共通値の抽出（なければ即エラー）
   const first = evaluationRecords[0];
-  const question_id = first?.document?.metadata?.question_id;
+  const question_id = first?.document?.metadata?.questionId;
   const vector = first?.input?.vector;
   if (!question_id || !vector) {
     throw new Error(SCORE_GET_ERROR + ": missing question_id or vector");

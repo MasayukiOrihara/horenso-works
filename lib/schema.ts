@@ -15,8 +15,8 @@ export type ChatRequestOptions = z.infer<typeof ChatRequestOptionsSchema>;
  */
 const phrasesMetadataScheme = z.object({
   id: z.string(),
-  question_id: z.string(),
-  parentId: z.string().nullable(),
+  questionId: z.string(),
+  expectedAnswerId: z.string().nullable(),
   rationale: z.string().optional(),
   source: z.enum(["user", "bot", "admin"]),
 });

@@ -27,6 +27,7 @@ export type MatchAnswerArgs = {
   topK: number; // 上位からの比較個数
   allTrue?: boolean; // 全問正解で正解とするか
   shouldValidate?: boolean; // 適正チェックを行うかどうかのフラグ
+  sessionId: string;
 };
 
 /**
@@ -67,11 +68,12 @@ export type AnswerCorrect = "correct" | "incorrect" | "unknown";
  * ドキュメント評価で使う Document のメタデータ
  */
 export type HorensoMetadata = {
-  parentId: string;
-  question_id: string;
-  question: string;
-  answerLeakWords?: string[];
-  isMatched: boolean;
+  expectedAnswerId: string; // 回答識別番号
+  questionId: string; // 問題番号
+  question: string; // 問題内容
+  answerLeakWords?: string[]; // 禁止ワード
+  isMatched: boolean; // 正解してるかどうか
+  maxVector?: number; // 回答時の最大ベクターデータ
 };
 
 /**
@@ -79,8 +81,8 @@ export type HorensoMetadata = {
  */
 export type PhrasesMetadata = {
   id?: string;
-  question_id: string;
-  parentId: string | null;
+  questionId: string;
+  expectedAnswerId: string | null;
   rationale?: string;
   source: "user" | "admin" | "bot";
 };
@@ -90,7 +92,7 @@ export type PhrasesMetadata = {
  */
 export type ClueMetadata = {
   id: string;
-  question_id: string;
+  questionId: string;
   clue: string;
   quality: number;
   source: "user" | "admin" | "bot";

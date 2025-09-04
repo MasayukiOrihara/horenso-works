@@ -21,7 +21,7 @@ export const evaluateUserAnswer = async (
 ) => {
   // 問題の取得
   const question = documents[0].metadata.question;
-  const question_id = documents[0].metadata.question_id;
+  const questionId = documents[0].metadata.questionId;
   // 問題の回答（正解が複数の場合、すべての正解（多）×ユーザーの回答（単）で比較）
   const currentAnswer = documents
     .map((doc, i) => `${i + 1}. ${doc.pageContent}`)
@@ -53,8 +53,8 @@ export const evaluateUserAnswer = async (
         pageContent: userAnswer,
         metadata: {
           id: uuidv4(),
-          question_id: question_id,
-          parentId: doc.metadata.parentId,
+          questionId: questionId,
+          expectedAnswerId: doc.metadata.expectedAnswerId,
           rationale: doc.metadata.rationale,
           source: "bot",
         },
@@ -68,8 +68,8 @@ export const evaluateUserAnswer = async (
       pageContent: userAnswer,
       metadata: {
         id: uuidv4(),
-        question_id: question_id,
-        parentId: "",
+        questionId: questionId,
+        expectedAnswerId: "",
         rationale: JSON_PARSE_ERROR,
         source: "bot",
       },

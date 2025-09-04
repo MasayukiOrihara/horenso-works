@@ -9,13 +9,13 @@ import { MetadataRepo } from "@/lib/supabase/repositories/metadata.repo";
 /** clue 新規作成 */
 export const generateClue = (
   userAnswer: string,
-  question_id: string
+  questionId: string
 ): Document<ClueMetadata> => {
   return {
     pageContent: userAnswer,
     metadata: {
       id: uuidv4(),
-      question_id: question_id,
+      questionId: questionId,
       clue: "",
       quality: 0.5,
       source: "bot",

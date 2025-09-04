@@ -103,6 +103,7 @@ export async function preprocessAiNode({
             topK: k,
             allTrue,
             shouldValidate,
+            sessionId: session.id,
           },
         },
       });
@@ -110,7 +111,7 @@ export async function preprocessAiNode({
   const checkUserAnswers = new RunnableParallel({ steps });
 
   //vectorStore検索と並列に実行(全体の処理時間も計測)
-  const question_id = useDocuments[0].metadata.question_id;
+  const question_id = useDocuments[0].metadata.questionId;
   console.log(" --- ");
   const start = Date.now();
   const [matchResultsMap, rawClue] = await Promise.all([

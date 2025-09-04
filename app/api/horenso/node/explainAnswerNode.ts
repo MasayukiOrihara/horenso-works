@@ -29,15 +29,20 @@ export async function explainAnswerNode({
   contexts.push(MSG.BULLET + MSG.SUMMARY_REQUEST_PROMPT);
 
   // ここで grade を更新
+  console.log(
+    evaluationData.map((doc) => {
+      doc.document;
+    })
+  );
   const pairs: TYPE.Similarities[] = [];
   evaluationData.map((data) => {
     const isCorrect = data.answerCorrect === "correct";
     const hasSome = pairs.some(
-      (p) => p.expectedAnswerId === data.document.metadata.parentId
+      (p) => p.expectedAnswerId === data.document.metadata.expectedAnswerId
     );
     if (isCorrect && !hasSome) {
       const pair = {
-        expectedAnswerId: data.document.metadata.parentId,
+        expectedAnswerId: data.document.metadata.expectedAnswerId,
         similarity: data.documentScore.score,
       };
       pairs.push(pair);
