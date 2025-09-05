@@ -1,14 +1,13 @@
 import * as TYPE from "@/lib/type";
 import { WRONGMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
 import * as CON from "@/lib/contents/match";
-import { MatchThreshold } from "@/lib/contents/match";
 import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
 import { embeddings } from "@/lib/llm/embedding";
 import { DbError } from "@/lib/supabase/error";
 
 type WrongCheckNode = {
   evaluationRecords: TYPE.Evaluation[];
-  threshold: MatchThreshold;
+  threshold: TYPE.MatchThreshold;
 };
 
 /**
@@ -32,7 +31,7 @@ export async function checkWrongMatchNode({
   if (!questionId || !vector) {
     throw new Error(SCORE_GET_ERROR + ": missing questionId or vector");
   }
-  const maxThreshold = threshold.maxWrongThreshold ?? CON.WRONG_MATCH_SCORE;
+  const maxThreshold = threshold.maxWrong;
   // ベクトルストア内のドキュメントとユーザーの答えを比較
 
   try {

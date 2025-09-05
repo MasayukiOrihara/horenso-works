@@ -11,6 +11,7 @@ import * as DOC from "@/lib/contents/horenso/documents";
 import * as NODE from "./node";
 import * as TYPE from "@/lib/type";
 import * as ERR from "@/lib/message/error";
+import { SessionFlags } from "../../../lib/type";
 
 // 使用ドキュメントの初期状態準備
 const transitionStates = { ...DOC.defaultTransitionStates };
@@ -23,8 +24,6 @@ const whyUseDocuments = DOC.whyDocuments.map((doc) => ({
   metadata: { ...doc.metadata },
 }));
 
-// デバック用変数
-let globalDebugStep = 0;
 // ベースURL の共通化
 let globalBaseUrl = "";
 
@@ -33,29 +32,27 @@ let globalBaseUrl = "";
  */
 /** 初期設定を行うノード */
 async function setupInitial(state: typeof StateAnnotation.State) {
-  const session = state.session;
+  const sessionFlags = state.sessionFlags;
 
-  const { states, contexts } = await NODE.setupInitialNode({
-    states: transitionStates,
-    session: session,
-    debugStep: globalDebugStep,
+  const { contexts, transition } = await NODE.setupInitialNode({
+    sessionFlags: sessionFlags,
   });
   return {
     contexts: contexts,
-    transition: { ...states },
+    transition: transition,
     evaluationData: [], // 初期化
   };
 }
 
 /** AI が事前準備を行うノード */
 async function preprocessAI(state: typeof StateAnnotation.State) {
-  const session = state.session;
+  const messages = state.messages;
+  const sessionFlags = state.sessionFlags;
 
   const { evaluationData, clue, getHint, category } =
     await NODE.preprocessAiNode({
-      messages: state.messages,
-      step: state.transition.step,
-      session: session,
+      messages: messages,
+      sessionFlags: sessionFlags,
       baseUrl: globalBaseUrl,
       whoUseDocuments: whoUseDocuments,
       whyUseDocuments: whyUseDocuments,
@@ -71,22 +68,25 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
 
 async function checkUserAnswer(state: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
+  const sessionFlags = state.sessionFlags;
 
-  const { flag } = NODE.checkUserAnswerNode({
+  const { flag, updateSessionFlags } = NODE.checkUserAnswerNode({
     whoUseDocuments: whoUseDocuments,
     whyUseDocuments: whyUseDocuments,
     transition: state.transition,
+    sessionFlags: sessionFlags,
   });
-  return { transition: flag };
+  return { transition: flag, sessionFlags: updateSessionFlags };
 }
 
 async function rerank(state: typeof StateAnnotation.State) {
   console.log("👓 過去返答検索ノード");
+  const sessionFlags = state.sessionFlags;
 
-  const { newClueId, selectedClue, contexts } = await NODE.rerankNode({
+  const { updateSessionFlags, selectedClue, contexts } = await NODE.rerankNode({
     adjustedClue: state.adjustedClue,
     messages: state.messages,
-    step: state.transition.step,
+    sessionFlags: sessionFlags,
     clue: state.clue,
     category: state.inputCategory,
   });
@@ -94,22 +94,21 @@ async function rerank(state: typeof StateAnnotation.State) {
   return {
     contexts: [...state.contexts, ...contexts],
     adjustedClue: selectedClue,
-    newClueId: newClueId,
+    sessionFlags: updateSessionFlags,
   };
 }
 
 async function generateHint(state: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
-  const sessionId = state.session.id;
+  const sessionFlags = state.sessionFlags;
 
   const { contexts } = await NODE.generateHintNode({
     whoUseDocuments: whoUseDocuments,
     whyUseDocuments: whyUseDocuments,
     evaluationData: state.evaluationData,
-    step: state.transition.step,
+    sessionFlags: sessionFlags,
     aiHint: state.aiHint,
     category: state.inputCategory,
-    sessionId: sessionId,
   });
 
   return { contexts: [...state.contexts, ...contexts] };
@@ -117,9 +116,10 @@ async function generateHint(state: typeof StateAnnotation.State) {
 
 async function askQuestion(state: typeof StateAnnotation.State) {
   console.log("❓ 問題出題ノード");
+  const step = state.sessionFlags.step;
 
   const { contexts } = NODE.askQuestionNode({
-    step: state.transition.step,
+    step: step,
     whyUseDocuments: whyUseDocuments,
   });
   return { contexts: [...state.contexts, ...contexts] };
@@ -142,28 +142,30 @@ async function explainAnswer(state: typeof StateAnnotation.State) {
  */
 async function saveFinishState(state: typeof StateAnnotation.State) {
   console.log("💾 状態保存ノード");
+  const sessionFlags = state.sessionFlags;
 
-  const { contexts } = NODE.saveFinishStateNode({
+  const { contexts, updateSessionFlags } = NODE.saveFinishStateNode({
     states: transitionStates,
     transition: state.transition,
+    sessionFlags: sessionFlags,
     whoUseDocuments: whoUseDocuments,
     whyUseDocuments: whyUseDocuments,
   });
   return {
     contexts: [...state.contexts, ...contexts],
+    sessionFlags: updateSessionFlags,
   };
 }
 
 /** メイングラフ内の状態を司るアノテーション */
 const StateAnnotation = Annotation.Root({
-  session: Annotation<TYPE.Session>(), // フロントで管理しているセッションID
+  sessionFlags: Annotation<TYPE.SessionFlags>(),
   contexts: Annotation<string[]>(), // 最終出力を行うコンテキスト
   clue: Annotation<[Document<TYPE.ClueMetadata>, number][]>(), // 以前の回答の記録
   adjustedClue: Annotation<TYPE.AdjustedClue[]>(), // 重みづけした回答の記録
   aiHint: Annotation<string>(), // ヒント出力テキスト
   inputCategory: Annotation<string>(), // ユーザー入力分析出力テキスト
   evaluationData: Annotation<TYPE.Evaluation[]>(), // 回答評価データ
-  newClueId: Annotation<string>(), // 新しい clueID clueをstream後登録するために使う
   transition: Annotation<TYPE.HorensoStates>(), // 全体のフラグ管理
 
   ...MessagesAnnotation.spec,
@@ -211,16 +213,14 @@ export async function POST(req: Request) {
       console.error("🥬 horenso API POST error: " + ERR.MESSAGES_ERROR);
       return Response.json({ error: ERR.MESSAGES_ERROR }, { status: 400 });
     }
-    // セッションID 取得
-    const session: TYPE.Session = body.session;
-    if (!session) {
+    // セッション情報 取得
+    const sessionFlags: TYPE.SessionFlags = body.sessionFlags;
+    if (!sessionFlags) {
       console.error("🥬 horenso API POST error: " + ERR.SESSIONID_ERROR);
       return Response.json({ error: ERR.SESSIONID_ERROR }, { status: 400 });
     }
     // memory server 設定
-    const config = { configurable: { thread_id: session.id } };
-    // デバック用のステップ数を取得
-    globalDebugStep = body.step ?? 0;
+    const config = { configurable: { thread_id: sessionFlags.sessionId } };
     // url の取得
     const { baseUrl } = getBaseUrl(req);
     globalBaseUrl = baseUrl;
@@ -229,7 +229,7 @@ export async function POST(req: Request) {
     const result = await measureExecution(
       app,
       "horenso",
-      { messages: userMessage, session },
+      { messages: userMessage, sessionFlags },
       config
     );
     const aiText = result.contexts.join("");
@@ -246,8 +246,7 @@ export async function POST(req: Request) {
     // 返すオブジェクト
     const response: TYPE.HorensoWorkResponse = {
       text: aiText,
-      contenue: !aiText.includes("--終了--"),
-      clueId: result.newClueId,
+      sessionFlags: result.sessionFlags,
     };
 
     return Response.json(response, { status: 200 });

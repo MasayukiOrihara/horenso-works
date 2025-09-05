@@ -1,7 +1,7 @@
 import { BaseMessage } from "@langchain/core/messages";
 import { requestApi } from "@/lib/api/request";
 import * as PATH from "@/lib/api/path";
-import { Session } from "@/lib/type";
+import { SessionFlags } from "@/lib/type";
 
 // それぞれのリクエスト
 // 記憶の取り出し
@@ -39,11 +39,10 @@ export const requestSave = async (
 export const requestHorensoGraph = async (
   url: string,
   userMessage: string,
-  session: Session,
-  step: number
+  sessionFlags: SessionFlags
 ) => {
   return await requestApi(url, PATH.HORENSO_PATH, {
     method: "POST",
-    body: { userMessage, session, step },
+    body: { userMessage, sessionFlags },
   });
 };

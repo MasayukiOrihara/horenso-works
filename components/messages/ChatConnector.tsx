@@ -1,13 +1,10 @@
 import { useUserMessages } from "./message-provider";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { UIMessage } from "ai";
 import { useStartButton } from "../provider/StartButtonProvider";
 import { useSessionId } from "@/hooks/useSessionId";
 import { useHorensoChat } from "@/hooks/useHorensoChat";
-import { useSettings } from "../provider/SettingsProvider";
-import { ChatRequestOptions } from "@/lib/schema";
-import { useSendCount } from "@/hooks/useSentCount";
-import { Session } from "@/lib/type";
+import { useSessionFlagsStorage } from "@/hooks/useSessionStorage";
 
 // 定数
 const FIRST_CHAT = "研修よろしくお願いします。";
@@ -20,61 +17,65 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 
 export const ChatConnector = () => {
   const { setAiMessage, currentUserMessage, setAiState } = useUserMessages();
-  const { flags } = useSettings();
   const { startButtonFlags } = useStartButton();
+  const { value: sessionFlags, setValue: setSessionFlags } =
+    useSessionFlagsStorage();
   // 現在のセッション ID
   const sessionId = useSessionId();
-  // 現在のセッション中に何回 LLM に送っているか
-  const { count, increment } = useSendCount();
-  // チャットリクエストのオプションを作成
-  const options: ChatRequestOptions = {
-    memoryOn: flags.memoryOn,
-    debug: startButtonFlags.debug,
-    step: startButtonFlags.step,
-  };
+  const sessionIdRef = useRef(sessionId);
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
 
-  // session 情報の作成
-  const session: Session | null =
-    sessionId !== null ? { id: sessionId, count } : null;
+  // 最新の flags を送信用に持っておく
+  const flagsRef = useRef(sessionFlags);
+  useEffect(() => {
+    flagsRef.current = sessionFlags;
+  }, [sessionFlags]);
 
   // カスタムフックから報連相ワークAI の準備
-  const { messages, status, append } = useHorensoChat(
-    "api/chat",
-    session,
-    options
-  );
-  // append の状態を固定する
+  const { messages, status, append } = useHorensoChat("api/chat", sessionId, {
+    onFlags: setSessionFlags, // ここでセッション情報の保存
+  });
+
+  // 状態を固定
   const appendRef = useRef(append);
   useEffect(() => {
     appendRef.current = append;
   }, [append]);
 
+  // 常に「最新の flags」を body に入れて append する send ラッパ
+  const send = useCallback((content: string) => {
+    return appendRef.current(
+      { role: "user", content },
+      {
+        body: {
+          sessionId: sessionIdRef.current,
+          sessionFlags: flagsRef.current,
+        },
+      }
+    );
+  }, []);
+
   // システムの開始状態を管理
   const hasRun = useRef(false);
-  // 直近のメッセージを取得
-  const currentAiCommentMessage = getLatestAssistantMessage(messages);
 
-  // システムの開始処理
+  // 初回の実行処理
   useEffect(() => {
-    // 初回の実行処理
     if (startButtonFlags.started && !hasRun.current) {
       hasRun.current = true;
-      appendRef.current({
-        role: "user",
-        content: FIRST_CHAT,
-      });
+      send(FIRST_CHAT);
     }
-  }, [startButtonFlags.started]);
+  }, [startButtonFlags.started, send]);
 
   // ユーザーメッセージの送信
   useEffect(() => {
     if (!currentUserMessage) return;
-    appendRef.current({ role: "user", content: currentUserMessage });
-    // 送信回数を増やす
-    increment();
-  }, [currentUserMessage, increment]);
+    send(currentUserMessage);
+  }, [currentUserMessage, send]);
 
   // Aimessage の送信
+  const currentAiCommentMessage = getLatestAssistantMessage(messages);
   useEffect(() => {
     if (!currentAiCommentMessage) return;
     setAiMessage(currentAiCommentMessage.content);

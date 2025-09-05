@@ -1,6 +1,6 @@
 import { Document } from "langchain/document";
 
-import { Evaluation, HorensoMetadata } from "@/lib/type";
+import { Evaluation, HorensoMetadata, SessionFlags } from "@/lib/type";
 import { findMatchStatusChanges } from "../lib/match/lib/utils";
 
 import * as MSG from "@/lib/contents/horenso/template";
@@ -20,10 +20,9 @@ type HintNode = {
   whoUseDocuments: Document<HorensoMetadata>[];
   whyUseDocuments: Document<HorensoMetadata>[];
   evaluationData: Evaluation[];
-  step: number;
+  sessionFlags: SessionFlags;
   aiHint: string;
   category: string;
-  sessionId: string;
 };
 
 const ANSWER_STEP = "# 返答作成の手順\n\n";
@@ -56,10 +55,9 @@ export async function generateHintNode({
   whoUseDocuments,
   whyUseDocuments,
   evaluationData,
-  step,
+  sessionFlags,
   aiHint,
   category,
-  sessionId,
 }: HintNode) {
   const contexts = [];
   contexts.push(ANSWER_STEP);
@@ -67,7 +65,7 @@ export async function generateHintNode({
   // どっちのドキュメントを参照するか
   let documents: Document<HorensoMetadata>[] = [];
   let oldDocuments: Document<HorensoMetadata>[] = [];
-  switch (step) {
+  switch (sessionFlags.step) {
     case 0:
       documents = whoUseDocuments; // 今回は使わないけど一応
       oldDocuments = oldWhoUseDocuments;
@@ -88,7 +86,7 @@ export async function generateHintNode({
     pageContent: doc.pageContent,
     metadata: { ...doc.metadata },
   }));
-  switch (step) {
+  switch (sessionFlags.step) {
     case 0:
       oldWhoUseDocuments = copiedDocuments;
       break;
@@ -102,7 +100,7 @@ export async function generateHintNode({
     case "質問":
       // ヒント回数を記録
       const r = await QuestionStatsRepo.incHint(
-        sessionId,
+        sessionFlags.sessionId,
         documents[0].metadata.questionId
       );
       if (!r.ok) throw r.error;

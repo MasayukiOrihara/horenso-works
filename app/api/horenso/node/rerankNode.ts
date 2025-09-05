@@ -1,7 +1,7 @@
 import { Document } from "langchain/document";
 import { BaseMessage } from "@langchain/core/messages";
 
-import { AdjustedClue, ClueMetadata } from "@/lib/type";
+import { AdjustedClue, ClueMetadata, SessionFlags } from "@/lib/type";
 import { messageToText } from "../lib/match/lib/utils";
 import { getRankedResults } from "../lib/match/lib/score";
 
@@ -15,7 +15,7 @@ import { MetadataRepo } from "@/lib/supabase/repositories/metadata.repo";
 type RerankNode = {
   adjustedClue: AdjustedClue[];
   messages: BaseMessage[];
-  step: number;
+  sessionFlags: SessionFlags;
   clue: [Document<ClueMetadata>, number][];
   category: string;
 };
@@ -28,7 +28,7 @@ type RerankNode = {
 export async function rerankNode({
   adjustedClue,
   messages,
-  step,
+  sessionFlags,
   clue,
   category,
 }: RerankNode) {
@@ -36,7 +36,7 @@ export async function rerankNode({
   const previousMessage = messageToText(messages, messages.length - 1);
   const newClue: Document<ClueMetadata> = generateClue(
     previousMessage,
-    `${step + 1}`
+    `${sessionFlags.step + 1}`
   );
   // db保存
   const r = await EmbeddingService.save(embeddings, [newClue], CLUE_TABLE);
@@ -50,7 +50,7 @@ export async function rerankNode({
     );
   }
   console.log("✅ 新規clue を データベース に保存しました。");
-  const newClueId = newClue.metadata.id; // 次に渡す ID 用
+  sessionFlags.options.clueId = newClue.metadata.id; // 次に渡す ID 用
 
   /** 前回ターンの clue が役に立たなかったのでマイナス評価更新 */
   let updateAdjustedClue: AdjustedClue[] = [];
@@ -94,5 +94,5 @@ export async function rerankNode({
   }
   contexts.push("\n");
 
-  return { newClueId, selectedClue, contexts };
+  return { updateSessionFlags: sessionFlags, selectedClue, contexts };
 }

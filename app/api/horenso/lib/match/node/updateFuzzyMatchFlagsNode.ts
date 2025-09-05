@@ -32,7 +32,7 @@ export async function updateFuzzyMatchFlagsNode({
       if (record.answerCorrect === "correct") {
         // DB 更新
         const r = await AnswerStatusRepo.upsert(
-          matchAnswerArgs.sessionId,
+          matchAnswerArgs.sessionFlags.sessionId,
           doc.metadata.questionId,
           doc.metadata.expectedAnswerId,
           true,

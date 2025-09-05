@@ -23,8 +23,7 @@ const MATCH_PATH = "/api/horenso/lib/match";
 
 type AiNode = {
   messages: BaseMessage[];
-  step: number;
-  session: TYPE.Session;
+  sessionFlags: TYPE.SessionFlags;
   baseUrl: string;
   whoUseDocuments: Document<TYPE.HorensoMetadata>[];
   whyUseDocuments: Document<TYPE.HorensoMetadata>[];
@@ -37,8 +36,7 @@ type AiNode = {
  */
 export async function preprocessAiNode({
   messages,
-  step,
-  session,
+  sessionFlags,
   baseUrl,
   whoUseDocuments,
   whyUseDocuments,
@@ -48,23 +46,23 @@ export async function preprocessAiNode({
   // ユーザーの答え
   const userMessage = messageToText(messages, messages.length - 1);
   // 回答チェック判定を取得
-  const readShouldValidate = await requestApi(baseUrl, MATCH_VALIDATE, {
-    method: "GET",
-  });
+  // const readShouldValidate = await requestApi(baseUrl, MATCH_VALIDATE, {
+  //   method: "GET",
+  // });
 
   // 使用するプロンプト
   let sepKeywordPrompt = "";
   let useDocuments: Document<TYPE.HorensoMetadata>[] = [];
   let k = 1;
   let allTrue = false;
-  let shouldValidate = false;
+  // let shouldValidate = false;
   let question = "";
-  switch (step) {
+  switch (sessionFlags.step) {
     case 0:
       sepKeywordPrompt = MSG.KEYWORD_EXTRACTION_PROMPT;
       useDocuments = whoUseDocuments;
       question = MSG.FOR_REPORT_COMMUNICATION;
-      shouldValidate = readShouldValidate.who ?? false;
+      // shouldValidate = readShouldValidate.who ?? false;
       break;
     case 1:
       sepKeywordPrompt = MSG.CLAIM_EXTRACTION_PROMPT;
@@ -72,7 +70,7 @@ export async function preprocessAiNode({
       k = 3;
       allTrue = true;
       question = MSG.REPORT_REASON_FOR_LEADER;
-      shouldValidate = readShouldValidate.why ?? true;
+      // shouldValidate = readShouldValidate.why ?? true;
       break;
   }
 
@@ -83,7 +81,10 @@ export async function preprocessAiNode({
   const [userAnswer, userVector] = await Promise.all([
     splitInputLlm(sepKeywordPrompt, userMessage),
     embeddings.embedQuery(userMessage),
-    SessionQuestionGradeRepo.ensure(session.id, step + 1),
+    SessionQuestionGradeRepo.ensure(
+      sessionFlags.sessionId,
+      sessionFlags.step + 1
+    ),
   ]);
   console.log("質問の分離した答え: ");
   console.log(userAnswer);
@@ -102,8 +103,7 @@ export async function preprocessAiNode({
             documents: useDocuments,
             topK: k,
             allTrue,
-            shouldValidate,
-            sessionId: session.id,
+            sessionFlags: sessionFlags,
           },
         },
       });

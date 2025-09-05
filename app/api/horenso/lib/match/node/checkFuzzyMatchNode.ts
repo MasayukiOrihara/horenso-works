@@ -2,14 +2,13 @@ import { FUZZYMATCH_ERROR, SCORE_GET_ERROR } from "@/lib/message/error";
 
 import * as TYPE from "@/lib/type";
 import * as CON from "@/lib/contents/match";
-import { MatchThreshold } from "@/lib/contents/match";
 import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
 import { embeddings } from "@/lib/llm/embedding";
 import { DbError } from "@/lib/supabase/error";
 
 type FuzzyCheckNode = {
   evaluationRecords: TYPE.Evaluation[];
-  threshold: MatchThreshold;
+  threshold: TYPE.MatchThreshold;
 };
 
 /**
@@ -34,7 +33,7 @@ export async function checkFuzzyMatchNode({
     throw new Error(SCORE_GET_ERROR + ": missing questionId or vector");
   }
 
-  const maxThreshold = threshold.maxFuzzyThreshold ?? CON.FUZZY_MATCH_SCORE;
+  const maxThreshold = threshold.maxFuzzy;
 
   // 曖昧リストから検索し最大値スコアを取得
   try {

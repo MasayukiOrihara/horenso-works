@@ -1,10 +1,11 @@
 import { Document } from "langchain/document";
-import { HorensoMetadata, HorensoStates } from "@/lib/type";
+import { HorensoMetadata, HorensoStates, SessionFlags } from "@/lib/type";
 
 type UserAnswerNode = {
   whoUseDocuments: Document<HorensoMetadata>[];
   whyUseDocuments: Document<HorensoMetadata>[];
   transition: HorensoStates;
+  sessionFlags: SessionFlags;
 };
 
 /**
@@ -16,10 +17,11 @@ export function checkUserAnswerNode({
   whoUseDocuments,
   whyUseDocuments,
   transition,
+  sessionFlags,
 }: UserAnswerNode) {
   const flag: HorensoStates = { ...transition };
 
-  switch (transition.step) {
+  switch (sessionFlags.step) {
     case 0:
       console.log("質問1: 報連相は誰のため？");
 
@@ -28,7 +30,7 @@ export function checkUserAnswerNode({
         (doc) => doc.metadata.isMatched
       );
       if (isCorrectWho) {
-        flag.step = 1;
+        sessionFlags.step = 1;
         flag.isAnswerCorrect = true;
       }
       break;
@@ -49,5 +51,5 @@ export function checkUserAnswerNode({
   console.log("正解判定：");
   console.log(flag);
 
-  return { flag };
+  return { flag, updateSessionFlags: sessionFlags };
 }

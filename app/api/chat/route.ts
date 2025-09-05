@@ -19,17 +19,13 @@ import * as REQ from "./requestApi";
 
 import { computeFinalScoreWeightedAverage } from "./grade";
 
-// 外部フラグ
-let horensoContenue = false;
-let oldHorensoContenue = false;
-
 /** 分岐ノード */
 async function phaseRouter(state: typeof StateAnnotation.State) {
   console.log("🔘 分岐ノード");
-  const debug = state.options.debug;
+  const debugOn = state.sessionFlags.options.debugOn;
+  const sessionState = state.sessionFlags.state;
 
-  horensoContenue = true;
-  if (horensoContenue && !oldHorensoContenue && !debug) {
+  if (sessionState === "locked" && !debugOn) {
     return "init";
   }
 
@@ -41,9 +37,7 @@ async function init(state: typeof StateAnnotation.State) {
   console.log("🚪 初回ノード");
   const baseUrl = state.baseUrl;
   const messages = state.messages;
-  const sessionId = state.session.id;
-
-  oldHorensoContenue = true;
+  const sessionId = state.sessionFlags.sessionId;
 
   // 過去の履歴取得（非同期）
   const fetchMemory = REQ.requestMemory(baseUrl, messages, sessionId);
@@ -79,24 +73,25 @@ async function horensoWork(state: typeof StateAnnotation.State) {
   const baseUrl = state.baseUrl;
   const messages = state.messages;
   const userMessage = state.userMessage;
-  const session = state.session;
-  const options = state.options;
+  const sessionFlags = state.sessionFlags;
+
+  // sessionFlags内変数
+  const sessionId = sessionFlags.sessionId;
+  const options = sessionFlags.options;
 
   // 過去の履歴取得（非同期）
-  const fetchMemory = REQ.requestMemory(baseUrl, messages, session.id);
+  const fetchMemory = REQ.requestMemory(baseUrl, messages, sessionId);
   // ユーザープロファイルを取得
-  const fetchUserprofile = REQ.requestUserprofile(baseUrl, session.id);
+  const fetchUserprofile = REQ.requestUserprofile(baseUrl, sessionId);
   // メッセージ保存: フロントエンドから記憶設定を取得
-  const fetchSave = REQ.requestSave(baseUrl, messages, session.id);
+  const fetchSave = REQ.requestSave(baseUrl, messages, sessionId);
 
   // 報連相ワークAPI呼び出し
   const contexts: string[] = [];
-  const step = options.debug ? options.step : 0; // デバック用のステップ数設定
   const fetchHorensoGraph = REQ.requestHorensoGraph(
     baseUrl,
     userMessage,
-    session,
-    step
+    sessionFlags
   );
 
   // 並列処理
@@ -116,20 +111,16 @@ async function horensoWork(state: typeof StateAnnotation.State) {
     contexts: contexts,
     memory: memory,
     userprofile: userprofile,
-    horensoGraph: horensoGraph,
   };
 }
 
 async function endHorensoWork(state: typeof StateAnnotation.State) {
   console.log("🛎 終了判定ノード");
-  const horensoGraph = state.horensoGraph;
+  const sessionState = state.sessionFlags.state;
 
   // ログ表示
-  console.log(
-    "継続判定 api側: " + horensoGraph.contenue + " chat側: " + horensoContenue
-  );
-  if (horensoGraph.contenue != horensoContenue) {
-    horensoContenue = false;
+  console.log(`継続状態: ${sessionState}`);
+  if (sessionState === "cleared") {
     return "calcGrade";
   }
 
@@ -139,7 +130,7 @@ async function endHorensoWork(state: typeof StateAnnotation.State) {
 async function calcGrade(state: typeof StateAnnotation.State) {
   console.log("📐 グレード計算ノード");
   const contexts = state.contexts;
-  const sessionId = state.session.id;
+  const sessionId = state.sessionFlags.sessionId;
 
   const { final, perQuestion } = await computeFinalScoreWeightedAverage(
     sessionId
@@ -163,6 +154,7 @@ async function finalization() {
 /** コンテキストをまとめるノード */
 async function contextMerger(state: typeof StateAnnotation.State) {
   console.log("📄 コンテキストノード");
+  const sessionFlags = state.sessionFlags;
   const memory = state.memory;
   const userprofile = state.userprofile;
   const userMessage = state.userMessage;
@@ -181,19 +173,20 @@ async function contextMerger(state: typeof StateAnnotation.State) {
     context: contexts.join("\n\n"),
   };
 
-  return { chatGraphResult: chatGraphResult };
+  // 状態の変更
+  if (sessionFlags.state !== "cleared") sessionFlags.state = "in_progress";
+
+  return { chatGraphResult: chatGraphResult, sessionFlags: sessionFlags };
 }
 
 /** メイングラフ内の状態を司るアノテーション */
 const StateAnnotation = Annotation.Root({
-  session: Annotation<TYPE.Session>(), // フロントで管理しているセッションID
+  sessionFlags: Annotation<TYPE.SessionFlags>(), // セッション中のフラグ
   userMessage: Annotation<string>(), // 最新のユーザーメッセージ
   baseUrl: Annotation<string>(), // ベースURL
-  options: Annotation<SCM.ChatRequestOptions>(), // フロントから送られてきたオプション
   contexts: Annotation<string[]>(), // グラフ内でコンテキストを管理する
   memory: Annotation<string[]>(), // 会話履歴
   userprofile: Annotation<SCM.userprofileFormValues>(), // 取得したユーザープロファイル
-  horensoGraph: Annotation<TYPE.HorensoWorkResponse>(), // グラフで取得した結果
   chatGraphResult: Annotation<TYPE.ChatGraphResult>(), // 最終結果
 
   ...MessagesAnnotation.spec,
@@ -234,21 +227,27 @@ export async function POST(req: Request) {
     // 直近のメッセージを取得
     const userMessage = messages[messages.length - 1].content;
     // フロントからセッションID を取得
-    const session: TYPE.Session = body.session;
-    if (!session) {
+    const sessionId: string = body.sessionId;
+    if (!sessionId) {
       console.error("💬 chat API POST error: " + ERR.SESSIONID_ERROR);
       return Response.json({ error: ERR.SESSIONID_ERROR }, { status: 400 });
     }
-    // フロントからオプションを取得
-    const options = SCM.ChatRequestOptionsSchema.parse(body.options);
+    // フロントからフラグを受け取る
+    const sessionFlags: TYPE.SessionFlags = body.sessionFlags;
+    if (!sessionFlags) {
+      console.error("💬 chat API POST error: " + ERR.SESSIONID_ERROR);
+      return Response.json({ error: ERR.SESSIONID_ERROR }, { status: 400 });
+    }
+
+    // フラグ内のsessionIdだけ更新
+    sessionFlags.sessionId = sessionId;
 
     // langgraph
     const result = await measureExecution(app, "chat", {
       messages: messages,
-      session: session,
+      sessionFlags: sessionFlags,
       userMessage: userMessage,
       baseUrl: baseUrl,
-      options: options,
     });
 
     /* --- --- LLM 処理 --- --- */
@@ -263,29 +262,42 @@ export async function POST(req: Request) {
       user_message: result.chatGraphResult.userMessage,
       ai_message: result.chatGraphResult.context,
     };
-    const clueId = result.horensoGraph?.clueId ?? "";
+    const clueId = result.sessionFlags.options.clueId ?? "";
 
     // ストリーミング応答を取得
     const lcStream = await runWithFallback(prompt, promptVariables, {
       mode: "stream",
       onStreamEnd: async (response: string) => {
         // assistant メッセージ保存
-        await REQ.requestSave(baseUrl, messages, session.id);
+        await REQ.requestSave(baseUrl, messages, sessionFlags.sessionId);
 
         // 今回のエントリーにメッセージを追記
         if (!(clueId === "")) await updateClueChat(clueId, response);
       },
     });
 
+    // 送るデータ
+    const options = sessionFlags.options;
+    const sendOptions: TYPE.SessionOptions = {
+      ...options,
+      clueId: clueId,
+    };
+    const sendFlags: TYPE.SessionFlags = {
+      sessionId: sessionId,
+      state: result.sessionFlags.state,
+      step: result.sessionFlags.step,
+      options: sendOptions,
+    };
+
+    // ヘッダー情報に登録
+    const headers = new Headers({
+      "x-send-flags": Buffer.from(JSON.stringify(sendFlags)).toString("base64"),
+    });
+
     const baseResponse = LangChainAdapter.toDataStreamResponse(lcStream);
 
     return new Response(baseResponse.body, {
-      status: baseResponse.status,
-      statusText: baseResponse.statusText,
-      headers: {
-        ...Object.fromEntries(baseResponse.headers),
-        "x-clue-id": clueId,
-      },
+      headers,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;

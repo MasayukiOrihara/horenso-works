@@ -4,14 +4,12 @@ import { Document } from "langchain/document";
 export type HorensoStates = {
   isAnswerCorrect: boolean; // 質問に正解したか
   hasQuestion: boolean; // 次の質問はあるか
-  step: number; // ステップ数
 };
 
 /** 法会連想ワークグラフから返すオブジェクトの型 */
 export type HorensoWorkResponse = {
   text: string;
-  contenue: boolean;
-  clueId: string;
+  sessionFlags: SessionFlags;
 };
 export type ChatGraphResult = {
   memory: string;
@@ -26,8 +24,7 @@ export type MatchAnswerArgs = {
   documents: Document<HorensoMetadata>[]; // 質問ドキュメント
   topK: number; // 上位からの比較個数
   allTrue?: boolean; // 全問正解で正解とするか
-  shouldValidate?: boolean; // 適正チェックを行うかどうかのフラグ
-  sessionId: string;
+  sessionFlags: SessionFlags; // sessionで管理させるフラグ
 };
 
 /**
@@ -116,15 +113,32 @@ export type SettingFlags = {
   checkOn: boolean; // 正誤判定アンケートの試用フラグ
   shouldValidate: ShouldValidate; // AI 回答チェックを行うかのフラグ
 };
+
+/** session strage で管理するフラグ */
+type ProgressState = "locked" | "in_progress" | "cleared";
 export type ShouldValidate = {
   who: boolean;
   why: boolean;
 };
-
-/** セッション情報の取り扱い */
-export type Session = {
-  id: string;
-  count: number;
+export type MatchThreshold = {
+  maxBase: number;
+  minBase: number;
+  maxWrong: number;
+  maxFuzzy: number;
+};
+export type SessionOptions = {
+  debugOn: boolean; // デバッグモード化
+  memoryOn: boolean; // 会話履歴を保存するか
+  questionnaireOn: boolean; // 正答アンケートを行う
+  aiValidateOn: ShouldValidate; // ai チェックを行う
+  threshold: MatchThreshold; // 正解判定で使う閾値
+  clueId?: string; // 現在設定したclueのID
+};
+export type SessionFlags = {
+  sessionId: string; // セッション自体のID
+  state: ProgressState; // 進行状況
+  step: number; // 問題のステップ数
+  options: SessionOptions; // 設定できるオプション
 };
 
 /** グレード関連 */

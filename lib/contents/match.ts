@@ -21,10 +21,3 @@ export const BASE_MATCH_SCORE = 0.78; // 基準値
 export const BASE_WORST_SCORE = 0.3;
 export const WRONG_MATCH_SCORE = 0.82; // 外れ基準値
 export const FUZZY_MATCH_SCORE = 0.82; // 曖昧基準値
-
-export type MatchThreshold = {
-  maxBaseThreshold: number;
-  minBaseThreshold: number;
-  maxWrongThreshold: number;
-  maxFuzzyThreshold: number;
-};

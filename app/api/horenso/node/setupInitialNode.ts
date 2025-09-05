@@ -1,12 +1,10 @@
-import { HorensoStates, Session } from "@/lib/type";
+import { HorensoStates, SessionFlags } from "@/lib/type";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import { QuestionStatsRepo } from "@/lib/supabase/repositories/questionStats.repo";
 
 type InitialNode = {
-  states: HorensoStates;
-  session: Session;
-  debugStep: number;
+  sessionFlags: SessionFlags;
 };
 
 /**
@@ -14,22 +12,17 @@ type InitialNode = {
  * @param transitionStates
  * @param debugStep
  */
-export async function setupInitialNode({
-  states,
-  session,
-  debugStep,
-}: InitialNode) {
-  // デバッグ時にstepを設定
-  if (debugStep != 0) states.step = debugStep;
-
-  // 前回ターンの状態を反映
-  console.log("前回ターンの状態変数");
-  console.log(states);
+export async function setupInitialNode({ sessionFlags }: InitialNode) {
+  // 問題の初期化
+  const transition: HorensoStates = {
+    isAnswerCorrect: false,
+    hasQuestion: sessionFlags.step === 1 ? false : true,
+  };
 
   // リトライ回数更新
   const r = await QuestionStatsRepo.incRetry(
-    session.id,
-    String(states.step + 1)
+    sessionFlags.sessionId,
+    String(sessionFlags.step + 1)
   );
   if (!r.ok) throw r.error;
 
@@ -39,7 +32,7 @@ export async function setupInitialNode({
   contexts.push(MSG.BULLET + MSG.USER_QUESTION_LABEL_PROMPT + "\n");
 
   // 問題分岐
-  switch (states.step) {
+  switch (sessionFlags.step) {
     case 0:
       contexts.push(MSG.FOR_REPORT_COMMUNICATION);
       break;
@@ -48,5 +41,5 @@ export async function setupInitialNode({
       break;
   }
 
-  return { states, contexts };
+  return { contexts, transition };
 }
