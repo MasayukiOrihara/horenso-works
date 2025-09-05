@@ -16,6 +16,9 @@ import * as SCM from "@/lib/schema";
 import * as ERR from "@/lib/message/error";
 import * as MSG from "@/lib/contents/chat/template";
 import * as REQ from "./requestApi";
+import { AnswerStatusRepo } from "@/lib/supabase/repositories/answerStatus.repo";
+import { QuestionStatsRepo } from "@/lib/supabase/repositories/questionStats.repo";
+import { computeFinalScoreWeightedAverage } from "./grade";
 
 // 外部フラグ
 let horensoContenue = false;
@@ -119,7 +122,6 @@ async function horensoWork(state: typeof StateAnnotation.State) {
 async function endHorensoWork(state: typeof StateAnnotation.State) {
   console.log("🛎 終了判定ノード");
   const horensoGraph = state.horensoGraph;
-  const contexts = state.contexts;
 
   // ログ表示
   console.log(
@@ -127,21 +129,27 @@ async function endHorensoWork(state: typeof StateAnnotation.State) {
   );
   if (horensoGraph.contenue != horensoContenue) {
     horensoContenue = false;
-    contexts.push(MSG.FINISH_MESSAGE);
+    return "calcGrade";
   }
 
-  return { contexts: contexts };
+  return "contextMerger";
 }
 
-async function calcGrade() {
+async function calcGrade(state: typeof StateAnnotation.State) {
   console.log("📐 グレード計算ノード");
-  // 取得するもの
-  // 1. コサイン類似度
-  // 2. 回答回数
-  // 3. ヒント回数
-  // 4. 難易度係数
+  const contexts = state.contexts;
+  const sessionId = state.session.id;
 
-  return;
+  const { final, perQuestion } = await computeFinalScoreWeightedAverage(
+    sessionId
+  );
+  console.log("perQuestion:", perQuestion);
+  console.log("final(0..1):", final, " => 100点満点:", Math.round(final * 100));
+
+  // 終了の文言を追加
+  contexts.push(MSG.FINISH_MESSAGE);
+
+  return { contexts: contexts };
 }
 
 /** 研修終了ノード */
@@ -198,14 +206,14 @@ const workflow = new StateGraph(StateAnnotation)
   // ノード
   .addNode("init", init)
   .addNode("horensoWork", horensoWork)
-  .addNode("endHorensoWork", endHorensoWork)
   .addNode("finalization", finalization)
+  .addNode("calcGrade", calcGrade)
   .addNode("contextMerger", contextMerger)
   // エッジ
   .addConditionalEdges("__start__", phaseRouter)
   .addEdge("init", "contextMerger")
-  .addEdge("horensoWork", "endHorensoWork")
-  .addEdge("endHorensoWork", "contextMerger")
+  .addConditionalEdges("horensoWork", endHorensoWork)
+  .addEdge("calcGrade", "contextMerger")
   .addEdge("finalization", "contextMerger")
   .addEdge("contextMerger", "__end__");
 

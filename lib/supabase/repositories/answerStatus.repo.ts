@@ -24,12 +24,15 @@ export const AnswerStatusRepo = {
       return data; // 更新後の行
     }),
 
-  getBySession: (sessionId: string) =>
+  listBySession: (sessionId: string) =>
     dbTry(async () => {
       const { data, error } = await supabaseClient()
         .from("session_answer_status")
-        .select("*")
-        .eq("session_id", sessionId);
+        .select(
+          "question_id, expected_answer_id, is_matched, max_vector, updated_at"
+        )
+        .eq("session_id", sessionId)
+        .order("updated_at", { ascending: false });
       if (error) throw new Error(error.message, { cause: error });
       return data ?? [];
     }),
