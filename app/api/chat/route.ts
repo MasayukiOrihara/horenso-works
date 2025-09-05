@@ -16,8 +16,7 @@ import * as SCM from "@/lib/schema";
 import * as ERR from "@/lib/message/error";
 import * as MSG from "@/lib/contents/chat/template";
 import * as REQ from "./requestApi";
-import { AnswerStatusRepo } from "@/lib/supabase/repositories/answerStatus.repo";
-import { QuestionStatsRepo } from "@/lib/supabase/repositories/questionStats.repo";
+
 import { computeFinalScoreWeightedAverage } from "./grade";
 
 // 外部フラグ
@@ -62,8 +61,10 @@ async function init(state: typeof StateAnnotation.State) {
   contexts.push(MSG.QUESTION_WHO_ASKING);
 
   //並行処理
-  const tasks: Promise<any>[] = [fetchMemory, fetchUserprofile];
-  const [memory, userprofile] = await Promise.all(tasks);
+  const [memory, userprofile] = await Promise.all([
+    fetchMemory,
+    fetchUserprofile,
+  ] as const);
 
   return {
     contexts: contexts,
@@ -98,17 +99,17 @@ async function horensoWork(state: typeof StateAnnotation.State) {
     step
   );
 
-  //並行処理
-  const tasks: Promise<any>[] = [
+  // 並列処理
+  const savePromise = options.memoryOn ? fetchSave : undefined;
+  const [memory, userprofile, horensoGraph] = await Promise.all([
     fetchMemory,
     fetchUserprofile,
     fetchHorensoGraph,
-  ];
-  if (options.memoryOn) {
-    tasks.push(fetchSave);
-  }
-  const [memory, userprofile, horensoGraph] = await Promise.all(tasks);
+  ] as const);
 
+  if (savePromise) await savePromise;
+
+  // グラフからコンテキストを抽出
   contexts.push(horensoGraph.text);
 
   return {
@@ -170,7 +171,7 @@ async function contextMerger(state: typeof StateAnnotation.State) {
   // ユーザー情報を整形
   const excludeValues = ["", "none", "other"]; // 除外条件
   const userprofileFiltered = Object.entries(userprofile)
-    .filter(([_, v]) => !excludeValues.includes(v))
+    .filter(([v]) => !excludeValues.includes(v))
     .map(([k, v]) => `${k}: ${v}`);
 
   const chatGraphResult: TYPE.ChatGraphResult = {
@@ -265,7 +266,7 @@ export async function POST(req: Request) {
     const clueId = result.horensoGraph?.clueId ?? "";
 
     // ストリーミング応答を取得
-    const stream = await runWithFallback(prompt, promptVariables, {
+    const lcStream = await runWithFallback(prompt, promptVariables, {
       mode: "stream",
       onStreamEnd: async (response: string) => {
         // assistant メッセージ保存
@@ -276,7 +277,7 @@ export async function POST(req: Request) {
       },
     });
 
-    const baseResponse = LangChainAdapter.toDataStreamResponse(stream);
+    const baseResponse = LangChainAdapter.toDataStreamResponse(lcStream);
 
     return new Response(baseResponse.body, {
       status: baseResponse.status,

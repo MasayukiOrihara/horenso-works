@@ -72,7 +72,7 @@ export const ChatConnector = () => {
     appendRef.current({ role: "user", content: currentUserMessage });
     // 送信回数を増やす
     increment();
-  }, [currentUserMessage]);
+  }, [currentUserMessage, increment]);
 
   // Aimessage の送信
   useEffect(() => {

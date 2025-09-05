@@ -15,8 +15,9 @@ export const EmbeddingService = {
       const store = getVectorStore(embeddings, tableName, "");
       await store.addDocuments(docs);
       return { ok: true, value: true };
-    } catch (e: any) {
-      return { ok: false, error: new DbError(e?.message ?? "store error") };
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "store error";
+      return { ok: false, error: new DbError(message) };
     }
   },
 
@@ -27,7 +28,7 @@ export const EmbeddingService = {
     queryName: string,
     vectorData: number[],
     k: number,
-    filter: Record<string, any>
+    filter: Record<string, unknown>
   ) => {
     try {
       const store = getVectorStore(embeddings, tableName, queryName);
@@ -38,8 +39,9 @@ export const EmbeddingService = {
       );
       if (!res?.length) throw new DbError("No result");
       return res;
-    } catch (e: any) {
-      throw new DbError(e?.message ?? "search error");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "search error";
+      throw new DbError(message);
     }
   },
 };

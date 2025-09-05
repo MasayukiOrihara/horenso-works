@@ -63,7 +63,7 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
         push({ message: ERR.USERPROFILE_SEND_ERROR, detail: stack || message });
       }
     })();
-  }, [sessionId, open]);
+  }, [sessionId, clueId, open, push]);
 
   if (!open) return null; // ← 閉じているときは何も描画しない
 

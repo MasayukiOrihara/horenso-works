@@ -2,7 +2,7 @@ import { dbTry } from "@/lib/supabase/db";
 import { supabaseClient } from "../clients";
 
 export const GenericRepo = {
-  fetchAll: async <T = any>(tableName: string) =>
+  fetchAll: async <T = Record<string, unknown>>(tableName: string) =>
     dbTry<T[]>(async () => {
       const { data, error } = await supabaseClient()
         .from(tableName)

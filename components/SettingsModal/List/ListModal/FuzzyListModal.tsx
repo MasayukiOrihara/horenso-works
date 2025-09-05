@@ -10,7 +10,6 @@ export function FuzzyListModal({ open, onClose }: Props) {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
   }
 
   return (

@@ -47,8 +47,7 @@ export const SettingsModal = ({ open, onClose }: SettingsModalProps) => {
 
     try {
       // 保存処理(cluelistを更新する)
-
-      const res = await requestApi("", `${CLUELIST_UPDATE_PATH}${ex.id}`, {
+      await requestApi("", `${CLUELIST_UPDATE_PATH}${ex.id}`, {
         method: "PATCH",
         body: { clue: ex.updatedContent },
       });

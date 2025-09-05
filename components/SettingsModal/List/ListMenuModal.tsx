@@ -15,11 +15,6 @@ export function ListModal({ open, onClose }: Props) {
 
   if (!open) return null; // ← 閉じているときは何も描画しない
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-  }
-
   // 開く
   const openDocuments = () => setModal("documents");
   const openFuzzy = () => setModal("fuzzy");

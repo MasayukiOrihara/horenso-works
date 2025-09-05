@@ -80,7 +80,7 @@ export async function preprocessAiNode({
   pushLog("回答の確認中です...");
   // 入力の分析
   const analyzeInputResultPromise = analyzeInput(userMessage, question);
-  const [userAnswer, userVector, _] = await Promise.all([
+  const [userAnswer, userVector] = await Promise.all([
     splitInputLlm(sepKeywordPrompt, userMessage),
     embeddings.embedQuery(userMessage),
     SessionQuestionGradeRepo.ensure(session.id, step + 1),

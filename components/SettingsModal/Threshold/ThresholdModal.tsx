@@ -41,7 +41,6 @@ export function ThresholdModal({ open, onClose }: Props) {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
     // この辺に保存処理 ※※ 未実装
   }
 
