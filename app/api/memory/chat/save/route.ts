@@ -1,4 +1,4 @@
-import { RemoveMessage } from "@langchain/core/messages";
+import { BaseMessage, RemoveMessage } from "@langchain/core/messages";
 import {
   Annotation,
   MemorySaver,
@@ -85,6 +85,7 @@ async function saveDBData(state: typeof GraphAnnotation.State) {
 
   try {
     await saveSupabase(memoryTextData);
+    console.log(memoryTextData);
     console.log(`✅ 会話内容を データベース に保存しました。\n`);
   } catch (error) {
     console.error("✖ 会話内容が データベース に保存できませんでした: " + error);
@@ -105,6 +106,7 @@ async function deleteMessages(state: typeof GraphAnnotation.State) {
 const GraphAnnotation = Annotation.Root({
   sessionId: Annotation<string>(),
   memoryTextData: Annotation<MemoryTextData>(),
+
   ...MessagesAnnotation.spec,
 });
 
@@ -136,15 +138,13 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     // メッセージ取得
-    const messages = body.messages;
-    if (!messages) {
+    const message: BaseMessage = body.message;
+    if (!message) {
       console.error(
         "💿 memory chat save API POST error: " + ERR.MESSAGES_ERROR
       );
       return Response.json({ error: ERR.MESSAGES_ERROR }, { status: 400 });
     }
-    // 最新メッセージ取得
-    const previousMessage = messages[messages.length - 1];
 
     // セッションID 取得
     const sessionId = body.sessionId;
@@ -162,7 +162,7 @@ export async function POST(req: Request) {
     await measureExecution(
       app,
       "memory save",
-      { messages: previousMessage, sessionId },
+      { messages: message, sessionId },
       config
     );
 

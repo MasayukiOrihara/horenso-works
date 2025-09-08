@@ -18,6 +18,7 @@ import * as REQ from "./requestApi";
 
 import { computeFinalScoreWeightedAverage } from "./grade";
 import { getBaseUrl } from "@/lib/utils";
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
 /** 分岐ノード */
 async function phaseRouter(state: typeof StateAnnotation.State) {
@@ -90,7 +91,11 @@ async function horensoWork(state: typeof StateAnnotation.State) {
   // ユーザープロファイルを取得
   const fetchUserprofile = REQ.requestUserprofile(baseUrl, sessionId);
   // メッセージ保存: フロントエンドから記憶設定を取得
-  const fetchSave = REQ.requestSave(baseUrl, messages, sessionId);
+  const fetchSave = REQ.requestSave(
+    baseUrl,
+    new HumanMessage(userMessage),
+    sessionId
+  );
 
   // 報連相ワークAPI呼び出し
   const contexts: string[] = [];
@@ -159,17 +164,28 @@ async function finalization(state: typeof StateAnnotation.State) {
   const baseUrl = state.sessionFlags.baseUrl!;
   const messages = state.messages;
   const sessionId = state.sessionFlags.sessionId;
+  const options = state.sessionFlags.options;
+  const userMessage = state.userMessage;
 
+  // メッセージ保存: フロントエンドから記憶設定を取得
+  const fetchSave = REQ.requestSave(
+    baseUrl,
+    new HumanMessage(userMessage),
+    sessionId
+  );
   // 過去の履歴取得（非同期）
   const fetchMemory = REQ.requestMemory(baseUrl, messages, sessionId);
   // ユーザープロファイルを取得
   const fetchUserprofile = REQ.requestUserprofile(baseUrl, sessionId);
 
   //並行処理
+  const savePromise = options.memoryOn ? fetchSave : undefined;
   const [memory, userprofile] = await Promise.all([
     fetchMemory,
     fetchUserprofile,
   ] as const);
+
+  if (savePromise) await savePromise;
 
   const contexts: string[] = [];
   contexts.push(
@@ -307,7 +323,7 @@ export async function POST(req: Request) {
         // assistant メッセージ保存
         await REQ.requestSave(
           sessionFlags.baseUrl!,
-          messages,
+          new AIMessage(response),
           sessionFlags.sessionId
         );
 

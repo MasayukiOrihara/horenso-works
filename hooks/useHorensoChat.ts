@@ -2,7 +2,7 @@ import { useChat } from "@ai-sdk/react";
 import { useErrorStore } from "@/hooks/useErrorStore";
 import { toast } from "sonner";
 import * as ERR from "@/lib/message/error";
-import { SessionFlags, SessionOptions } from "@/lib/type";
+import { SessionFlags } from "@/lib/type";
 
 function decodeBase64Json<T>(b64: string): T | null {
   try {

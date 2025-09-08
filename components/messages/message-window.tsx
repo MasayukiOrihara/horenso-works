@@ -1,18 +1,55 @@
 import { Dialog } from "../window/dialog";
 import { useUserMessages } from "../provider/MessageProvider";
 import { useEffect, useRef, useState } from "react";
+import { useBackfillAiMessage } from "@/hooks/useBackfillAiMessage";
+import { useSessionFlags } from "../provider/SessionFlagsProvider";
+import { requestApi } from "@/lib/api/request";
+import { LOAD_LATEST_PATH } from "@/lib/api/path";
 
 export const MessageWindow = () => {
-  const { aiMessage, chatStatus } = useUserMessages();
   const [lines, setLines] = useState<string[]>([]);
+  const { aiMessage, chatStatus } = useUserMessages();
+  const { value: sessionFlags, setValue: setSessionFlags } = useSessionFlags();
 
   /* メッセージ関係 */
   useEffect(() => {
     // aiメッセージの取得
     if (aiMessage) {
       onStreamData(aiMessage);
+      return; // 終了
     }
-  }, [aiMessage]);
+
+    console.log(sessionFlags);
+
+    // 初回じゃない判定
+    if (sessionFlags.sync !== "idle") {
+      console.log("初回じゃない");
+      console.log(sessionFlags.sessionId);
+
+      (async () => {
+        try {
+          console.log("a");
+          const res = await requestApi(
+            "",
+            `${LOAD_LATEST_PATH}?sessionId=${encodeURIComponent(
+              sessionFlags.sessionId
+            )}`,
+            {
+              method: "GET",
+            }
+          );
+          console.log(res);
+        } catch (error) {
+          console.error(error);
+        }
+      })();
+    }
+
+    // useBackfillAiMessage({ sessionId: params.sessionId });
+
+    console.log(aiMessage);
+    console.log("kokom");
+  }, [aiMessage, sessionFlags]);
 
   // 文章を改行で分離するための関数(最後の分は別で検知)
   const previousRef = useRef<string>("");

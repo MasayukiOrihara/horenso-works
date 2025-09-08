@@ -26,12 +26,12 @@ export const requestUserprofile = async (url: string, sessionId: string) => {
 // 記憶の保存
 export const requestSave = async (
   url: string,
-  messages: BaseMessage[],
+  message: BaseMessage,
   sessionId: string
 ) => {
   return await requestApi(url, PATH.CHAT_SAVE_PATH, {
     method: "POST",
-    body: { messages, sessionId },
+    body: { message, sessionId },
   });
 };
 

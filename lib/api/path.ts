@@ -12,7 +12,6 @@ export const LOAD_LATEST_PATH = "/api/memory/chat/load/latest";
 export const EVALUATION_DATA_PATH = "/api/evaluation-data";
 
 // match
-export const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
 export const MATCH_PATH = "/api/horenso/lib/match";
 
 // userprofile
