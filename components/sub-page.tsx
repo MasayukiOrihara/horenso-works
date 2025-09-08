@@ -7,13 +7,15 @@ import { CorrectCheck } from "./debug/correctCheck";
 import { MessageWindow } from "./messages/message-window";
 import { ChatConnector } from "./messages/ChatConnector";
 import { useSessionFlags } from "./provider/SessionFlagsProvider";
+import { ScoreHeader } from "./Score/ScoreHeader";
 
 export const SubPage: React.FC = () => {
   const { value: sessionFlags } = useSessionFlags();
 
   return (
     <MessageProvider>
-      <div className="w-full max-w-2xl h-full flex flex-col m-auto px-4 py-2 overflow-hidden">
+      <div className="w-full max-w-2xl h-full flex flex-col m-auto mt-30 px-4 py-2 overflow-hidden">
+        {sessionFlags.phase === "cleared" && <ScoreHeader />}
         <div>
           <SCREEN />
           <MessageWindow />

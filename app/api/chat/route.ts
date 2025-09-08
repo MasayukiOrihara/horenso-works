@@ -136,13 +136,15 @@ async function calcGrade(state: typeof StateAnnotation.State) {
   const { final, perQuestion } = await computeFinalScoreWeightedAverage(
     sessionId
   );
+
+  const grade = Math.round(final * 100);
   console.log("perQuestion:", perQuestion);
-  console.log("final(0..1):", final, " => 100点満点:", Math.round(final * 100));
+  console.log("final(0..1):", final, " => 100点満点:", grade);
 
   // 終了の文言を追加
   contexts.push(MSG.FINISH_MESSAGE);
 
-  return { contexts: contexts };
+  return { contexts: contexts, grade: grade };
 }
 
 /** 研修終了ノード */
@@ -188,6 +190,7 @@ const StateAnnotation = Annotation.Root({
   memory: Annotation<string[]>(), // 会話履歴
   userprofile: Annotation<SCM.userprofileFormValues>(), // 取得したユーザープロファイル
   chatGraphResult: Annotation<TYPE.ChatGraphResult>(), // 最終結果
+  grade: Annotation<number>(), // 成績
 
   ...MessagesAnnotation.spec,
 });
@@ -294,6 +297,10 @@ export async function POST(req: Request) {
       ...options,
       clueId: clueId,
     };
+    const sendData: TYPE.SendData = {
+      ...sessionFlags.data,
+      grade: result.grade,
+    };
     const sendFlags: TYPE.SessionFlags = {
       sessionId: sessionId,
       phase: result.sessionFlags.phase,
@@ -301,6 +308,7 @@ export async function POST(req: Request) {
       step: result.sessionFlags.step,
       baseUrl: result.sessionFlags.baseUrl,
       options: sendOptions,
+      data: sendData,
     };
 
     console.log("====");

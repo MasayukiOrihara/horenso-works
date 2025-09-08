@@ -18,6 +18,7 @@ export default function Home() {
           <ProfileModal />
           <main className="flex-1 flex flex-col">
             <Navi />
+
             <SubPage />
             <Footer />
           </main>

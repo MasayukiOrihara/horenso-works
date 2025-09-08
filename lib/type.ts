@@ -125,6 +125,9 @@ export type MatchThreshold = {
   maxWrong: number;
   maxFuzzy: number;
 };
+export type SendData = {
+  grade?: number;
+};
 export type SessionOptions = {
   debugOn: boolean; // デバッグモード化
   memoryOn: boolean; // 会話履歴を保存するか
@@ -140,6 +143,7 @@ export type SessionFlags = {
   step: number; // 問題のステップ数
   baseUrl?: string; // ベースURL
   options: SessionOptions; // 設定できるオプション
+  data?: SendData; // フラグにくっつけてデータを送る
 };
 
 /** グレード関連 */
