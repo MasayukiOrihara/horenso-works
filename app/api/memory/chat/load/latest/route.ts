@@ -13,15 +13,16 @@ export async function GET(req: NextRequest) {
   try {
     const { data, error } = await supabaseClient()
       .from(MEMORY_TABLE)
-      .select("*")
+      .select("content")
       .eq("session_id", sessionId)
+      .eq("role", "assistant")
       .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(2);
+      .limit(1)
+      .maybeSingle();
 
     if (error) throw error;
 
-    return Response.json(data ?? [], { status: 200 });
+    return Response.json(data?.content ?? null, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
 

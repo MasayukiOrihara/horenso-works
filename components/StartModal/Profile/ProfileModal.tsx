@@ -69,7 +69,6 @@ export const ProfileModal = () => {
       }
     })();
     // 画面遷移を行う
-
     merge({ sync: "local" });
   };
 

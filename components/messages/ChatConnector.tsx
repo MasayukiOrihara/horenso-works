@@ -16,7 +16,11 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 
 export const ChatConnector = () => {
   const { setAiMessage, currentUserMessage, setChatStatus } = useUserMessages();
-  const { value: sessionFlags, setValue: setSessionFlags } = useSessionFlags();
+  const {
+    value: sessionFlags,
+    setValue: setSessionFlags,
+    merge,
+  } = useSessionFlags();
   // 現在のセッション ID
   const sessionId = useSessionId();
   const sessionIdRef = useRef(sessionId);
@@ -77,6 +81,8 @@ export const ChatConnector = () => {
   useEffect(() => {
     if (!currentAiCommentMessage) return;
     setAiMessage(currentAiCommentMessage.content);
+    // AIメッセージを受け取ったので状態をlocalに変更
+    merge({ sync: "local" });
   }, [currentAiCommentMessage, setAiMessage]);
 
   // 待機状況の送信
