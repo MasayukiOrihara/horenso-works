@@ -115,7 +115,8 @@ export type SettingFlags = {
 };
 
 /** session strage で管理するフラグ */
-type ProgressState = "locked" | "in_progress" | "cleared";
+type ProgressPhase = "locked" | "in_progress" | "cleared";
+type SyncState = "idle" | "local" | "pending" | "confirmed" | "error";
 export type ShouldValidate = {
   who: boolean;
   why: boolean;
@@ -136,7 +137,8 @@ export type SessionOptions = {
 };
 export type SessionFlags = {
   sessionId: string; // セッション自体のID
-  state: ProgressState; // 進行状況
+  phase: ProgressPhase; // 進行状況
+  sync: SyncState; // フロントとバックの同期状態
   step: number; // 問題のステップ数
   options: SessionOptions; // 設定できるオプション
 };

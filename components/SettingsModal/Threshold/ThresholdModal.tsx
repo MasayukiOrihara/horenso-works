@@ -4,7 +4,8 @@ import { ThresholdRow } from "@/components/ui/ThresholdRow";
 import { useSessionId } from "@/hooks/useSessionId";
 import { MATCH_THRESHOLD } from "@/lib/api/path";
 import { requestApi } from "@/lib/api/request";
-import { MatchThreshold } from "@/lib/contents/match";
+import { MatchThreshold } from "@/lib/type";
+
 import { useEffect, useState } from "react";
 
 type Props = {
@@ -57,7 +58,7 @@ export function ThresholdModal({ open, onClose }: Props) {
             <label className="block">
               <ThresholdRow
                 title="正解との一致度（上限）"
-                threshold={threshold?.maxBaseThreshold}
+                threshold={threshold?.maxBase}
               />
             </label>
 
@@ -65,7 +66,7 @@ export function ThresholdModal({ open, onClose }: Props) {
             <label className="block">
               <ThresholdRow
                 title="正解との一致度（下限）"
-                threshold={threshold?.minBaseThreshold}
+                threshold={threshold?.minBase}
               />
             </label>
 
@@ -73,7 +74,7 @@ export function ThresholdModal({ open, onClose }: Props) {
             <label className="block">
               <ThresholdRow
                 title="間違い回答との一致度（上限））"
-                threshold={threshold?.maxWrongThreshold}
+                threshold={threshold?.maxWrong}
               />
             </label>
 
@@ -81,7 +82,7 @@ export function ThresholdModal({ open, onClose }: Props) {
             <label className="block">
               <ThresholdRow
                 title="あいまい回答との一致度（上限））"
-                threshold={threshold?.maxFuzzyThreshold}
+                threshold={threshold?.maxFuzzy}
               />
             </label>
 

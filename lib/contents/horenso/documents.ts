@@ -1,6 +1,6 @@
 import { Document } from "langchain/document";
 
-import { HorensoMetadata, HorensoStates } from "@/lib/type";
+import { HorensoMetadata } from "@/lib/type";
 import {
   FOR_REPORT_COMMUNICATION,
   REPORT_REASON_FOR_LEADER,
@@ -60,10 +60,3 @@ export const whyDocuments: Document<HorensoMetadata>[] = [
     },
   },
 ];
-
-// 状態保持用
-export const defaultTransitionStates: HorensoStates = {
-  isAnswerCorrect: false,
-  hasQuestion: true,
-  step: 0,
-};

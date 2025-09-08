@@ -11,10 +11,8 @@ import * as DOC from "@/lib/contents/horenso/documents";
 import * as NODE from "./node";
 import * as TYPE from "@/lib/type";
 import * as ERR from "@/lib/message/error";
-import { SessionFlags } from "../../../lib/type";
 
 // 使用ドキュメントの初期状態準備
-const transitionStates = { ...DOC.defaultTransitionStates };
 const whoUseDocuments = DOC.whoDocuments.map((doc) => ({
   pageContent: doc.pageContent,
   metadata: { ...doc.metadata },
@@ -144,16 +142,18 @@ async function saveFinishState(state: typeof StateAnnotation.State) {
   console.log("💾 状態保存ノード");
   const sessionFlags = state.sessionFlags;
 
-  const { contexts, updateSessionFlags } = NODE.saveFinishStateNode({
-    states: transitionStates,
-    transition: state.transition,
-    sessionFlags: sessionFlags,
-    whoUseDocuments: whoUseDocuments,
-    whyUseDocuments: whyUseDocuments,
-  });
+  const { contexts, updateSessionFlags, transition } = NODE.saveFinishStateNode(
+    {
+      transition: state.transition,
+      sessionFlags: sessionFlags,
+      whoUseDocuments: whoUseDocuments,
+      whyUseDocuments: whyUseDocuments,
+    }
+  );
   return {
     contexts: [...state.contexts, ...contexts],
     sessionFlags: updateSessionFlags,
+    transition: transition,
   };
 }
 

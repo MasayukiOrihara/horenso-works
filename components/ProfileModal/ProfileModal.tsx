@@ -16,16 +16,16 @@ import { requestApi } from "@/lib/api/request";
 import { USERPROFILE_SAVE_PATH } from "@/lib/api/path";
 import { userprofileFormValues, userprofileSchema } from "@/lib/schema";
 import * as ERR from "@/lib/message/error";
-
-import { useStartButton } from "../provider/StartButtonProvider";
+import { useSessionFlags } from "../provider/SessionFlagsProvider";
 
 /**
  * スタートボタンとプロフィール入力
  * @returns
  */
 export const ProfileModal = () => {
-  const { startButtonFlags, setStartButtonFlags } = useStartButton();
   const { push } = useErrorStore();
+  const { value: sessionFlags, merge, mergeOptions } = useSessionFlags();
+
   // 現在のセッション ID
   const sessionId = useSessionId();
 
@@ -69,15 +69,16 @@ export const ProfileModal = () => {
       }
     })();
     // 画面遷移を行う
-    setStartButtonFlags((s) => ({ ...s, started: true }));
+
+    merge({ sync: "local" });
   };
 
   // 開始中なら何もしない
-  if (startButtonFlags.started || startButtonFlags.debug) return null;
+  if (sessionFlags.sync !== "idle" || sessionFlags.options.debugOn) return null;
 
   return (
     <div>
-      {!startButtonFlags.started && (
+      {sessionFlags.sync === "idle" && (
         <div className="absolute [width:calc(100%-3.5rem)] [height:calc(100%-2.75rem)] bg-zinc-600/60 z-30 overflow-hidden">
           <div className="flex flex-col items-center justify-start pt-44 h-screen ">
             <FramedCard title="プロフィールを入力(任意)" align="center">
@@ -208,9 +209,7 @@ export const ProfileModal = () => {
               {/** デバックボタン */}
               <div className="flex items-center justify-center">
                 <Button
-                  onClick={() =>
-                    setStartButtonFlags((s) => ({ ...s, debug: true }))
-                  }
+                  onClick={() => mergeOptions({ debugOn: true })}
                   variant={"ghost"}
                   size={"md"}
                   className="mb-1 h-7"
@@ -220,27 +219,21 @@ export const ProfileModal = () => {
                 {/** この辺にデバック用のステッパー */}
                 <div className="flex items-center gap-2 text-xs">
                   <Button
-                    onClick={() => {
-                      setStartButtonFlags((s) => ({
-                        ...s,
-                        step: Math.max(0, s.step - 1),
-                      }));
-                    }}
+                    onClick={() =>
+                      merge({ step: Math.max(0, sessionFlags.step - 1) })
+                    }
                     variant={"ghost"}
                     className="px-2 py-1 bg-gray-200/20"
                   >
                     -
                   </Button>
-                  <span className="w-2 text-center">
-                    {startButtonFlags.step}
-                  </span>
+                  <span className="w-2 text-center">{sessionFlags.step}</span>
                   <Button
-                    onClick={() => {
-                      setStartButtonFlags((s) => ({
-                        ...s,
-                        step: Math.min(1, s.step + 1),
-                      }));
-                    }}
+                    onClick={() =>
+                      merge({
+                        step: Math.max(0, Math.min(1, sessionFlags.step + 1)),
+                      })
+                    }
                     variant={"ghost"}
                     className="px-2 py-1 bg-gray-200/20"
                   >

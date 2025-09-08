@@ -23,7 +23,7 @@ import { computeFinalScoreWeightedAverage } from "./grade";
 async function phaseRouter(state: typeof StateAnnotation.State) {
   console.log("🔘 分岐ノード");
   const debugOn = state.sessionFlags.options.debugOn;
-  const sessionState = state.sessionFlags.state;
+  const sessionState = state.sessionFlags.phase;
 
   if (sessionState === "locked" && !debugOn) {
     return "init";
@@ -111,12 +111,13 @@ async function horensoWork(state: typeof StateAnnotation.State) {
     contexts: contexts,
     memory: memory,
     userprofile: userprofile,
+    sessionFlags: horensoGraph.sessionFlags,
   };
 }
 
 async function endHorensoWork(state: typeof StateAnnotation.State) {
   console.log("🛎 終了判定ノード");
-  const sessionState = state.sessionFlags.state;
+  const sessionState = state.sessionFlags.phase;
 
   // ログ表示
   console.log(`継続状態: ${sessionState}`);
@@ -174,7 +175,7 @@ async function contextMerger(state: typeof StateAnnotation.State) {
   };
 
   // 状態の変更
-  if (sessionFlags.state !== "cleared") sessionFlags.state = "in_progress";
+  if (sessionFlags.phase !== "cleared") sessionFlags.phase = "in_progress";
 
   return { chatGraphResult: chatGraphResult, sessionFlags: sessionFlags };
 }
@@ -241,7 +242,12 @@ export async function POST(req: Request) {
 
     // フラグ内のsessionIdだけ更新
     sessionFlags.sessionId = sessionId;
+    // 同期: 送信済み応答まち
+    sessionFlags.sync = "pending";
 
+    console.log("====");
+    console.log(sessionFlags);
+    console.log("====");
     // langgraph
     const result = await measureExecution(app, "chat", {
       messages: messages,
@@ -284,10 +290,15 @@ export async function POST(req: Request) {
     };
     const sendFlags: TYPE.SessionFlags = {
       sessionId: sessionId,
-      state: result.sessionFlags.state,
+      phase: result.sessionFlags.phase,
+      sync: "confirmed", // サーバ側で 確定済み
       step: result.sessionFlags.step,
       options: sendOptions,
     };
+
+    console.log("====");
+    console.log(sendFlags);
+    console.log("====");
 
     // ヘッダー情報に登録
     const headers = new Headers({

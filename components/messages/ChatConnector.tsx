@@ -1,10 +1,9 @@
 import { useUserMessages } from "./message-provider";
 import { useCallback, useEffect, useRef } from "react";
 import { UIMessage } from "ai";
-import { useStartButton } from "../provider/StartButtonProvider";
 import { useSessionId } from "@/hooks/useSessionId";
 import { useHorensoChat } from "@/hooks/useHorensoChat";
-import { useSessionFlagsStorage } from "@/hooks/useSessionStorage";
+import { useSessionFlags } from "../provider/SessionFlagsProvider";
 
 // 定数
 const FIRST_CHAT = "研修よろしくお願いします。";
@@ -17,9 +16,7 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 
 export const ChatConnector = () => {
   const { setAiMessage, currentUserMessage, setAiState } = useUserMessages();
-  const { startButtonFlags } = useStartButton();
-  const { value: sessionFlags, setValue: setSessionFlags } =
-    useSessionFlagsStorage();
+  const { value: sessionFlags, setValue: setSessionFlags } = useSessionFlags();
   // 現在のセッション ID
   const sessionId = useSessionId();
   const sessionIdRef = useRef(sessionId);
@@ -57,20 +54,21 @@ export const ChatConnector = () => {
     );
   }, []);
 
-  // システムの開始状態を管理
-  const hasRun = useRef(false);
-
   // 初回の実行処理
+  const hasRun =
+    sessionFlags.sync !== "idle" && sessionFlags.phase === "locked";
+  const isDebugOnRef = useRef(sessionFlags.options.debugOn);
   useEffect(() => {
-    if (startButtonFlags.started && !hasRun.current) {
-      hasRun.current = true;
+    if (hasRun && !isDebugOnRef.current) {
+      // 初めの送信
       send(FIRST_CHAT);
     }
-  }, [startButtonFlags.started, send]);
+  }, [hasRun, send]);
 
   // ユーザーメッセージの送信
   useEffect(() => {
     if (!currentUserMessage) return;
+
     send(currentUserMessage);
   }, [currentUserMessage, send]);
 

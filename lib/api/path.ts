@@ -14,6 +14,7 @@ export const EVALUATION_DATA_PATH = "/api/evaluation-data";
 // match
 export const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
 export const MATCH_THRESHOLD = "/api/horenso/lib/match/threshold";
+export const MATCH_PATH = "/api/horenso/lib/match";
 
 // userprofile
 export const USERPROFILE_SAVE_PATH = "/api/userprofile/save";

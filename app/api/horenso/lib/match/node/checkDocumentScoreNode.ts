@@ -2,7 +2,6 @@ import { DocumentInterface } from "@langchain/core/documents";
 import { Document } from "langchain/document";
 
 import * as TYPE from "@/lib/type";
-import * as CON from "@/lib/contents/match";
 import { AnswerStatusRepo } from "@/lib/supabase/repositories/answerStatus.repo";
 
 type DocCheckNode = {

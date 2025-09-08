@@ -16,10 +16,7 @@ import { CLUE_QUERY, CLUE_TABLE } from "@/lib/contents/match";
 import { embeddings } from "@/lib/llm/embedding";
 import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
 import { SessionQuestionGradeRepo } from "@/lib/supabase/repositories/sessionQuestionGrade.repo";
-
-// 定数
-const MATCH_VALIDATE = "/api/horenso/lib/match/validate";
-const MATCH_PATH = "/api/horenso/lib/match";
+import { MATCH_PATH } from "@/lib/api/path";
 
 type AiNode = {
   messages: BaseMessage[];
@@ -45,24 +42,18 @@ export async function preprocessAiNode({
   pushLog("データの準備中です...");
   // ユーザーの答え
   const userMessage = messageToText(messages, messages.length - 1);
-  // 回答チェック判定を取得
-  // const readShouldValidate = await requestApi(baseUrl, MATCH_VALIDATE, {
-  //   method: "GET",
-  // });
 
   // 使用するプロンプト
   let sepKeywordPrompt = "";
   let useDocuments: Document<TYPE.HorensoMetadata>[] = [];
   let k = 1;
   let allTrue = false;
-  // let shouldValidate = false;
   let question = "";
   switch (sessionFlags.step) {
     case 0:
       sepKeywordPrompt = MSG.KEYWORD_EXTRACTION_PROMPT;
       useDocuments = whoUseDocuments;
       question = MSG.FOR_REPORT_COMMUNICATION;
-      // shouldValidate = readShouldValidate.who ?? false;
       break;
     case 1:
       sepKeywordPrompt = MSG.CLAIM_EXTRACTION_PROMPT;
@@ -70,7 +61,6 @@ export async function preprocessAiNode({
       k = 3;
       allTrue = true;
       question = MSG.REPORT_REASON_FOR_LEADER;
-      // shouldValidate = readShouldValidate.why ?? true;
       break;
   }
 

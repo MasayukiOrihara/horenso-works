@@ -1,6 +1,6 @@
 import { ToggleRow } from "../ui/ToggleRow";
 import { FramedCard } from "../ui/FramedCard";
-import React from "react";
+import React, { useState } from "react";
 import { ActionRow } from "../ui/ActionRow";
 import {
   AddResponseExampleModal,
@@ -8,12 +8,12 @@ import {
 } from "./ResponseExamples/AddResponseExampleModal";
 import { ThresholdModal } from "./Threshold/ThresholdModal";
 import { ListModal } from "./List/ListMenuModal";
-import { useSettings } from "../provider/SettingsProvider";
 import { requestApi } from "@/lib/api/request";
 import { toast } from "sonner";
 import * as ERR from "@/lib/message/error";
 import { useErrorStore } from "@/hooks/useErrorStore";
 import { CLUELIST_UPDATE_PATH } from "@/lib/api/path";
+import { useSessionFlags } from "../provider/SessionFlagsProvider";
 
 type SettingsModalProps = {
   id: string;
@@ -24,9 +24,9 @@ type SettingsModalProps = {
 type ModalKind = null | "add" | "threshold" | "list";
 
 export const SettingsModal = ({ open, onClose }: SettingsModalProps) => {
-  const [modal, setModal] = React.useState<ModalKind>(null);
-  const { flags, setFlags } = useSettings();
+  const [modal, setModal] = useState<ModalKind>(null);
   const { push } = useErrorStore();
+  const { value: sessionFlags, mergeOptions, setValidate } = useSessionFlags();
 
   if (!open) return null; // ← 閉じているときは何も描画しない
 
@@ -86,16 +86,16 @@ export const SettingsModal = ({ open, onClose }: SettingsModalProps) => {
               {/* 会話履歴を保存する */}
               <ToggleRow
                 title="会話履歴を保存する"
-                checked={flags.memoryOn}
-                onChange={(v) => setFlags((s) => ({ ...s, memoryOn: v }))}
+                checked={sessionFlags.options.memoryOn}
+                onChange={(v) => mergeOptions({ memoryOn: v })}
               />
             </li>
             <li>
               {/* 正答判定を使用する */}
               <ToggleRow
                 title="正答判定アンケートを使う"
-                checked={flags.checkOn}
-                onChange={(v) => setFlags((s) => ({ ...s, checkOn: v }))}
+                checked={sessionFlags.options.questionnaireOn}
+                onChange={(v) => mergeOptions({ questionnaireOn: v })}
               />
             </li>
             {/* 回答が適正かどうかのチェックを使用する */}
@@ -103,23 +103,13 @@ export const SettingsModal = ({ open, onClose }: SettingsModalProps) => {
             <li>
               <ToggleRow
                 title="1問目: 「誰が」"
-                checked={flags.shouldValidate.who}
-                onChange={(v) =>
-                  setFlags((s) => ({
-                    ...s,
-                    shouldValidate: { ...s.shouldValidate, who: v },
-                  }))
-                }
+                checked={sessionFlags.options.aiValidateOn.who}
+                onChange={(v) => setValidate("who", v)}
               />
               <ToggleRow
                 title="2問目: 「なぜ」"
-                checked={flags.shouldValidate.why}
-                onChange={(v) =>
-                  setFlags((s) => ({
-                    ...s,
-                    shouldValidate: { ...s.shouldValidate, why: v },
-                  }))
-                }
+                checked={sessionFlags.options.aiValidateOn.why}
+                onChange={(v) => setValidate("why", v)}
               />
             </li>
             <li>

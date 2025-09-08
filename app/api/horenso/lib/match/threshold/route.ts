@@ -1,12 +1,13 @@
 import * as MATCH from "@/lib/contents/match";
 import { UNKNOWN_ERROR } from "@/lib/message/error";
+import { MatchThreshold } from "@/lib/type";
 
 // 変更可能スコア
-let matchThreshold: MATCH.MatchThreshold = {
-  maxBaseThreshold: MATCH.BASE_MATCH_SCORE,
-  minBaseThreshold: MATCH.BASE_WORST_SCORE,
-  maxWrongThreshold: MATCH.WRONG_MATCH_SCORE,
-  maxFuzzyThreshold: MATCH.FUZZY_MATCH_SCORE,
+let matchThreshold: MatchThreshold = {
+  maxBase: MATCH.BASE_MATCH_SCORE,
+  minBase: MATCH.BASE_WORST_SCORE,
+  maxWrong: MATCH.WRONG_MATCH_SCORE,
+  maxFuzzy: MATCH.FUZZY_MATCH_SCORE,
 };
 
 /**

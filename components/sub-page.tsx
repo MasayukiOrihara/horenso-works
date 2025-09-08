@@ -6,10 +6,11 @@ import { SCREEN } from "./screen";
 import { CorrectCheck } from "./debug/correctCheck";
 import { MessageWindow } from "./messages/message-window";
 import { ChatConnector } from "./messages/ChatConnector";
-import { useSettings } from "./provider/SettingsProvider";
+import { useSessionFlags } from "./provider/SessionFlagsProvider";
 
 export const SubPage: React.FC = () => {
-  const { flags } = useSettings();
+  const { value: sessionFlags } = useSessionFlags();
+
   return (
     <MessageProvider>
       <div className="w-full max-w-2xl h-full flex flex-col m-auto px-4 py-2 overflow-hidden">
@@ -21,7 +22,7 @@ export const SubPage: React.FC = () => {
           <ChatConnector />
           <MessageInput />
         </div>
-        {flags.checkOn && <CorrectCheck />}
+        {sessionFlags.options.questionnaireOn && <CorrectCheck />}
       </div>
     </MessageProvider>
   );
