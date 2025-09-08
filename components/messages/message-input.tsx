@@ -5,7 +5,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { SendHorizontalIcon } from "lucide-react";
 import { toast } from "sonner";
-import { SAME_INPUT_WARNING } from "@/lib/message/error";
+import { SAME_INPUT_WARNING } from "@/lib/message/warning";
 
 export const MessageInput = () => {
   const [text, setText] = useState("");

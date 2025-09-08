@@ -30,5 +30,3 @@ export const FATAL_ERROR = "致命的なエラーが発生しました";
 export const USERPROFILE_SEND_ERROR =
   "ユーザープロファイルの送信に失敗しました";
 export const RELOAD_BROWSER = "ブラウザを再読み込みしてください";
-// 警告
-export const SAME_INPUT_WARNING = "同じ入力は送信されません";

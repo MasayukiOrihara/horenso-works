@@ -7,7 +7,12 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import type { SessionFlags, SessionOptions, ShouldValidate } from "@/lib/type";
+import type {
+  MatchThreshold,
+  SessionFlags,
+  SessionOptions,
+  ShouldValidate,
+} from "@/lib/type";
 
 import * as MTC from "@/lib/contents/match";
 
@@ -38,6 +43,7 @@ type Ctx = {
   merge: (patch: Partial<SessionFlags>) => void;
   mergeOptions: (patch: Partial<SessionFlags["options"]>) => void;
   setValidate: (k: keyof ShouldValidate, v: boolean) => void;
+  setThreshold: (k: keyof MatchThreshold, v: number) => void;
   reset: () => void;
   hydrated: boolean;
 };
@@ -86,18 +92,31 @@ export function SessionFlagsProvider({
     } catch {}
   }, [storageKey, value]);
 
+  // 一部の値を変更する
   const merge = (patch: Partial<SessionFlags>) =>
     setValue((prev) => ({ ...prev, ...patch }));
 
+  // オプション内の値を変更する
   const mergeOptions = (patch: Partial<SessionFlags["options"]>) =>
     setValue((prev) => ({ ...prev, options: { ...prev.options, ...patch } }));
 
+  // validate の値を個々で変更する
   const setValidate = (k: keyof ShouldValidate, v: boolean) =>
     setValue((prev) => ({
       ...prev,
       options: {
         ...prev.options,
         aiValidateOn: { ...prev.options.aiValidateOn, [k]: v },
+      },
+    }));
+
+  // threshold の値を個々で変更する
+  const setThreshold = (k: keyof MatchThreshold, v: number) =>
+    setValue((prev) => ({
+      ...prev,
+      options: {
+        ...prev.options,
+        threshold: { ...prev.options.threshold, [k]: v },
       },
     }));
 
@@ -115,6 +134,7 @@ export function SessionFlagsProvider({
       merge,
       mergeOptions,
       setValidate,
+      setThreshold,
       reset,
       hydrated,
     }),
