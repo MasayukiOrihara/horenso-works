@@ -16,7 +16,7 @@ import { requestApi } from "@/lib/api/request";
 import { USERPROFILE_SAVE_PATH } from "@/lib/api/path";
 import { userprofileFormValues, userprofileSchema } from "@/lib/schema";
 import * as ERR from "@/lib/message/error";
-import { useSessionFlags } from "../provider/SessionFlagsProvider";
+import { useSessionFlags } from "../../provider/SessionFlagsProvider";
 
 /**
  * スタートボタンとプロフィール入力

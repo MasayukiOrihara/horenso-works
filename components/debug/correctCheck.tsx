@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { v4 as uuidv4 } from "uuid";
 
-import { useUserMessages } from "../messages/message-provider";
+import { useUserMessages } from "../provider/MessageProvider";
 import { Button } from "../ui/button";
 import { requestApi } from "@/lib/api/request";
 import { EVALUATION_DATA_PATH } from "@/lib/api/path";
@@ -12,23 +12,23 @@ import { Evaluation } from "@/lib/type";
  * 前ターンに正解を出したユーザーの答えは正しいのか問うUI
  */
 export const CorrectCheck: React.FC = () => {
-  const { aiState } = useUserMessages();
+  const { chatStatus } = useUserMessages();
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [evaluationData, setEvaluationData] = useState<Evaluation[]>([]);
 
   /**
    * ストリーミングが終わったタイミングで evaluationData を取得する
    */
-  const oldAiStateRef = useRef("");
+  const oldChatStatusRef = useRef("");
   useEffect(() => {
     // プログラム開始直後
-    if (oldAiStateRef.current === "") {
-      oldAiStateRef.current = aiState;
+    if (oldChatStatusRef.current === "") {
+      oldChatStatusRef.current = chatStatus;
       return;
     }
 
-    const haveChanged = oldAiStateRef.current !== aiState; // 前回から状態変化した
-    const isStreaming = oldAiStateRef.current === "streaming"; // 前の状態が"streaming"
+    const haveChanged = oldChatStatusRef.current !== chatStatus; // 前回から状態変化した
+    const isStreaming = oldChatStatusRef.current === "streaming"; // 前の状態が"streaming"
     if (haveChanged && isStreaming) {
       const fetchData = async () => {
         const data = await requestApi("", EVALUATION_DATA_PATH, {
@@ -39,8 +39,8 @@ export const CorrectCheck: React.FC = () => {
       };
       fetchData();
     }
-    oldAiStateRef.current = aiState;
-  }, [aiState]);
+    oldChatStatusRef.current = chatStatus;
+  }, [chatStatus]);
 
   // 削除をはいと答えた時の動作
   const handleDeleteYes = (id: string) => {
@@ -67,7 +67,7 @@ export const CorrectCheck: React.FC = () => {
   return (
     <div className="w-full flex-col justify-center">
       {evaluationData &&
-        aiState === "ready" &&
+        chatStatus === "ready" &&
         evaluationData.map((data, index) => (
           <motion.div
             key={data.fuzzyScore?.id + uuidv4()}

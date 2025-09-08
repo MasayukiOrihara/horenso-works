@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LoaderCircleIcon } from "lucide-react";
 import { ChevronsLeft } from "lucide-react";
-import { useUserMessages } from "../messages/message-provider";
+import { useUserMessages } from "../provider/MessageProvider";
 import { LogViewer } from "./logViewer";
 import { Typewriter } from "./typewriter";
 
@@ -9,7 +9,7 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
   const [logs, setLogs] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const [seenPages, setSeenPages] = useState<number[]>([0]);
-  const { aiState } = useUserMessages();
+  const { chatStatus } = useUserMessages();
 
   /* ページネーション */
   const handleNext = () => {
@@ -33,11 +33,11 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
 
   // ページの初期化
   useEffect(() => {
-    if (lines.length === 0 && aiState === "streaming") {
+    if (lines.length === 0 && chatStatus === "streaming") {
       setPage(0);
       setSeenPages([]);
     }
-  }, [aiState, lines.length]);
+  }, [chatStatus, lines.length]);
 
   /* ログの処理 */
   const lastLog = logs[logs.length - 1] ?? "AI を呼び出し中...";
@@ -58,7 +58,7 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
   const currentText = useMemo(() => lines[page], [lines, page]);
   // ページネーションのボタン制限
   const cantUseButton =
-    lines.length === 0 || (lines.length === 0 && aiState === "streaming");
+    lines.length === 0 || (lines.length === 0 && chatStatus === "streaming");
 
   return (
     <div className="w-full my-2">
@@ -75,8 +75,8 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
             </span>
           </div>
         )}
-        {(aiState === "submitted" ||
-          (aiState === "streaming" && lines.length === 0)) && (
+        {(chatStatus === "submitted" ||
+          (chatStatus === "streaming" && lines.length === 0)) && (
           <div className="flex items-center justify-center gap-2 px-5 py-3 rounded-lg mb-2 mx-8">
             <LoaderCircleIcon className="animate-spin h-6 w-6 text-gray-400" />
             <span className="text-gray-400">{lastLog}</span>

@@ -1,4 +1,4 @@
-import { useUserMessages } from "./message-provider";
+import { useUserMessages } from "../provider/MessageProvider";
 import { useCallback, useEffect, useRef } from "react";
 import { UIMessage } from "ai";
 import { useSessionId } from "@/hooks/useSessionId";
@@ -15,7 +15,7 @@ function getLatestAssistantMessage(messages: UIMessage[]) {
 }
 
 export const ChatConnector = () => {
-  const { setAiMessage, currentUserMessage, setAiState } = useUserMessages();
+  const { setAiMessage, currentUserMessage, setChatStatus } = useUserMessages();
   const { value: sessionFlags, setValue: setSessionFlags } = useSessionFlags();
   // 現在のセッション ID
   const sessionId = useSessionId();
@@ -81,8 +81,8 @@ export const ChatConnector = () => {
 
   // 待機状況の送信
   useEffect(() => {
-    setAiState(status);
-  }, [status, setAiState]);
+    setChatStatus(status);
+  }, [status, setChatStatus]);
 
   return null;
 };

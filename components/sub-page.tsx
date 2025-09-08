@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageProvider } from "./messages/message-provider";
+import { MessageProvider } from "./provider/MessageProvider";
 import { MessageInput } from "./messages/message-input";
 import { SCREEN } from "./screen";
 import { CorrectCheck } from "./debug/correctCheck";

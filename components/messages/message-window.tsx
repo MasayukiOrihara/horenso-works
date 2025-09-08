@@ -1,9 +1,9 @@
 import { Dialog } from "../window/dialog";
-import { useUserMessages } from "./message-provider";
+import { useUserMessages } from "../provider/MessageProvider";
 import { useEffect, useRef, useState } from "react";
 
 export const MessageWindow = () => {
-  const { aiMessage, aiState } = useUserMessages();
+  const { aiMessage, chatStatus } = useUserMessages();
   const [lines, setLines] = useState<string[]>([]);
 
   /* メッセージ関係 */
@@ -34,16 +34,16 @@ export const MessageWindow = () => {
 
   useEffect(() => {
     // 最後の一行の取得
-    if (aiMessage && aiState === "ready") {
+    if (aiMessage && chatStatus === "ready") {
       const sliceChunk = aiMessage.slice(previousRef.current.length);
       setLines((prev) => [...prev, sliceChunk]);
     }
     // 初期化
-    if (aiMessage && aiState === "submitted") {
+    if (aiMessage && chatStatus === "submitted") {
       setLines([]);
       previousRef.current = "";
     }
-  }, [aiState, aiMessage]);
+  }, [chatStatus, aiMessage]);
 
   return (
     <div>

@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 
-import { useUserMessages } from "./message-provider";
+import { useUserMessages } from "../provider/MessageProvider";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { SendHorizontalIcon } from "lucide-react";
@@ -10,7 +10,7 @@ import { SAME_INPUT_WARNING } from "@/lib/message/warning";
 export const MessageInput = () => {
   const [text, setText] = useState("");
   const [oldText, setOldText] = useState(""); // ひとつ前の入力
-  const { addUserMessage, aiState } = useUserMessages();
+  const { addUserMessage, chatStatus } = useUserMessages();
 
   const submitHandle = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -35,13 +35,13 @@ export const MessageInput = () => {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="[ENTER で 送信...]"
-          disabled={aiState === "submitted" || aiState === "streaming"}
+          disabled={chatStatus === "submitted" || chatStatus === "streaming"}
         />
         {/* ボタン */}
         <Button
           type="submit"
           className="w-[20%] h-full bg-blue-400 text-white rounded hover:bg-blue-900 hover:cursor-pointer hover:text-white/40 self-end"
-          disabled={aiState === "submitted" || aiState === "streaming"}
+          disabled={chatStatus === "submitted" || chatStatus === "streaming"}
         >
           <SendHorizontalIcon />
         </Button>
