@@ -6,6 +6,15 @@ export type HorensoStates = {
   hasQuestion: boolean; // 次の質問はあるか
 };
 
+/**
+ * ベースURLを取得するための型
+ */
+export type BaseUrlInfo = {
+  host: string;
+  protocol: "http" | "https";
+  baseUrl: string;
+};
+
 /** 法会連想ワークグラフから返すオブジェクトの型 */
 export type HorensoWorkResponse = {
   text: string;
@@ -103,17 +112,6 @@ export type AdjustedClue = {
   quality: number; // 信頼度
 };
 
-/**
- * フロント側から渡す設定関連のフラグ
- */
-export type SettingFlags = {
-  memoryOn: boolean; // 会話履歴の保存フラグ
-  learnOn: boolean; // 学習モードの保存フラグ
-  addPrompt: boolean; // 追加プロンプトの試用フラグ
-  checkOn: boolean; // 正誤判定アンケートの試用フラグ
-  shouldValidate: ShouldValidate; // AI 回答チェックを行うかのフラグ
-};
-
 /** session strage で管理するフラグ */
 type ProgressPhase = "locked" | "in_progress" | "cleared";
 type SyncState = "idle" | "local" | "pending" | "confirmed" | "error";
@@ -140,6 +138,7 @@ export type SessionFlags = {
   phase: ProgressPhase; // 進行状況
   sync: SyncState; // フロントとバックの同期状態
   step: number; // 問題のステップ数
+  baseUrl?: string; // ベースURL
   options: SessionOptions; // 設定できるオプション
 };
 

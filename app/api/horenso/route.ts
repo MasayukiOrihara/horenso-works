@@ -2,7 +2,6 @@ import { MemorySaver, StateGraph } from "@langchain/langgraph";
 import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 import { Document } from "langchain/document";
 
-import { getBaseUrl } from "@/lib/path";
 import { measureExecution } from "@/lib/llm/graph";
 import { requestApi } from "@/lib/api/request";
 import { EVALUATION_DATA_PATH } from "@/lib/api/path";
@@ -21,9 +20,6 @@ const whyUseDocuments = DOC.whyDocuments.map((doc) => ({
   pageContent: doc.pageContent,
   metadata: { ...doc.metadata },
 }));
-
-// ベースURL の共通化
-let globalBaseUrl = "";
 
 /**
  * langGraphのノード群
@@ -51,7 +47,6 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
     await NODE.preprocessAiNode({
       messages: messages,
       sessionFlags: sessionFlags,
-      baseUrl: globalBaseUrl,
       whoUseDocuments: whoUseDocuments,
       whyUseDocuments: whyUseDocuments,
     });
@@ -221,9 +216,6 @@ export async function POST(req: Request) {
     }
     // memory server 設定
     const config = { configurable: { thread_id: sessionFlags.sessionId } };
-    // url の取得
-    const { baseUrl } = getBaseUrl(req);
-    globalBaseUrl = baseUrl;
 
     // 実行
     const result = await measureExecution(
@@ -238,7 +230,7 @@ export async function POST(req: Request) {
     const sendEvaluationData = result.evaluationData.filter(
       (item) => item.answerCorrect === "correct"
     );
-    await requestApi(baseUrl, EVALUATION_DATA_PATH, {
+    await requestApi(sessionFlags.baseUrl!, EVALUATION_DATA_PATH, {
       method: "POST",
       body: { sendEvaluationData },
     });

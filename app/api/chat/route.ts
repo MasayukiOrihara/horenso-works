@@ -6,7 +6,6 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 
-import { getBaseUrl } from "@/lib/path";
 import { runWithFallback } from "@/lib/llm/run";
 import { updateClueChat } from "../horenso/lib/match/lib/entry";
 import { measureExecution } from "@/lib/llm/graph";
@@ -18,6 +17,7 @@ import * as MSG from "@/lib/contents/chat/template";
 import * as REQ from "./requestApi";
 
 import { computeFinalScoreWeightedAverage } from "./grade";
+import { getBaseUrl } from "@/lib/utils";
 
 /** 分岐ノード */
 async function phaseRouter(state: typeof StateAnnotation.State) {
@@ -35,7 +35,7 @@ async function phaseRouter(state: typeof StateAnnotation.State) {
 /** 初回ノード */
 async function init(state: typeof StateAnnotation.State) {
   console.log("🚪 初回ノード");
-  const baseUrl = state.baseUrl;
+  const baseUrl = state.sessionFlags.baseUrl!;
   const messages = state.messages;
   const sessionId = state.sessionFlags.sessionId;
 
@@ -70,10 +70,10 @@ async function init(state: typeof StateAnnotation.State) {
 /** 報連相ワークノード */
 async function horensoWork(state: typeof StateAnnotation.State) {
   console.log("🥬 報連相ワークノード");
-  const baseUrl = state.baseUrl;
   const messages = state.messages;
   const userMessage = state.userMessage;
   const sessionFlags = state.sessionFlags;
+  const baseUrl = state.sessionFlags.baseUrl!;
 
   // sessionFlags内変数
   const sessionId = sessionFlags.sessionId;
@@ -184,7 +184,6 @@ async function contextMerger(state: typeof StateAnnotation.State) {
 const StateAnnotation = Annotation.Root({
   sessionFlags: Annotation<TYPE.SessionFlags>(), // セッション中のフラグ
   userMessage: Annotation<string>(), // 最新のユーザーメッセージ
-  baseUrl: Annotation<string>(), // ベースURL
   contexts: Annotation<string[]>(), // グラフ内でコンテキストを管理する
   memory: Annotation<string[]>(), // 会話履歴
   userprofile: Annotation<SCM.userprofileFormValues>(), // 取得したユーザープロファイル
@@ -222,7 +221,6 @@ const app = workflow.compile();
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { baseUrl } = getBaseUrl(req);
     // フロントから今までのメッセージを取得
     const messages = body.messages ?? [];
     // 直近のメッセージを取得
@@ -242,6 +240,11 @@ export async function POST(req: Request) {
 
     // フラグ内のsessionIdだけ更新
     sessionFlags.sessionId = sessionId;
+    // url の取得
+    if (!sessionFlags.baseUrl) {
+      const { baseUrl } = getBaseUrl(req);
+      sessionFlags.baseUrl = baseUrl;
+    }
     // 同期: 送信済み応答まち
     sessionFlags.sync = "pending";
 
@@ -253,7 +256,6 @@ export async function POST(req: Request) {
       messages: messages,
       sessionFlags: sessionFlags,
       userMessage: userMessage,
-      baseUrl: baseUrl,
     });
 
     /* --- --- LLM 処理 --- --- */
@@ -275,7 +277,11 @@ export async function POST(req: Request) {
       mode: "stream",
       onStreamEnd: async (response: string) => {
         // assistant メッセージ保存
-        await REQ.requestSave(baseUrl, messages, sessionFlags.sessionId);
+        await REQ.requestSave(
+          sessionFlags.baseUrl!,
+          messages,
+          sessionFlags.sessionId
+        );
 
         // 今回のエントリーにメッセージを追記
         if (!(clueId === "")) await updateClueChat(clueId, response);
@@ -293,6 +299,7 @@ export async function POST(req: Request) {
       phase: result.sessionFlags.phase,
       sync: "confirmed", // サーバ側で 確定済み
       step: result.sessionFlags.step,
+      baseUrl: result.sessionFlags.baseUrl,
       options: sendOptions,
     };
 

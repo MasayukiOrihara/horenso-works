@@ -21,7 +21,6 @@ import { MATCH_PATH } from "@/lib/api/path";
 type AiNode = {
   messages: BaseMessage[];
   sessionFlags: TYPE.SessionFlags;
-  baseUrl: string;
   whoUseDocuments: Document<TYPE.HorensoMetadata>[];
   whyUseDocuments: Document<TYPE.HorensoMetadata>[];
 };
@@ -34,7 +33,6 @@ type AiNode = {
 export async function preprocessAiNode({
   messages,
   sessionFlags,
-  baseUrl,
   whoUseDocuments,
   whyUseDocuments,
 }: AiNode) {
@@ -85,7 +83,7 @@ export async function preprocessAiNode({
   const steps: Record<string, () => Promise<unknown>> = {};
   userAnswer.forEach((answer, i) => {
     steps[`checkAnswer_${i}`] = async () =>
-      requestApi(baseUrl, MATCH_PATH, {
+      requestApi(sessionFlags.baseUrl!, MATCH_PATH, {
         method: "POST",
         body: {
           matchAnswerArgs: {
