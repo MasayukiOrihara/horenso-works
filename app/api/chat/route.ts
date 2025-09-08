@@ -25,8 +25,14 @@ async function phaseRouter(state: typeof StateAnnotation.State) {
   const debugOn = state.sessionFlags.options.debugOn;
   const sessionState = state.sessionFlags.phase;
 
+  // 初回判定
   if (sessionState === "locked" && !debugOn) {
     return "init";
+  }
+
+  // 終了後判定
+  if (sessionState === "cleared") {
+    return "finalization";
   }
 
   return "horensoWork";
@@ -147,11 +153,30 @@ async function calcGrade(state: typeof StateAnnotation.State) {
   return { contexts: contexts, grade: grade };
 }
 
-/** 研修終了ノード */
-async function finalization() {
-  console.log("🚪終了ノード");
+/** 研修終了後ノード */
+async function finalization(state: typeof StateAnnotation.State) {
+  console.log("🚪終了後ノード");
+  const baseUrl = state.sessionFlags.baseUrl!;
+  const messages = state.messages;
+  const sessionId = state.sessionFlags.sessionId;
 
-  return;
+  // 過去の履歴取得（非同期）
+  const fetchMemory = REQ.requestMemory(baseUrl, messages, sessionId);
+  // ユーザープロファイルを取得
+  const fetchUserprofile = REQ.requestUserprofile(baseUrl, sessionId);
+
+  //並行処理
+  const [memory, userprofile] = await Promise.all([
+    fetchMemory,
+    fetchUserprofile,
+  ] as const);
+
+  const contexts: string[] = [];
+  contexts.push(
+    "あなたはビズネススキル講習を行った講師です。現在は講習後の状態です。ユーザーの会話や意見に受け答えをしてください。"
+  );
+
+  return { contexts: contexts, memory: memory, userprofile: userprofile };
 }
 
 /** コンテキストをまとめるノード */
