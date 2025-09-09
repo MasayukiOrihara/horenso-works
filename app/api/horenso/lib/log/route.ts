@@ -1,46 +1,70 @@
 import { flushLogs } from "./logBuffer";
 
-/**
- * クライアントに対して、0.5秒ごとに新着ログを送り続ける。
- * @returns
- */
-export async function GET() {
-  // 文字列を変換するエンコーダ
+export async function GET(req: Request) {
   const encoder = new TextEncoder();
 
-  let controllerRef: ReadableStreamDefaultController<string> | null = null;
+  let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null;
+  let interval: NodeJS.Timeout | null = null;
   let closed = false;
-  let interval: NodeJS.Timeout;
 
-  function safeClose() {
-    if (!closed && controllerRef) {
-      closed = true;
+  const safeClose = () => {
+    if (closed) return;
+    closed = true;
+
+    if (interval) {
       clearInterval(interval);
+      interval = null;
+    }
+
+    if (controllerRef) {
       try {
         controllerRef.close();
-      } catch (e) {
-        console.warn("Already closed:", e);
+      } catch {
+        // すでに閉じられている場合は無視
+      } finally {
+        controllerRef = null;
       }
     }
-  }
+  };
 
-  const stream = new ReadableStream({
-    async start(controller) {
+  // クライアント切断（ナビゲーション/タブ閉じ）でも確実に終了
+  req.signal.addEventListener("abort", safeClose);
+
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
       controllerRef = controller;
-      interval = setInterval(() => {
-        if (closed) return;
-        const logs = flushLogs(); // 新着ログのみ
-        for (const log of logs) {
-          // SSEの仕様に従った形式。
-          controller.enqueue(encoder.encode(`data: ${log}\n\n`));
-        }
-      }, 500); // 0.5秒ごとにログをチェック
 
-      // 5分後に自動終了（オプション）
+      // 初回の「ダミー行」（SSEのウォームアップ/一部プロキシ対策）
+      try {
+        controller.enqueue(encoder.encode(`: connected\n\n`));
+      } catch {
+        safeClose();
+        return;
+      }
+
+      // 0.3秒ごとに新着ログを送る
+      interval = setInterval(() => {
+        if (closed || !controllerRef) return;
+
+        try {
+          const logs = flushLogs();
+          if (logs.length === 0) return;
+
+          for (const log of logs) {
+            controllerRef.enqueue(encoder.encode(`data: ${log}\n\n`));
+          }
+        } catch {
+          // enqueue で「すでに閉じている」などが起きたら安全にクローズ
+          safeClose();
+        }
+      }, 300);
+
+      // タイムアウトで自動終了（任意）
       setTimeout(safeClose, 1000 * 60 * 5);
     },
 
     cancel() {
+      // クライアントが明示的に cancel した場合
       safeClose();
     },
   });
@@ -48,8 +72,10 @@ export async function GET() {
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      // Nginx等のバッファリングを止めたい場合
+      "X-Accel-Buffering": "no",
     },
   });
 }

@@ -1,4 +1,3 @@
-import { Dialog } from "../window/dialog";
 import { useUserMessages } from "../provider/MessageProvider";
 import { useEffect, useRef, useState } from "react";
 import { useSessionFlags } from "../provider/SessionFlagsProvider";
@@ -7,11 +6,12 @@ import { LOAD_LATEST_PATH } from "@/lib/api/path";
 import { toast } from "sonner";
 import { useErrorStore } from "@/hooks/useErrorStore";
 import * as ERR from "@/lib/message/error";
+import { Dialog } from "../window/Dialog";
 
 export const MessageWindow = () => {
   const [lines, setLines] = useState<string[]>([]);
   const { aiMessage, chatStatus } = useUserMessages();
-  const { value: sessionFlags, setValue: setSessionFlags } = useSessionFlags();
+  const { value: sessionFlags } = useSessionFlags();
   const { push } = useErrorStore();
 
   /* メッセージ関係 */
