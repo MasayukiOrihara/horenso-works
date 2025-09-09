@@ -42,7 +42,6 @@ export function Typewriter({ text, speed = 100 }: Props) {
 
     // クリーンアップで止める
     return () => {
-      console.log("🧹 クリーンアップ");
       isCancelled = true;
       indexRef.current = 0;
     };

@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { useUserMessages } from "../provider/MessageProvider";
+import { HORENSO_LOG_PATH } from "@/lib/api/path";
 
 type Props = {
   onSend: (log: string[]) => void;
 };
-
-const HORENSO_LOG_PATH = "/api/horenso/lib/log";
 
 /**
  * サーバー側から出力されるログを表示する
@@ -17,7 +16,6 @@ export const LogViewer: React.FC<Props> = ({ onSend }) => {
   const shouldConnect =
     chatStatus === "streaming" || chatStatus === "submitted";
   useEffect(() => {
-    console.log(chatStatus);
     // streaming 状態じゃなければ接続しない
     if (!shouldConnect) return;
 

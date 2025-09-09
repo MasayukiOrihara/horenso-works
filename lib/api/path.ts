@@ -21,3 +21,6 @@ export const USERPROFILE_LOAD_PATH = "/api/userprofile/load/";
 // cluelist
 export const CLUELIST_LOAD_PATH = "/api/cluelist/load/";
 export const CLUELIST_UPDATE_PATH = "/api/cluelist/update/";
+
+// log
+export const HORENSO_LOG_PATH = "/api/horenso/lib/log";

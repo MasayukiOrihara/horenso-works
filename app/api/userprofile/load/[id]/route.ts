@@ -1,13 +1,7 @@
 import { supabaseClient } from "@/lib/supabase/clients";
 import * as ERR from "@/lib/message/error";
 import { userprofileFormValues } from "@/lib/schema";
-
-type RequestBody = {
-  userprofile: userprofileFormValues;
-  sessionId: string;
-};
-
-let userinfo: RequestBody | null = null;
+import { DEFAULT_PROFIRE } from "@/lib/contents/defaultValue/userProfile";
 
 /**
  * userprofile を取得する
@@ -20,13 +14,6 @@ export async function GET(
   try {
     const { id } = await params; // セッション ID
 
-    // 一時キャッシュと同じならそのまま返却
-    if (userinfo && userinfo.sessionId === id) {
-      return Response.json(userinfo.userprofile, {
-        status: 200,
-      });
-    }
-
     // DB からユーザーデータを取得
     const { data, error } = await supabaseClient()
       .from("user_profiles")
@@ -34,7 +21,7 @@ export async function GET(
       .eq("session_id", id)
       .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error(ERR.SUPABASE_UPSERT_ERROR, error);
@@ -45,19 +32,16 @@ export async function GET(
     }
 
     // データを整形
-    const userprofile: userprofileFormValues = {
-      name: data.name?.trim() ? data.name.trim() : "",
-      gender: data.gender ? data.gender : "none",
-      country: data.country ? data.country : "other",
-      company: data.company?.trim() ? data.company.trim() : "",
-      organization: data.organization ? data.organization : "other",
-    };
-
-    // ローカルに保存
-    userinfo = {
-      sessionId: data.sessionId ?? id,
-      userprofile: userprofile,
-    };
+    const userprofile: userprofileFormValues = data
+      ? {
+          ...DEFAULT_PROFIRE,
+          name: data.name?.trim() || "",
+          gender: data.gender || "none",
+          country: data.country || "other",
+          company: data.company?.trim() || "",
+          organization: data.organization || "other",
+        }
+      : DEFAULT_PROFIRE;
 
     return Response.json(userprofile, {
       status: 200,
