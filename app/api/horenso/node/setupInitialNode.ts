@@ -16,7 +16,7 @@ export async function setupInitialNode({ sessionFlags }: InitialNode) {
   // 問題の初期化
   const transition: HorensoStates = {
     isAnswerCorrect: false,
-    hasQuestion: sessionFlags.step === 1 ? false : true,
+    hasQuestion: sessionFlags.step === 1 ? false : true, // 最終問題なら次の問題はない
   };
 
   // リトライ回数更新

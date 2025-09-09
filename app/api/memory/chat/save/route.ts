@@ -85,7 +85,6 @@ async function saveDBData(state: typeof GraphAnnotation.State) {
 
   try {
     await saveSupabase(memoryTextData);
-    console.log(memoryTextData);
     console.log(`✅ 会話内容を データベース に保存しました。\n`);
   } catch (error) {
     console.error("✖ 会話内容が データベース に保存できませんでした: " + error);

@@ -17,14 +17,12 @@ export function saveFinishStateNode({
   whoUseDocuments,
   whyUseDocuments,
 }: StateNode) {
-  // 現在の状態を外部保存
-  transition.isAnswerCorrect = false;
+  console.log(transition);
 
   // 正解し終わった場合すべてを初期化
   const contexts = [];
-  if (!transition.hasQuestion) {
+  if (transition.isAnswerCorrect && !transition.hasQuestion) {
     // 終了フラグ
-    console.log("質問終了");
     contexts.push(MSG.END_TAG);
     sessionFlags.phase = "cleared";
 
@@ -36,6 +34,9 @@ export function saveFinishStateNode({
       doc.metadata.isMatched = false;
     });
   }
+
+  // 現在の状態をリセット
+  transition.isAnswerCorrect = false;
 
   return { contexts, updateSessionFlags: sessionFlags, transition };
 }

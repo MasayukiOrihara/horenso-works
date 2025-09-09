@@ -42,7 +42,6 @@ export function checkUserAnswerNode({
         (doc) => doc.metadata.isMatched
       );
       if (isAllCorrect) {
-        flag.hasQuestion = false;
         flag.isAnswerCorrect = true;
       }
       break;
