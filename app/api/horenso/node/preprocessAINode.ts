@@ -66,46 +66,53 @@ export async function preprocessAiNode({
   pushLog("回答の確認中です...");
   // 入力の分析
   const analyzeInputResultPromise = analyzeInput(userMessage, question);
-  const [userAnswer, userVector] = await Promise.all([
-    splitInputLlm(sepKeywordPrompt, userMessage),
-    embeddings.embedQuery(userMessage),
-    SessionQuestionGradeRepo.ensure(
-      sessionFlags.sessionId,
-      sessionFlags.step + 1
-    ),
-  ]);
+  let userAnswer: string[] = []; // 入力を分離し答えに変換
+  let userVector: number[] = []; // 入力のベクターデータ
+  try {
+    [userAnswer, userVector] = await Promise.all([
+      splitInputLlm(sepKeywordPrompt, userMessage),
+      embeddings.embedQuery(userMessage),
+      SessionQuestionGradeRepo.ensure(
+        sessionFlags.sessionId,
+        sessionFlags.step + 1
+      ),
+    ]);
+  } catch (error) {
+    console.error("match preproceeAI Error: userAnswer or userVector");
+    throw error; // 上に投げる
+  }
   console.log("質問の分離した答え: ");
   console.log(userAnswer);
 
   /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
   pushLog("正解チェックを行っています...");
+  console.log(" --- ");
   // langchain の並列処理を利用
   const steps: Record<string, () => Promise<unknown>> = {};
-  userAnswer.forEach((answer, i) => {
-    steps[`checkAnswer_${i}`] = async () =>
-      requestApi(sessionFlags.baseUrl!, MATCH_PATH, {
-        method: "POST",
-        body: {
-          matchAnswerArgs: {
-            userAnswer: answer,
-            documents: useDocuments,
-            topK: k,
-            allTrue,
-            sessionFlags: sessionFlags,
-          },
-        },
-      });
-  });
-  const checkUserAnswers = new RunnableParallel({ steps });
-
-  //vectorStore検索と並列に実行(全体の処理時間も計測)
-  const questionId = useDocuments[0].metadata.questionId;
-  console.log(" --- ");
-
   let evaluationData: TYPE.Evaluation[] = [];
   let clue: [Document<TYPE.ClueMetadata>, number][] = [];
+
+  const start = Date.now(); // 計測開始
   try {
-    const start = Date.now();
+    userAnswer.forEach((answer, i) => {
+      steps[`checkAnswer_${i}`] = async () =>
+        requestApi(sessionFlags.baseUrl!, MATCH_PATH, {
+          method: "POST",
+          body: {
+            matchAnswerArgs: {
+              userAnswer: answer,
+              documents: useDocuments,
+              topK: k,
+              allTrue,
+              sessionFlags: sessionFlags,
+            },
+          },
+        });
+    });
+    const checkUserAnswers = new RunnableParallel({ steps });
+
+    //vectorStore検索と並列に実行(全体の処理時間も計測)
+    const questionId = useDocuments[0].metadata.questionId;
     const [matchResultsMap, rawClue] = await Promise.all([
       checkUserAnswers.invoke([]), // RunnableParallel 実行
       // ベクタ検索（Service 側で throw 済み前提）
@@ -118,50 +125,57 @@ export async function preprocessAiNode({
         { questionId }
       ),
     ]);
-
-    const end = Date.now();
+    // 評価データ
     const matchResults = Object.values(matchResultsMap);
     evaluationData = matchResults.map((r) => r.evaluationData).flat();
-
     // document 更新
     evaluatedResults(evaluationData, useDocuments);
-    console.log(`処理時間(ms): ${end - start} ms`);
-
+    // 応答例
     clue = rawClue as [Document<TYPE.ClueMetadata>, number][];
   } catch (error) {
-    console.error(error);
+    console.error("match preproceeAI Error: checkAnswer");
+    throw error; // 上に投げる
   }
-
+  const end = Date.now(); // 計測終了
+  console.log(`処理時間(ms): ${end - start} ms`);
   console.log(`OpenAI Embeddings チェック完了 \n ---`);
 
   /* ③ ヒントの取得（正解していたときは飛ばす） */
   pushLog("ヒントの準備中です...");
-  // 正解判定
-  const tempIsCorrect =
-    allTrue === true
-      ? useDocuments.every((doc) => doc.metadata.isMatched)
-      : useDocuments.some((doc) => doc.metadata.isMatched);
+  let getHint: string = ""; // ヒントの取得
+  let category: string = ""; // 入力カテゴリーの主塔
+  try {
+    // 正解判定
+    const tempIsCorrect =
+      allTrue === true
+        ? useDocuments.every((doc) => doc.metadata.isMatched)
+        : useDocuments.some((doc) => doc.metadata.isMatched);
 
-  // ヒントの判定
-  let getHint: string = "";
-  if (!tempIsCorrect) {
     // ヒントの取得
-    const sortData = sortScore(evaluationData);
-    const getHintPromises = generateHintLlm(question, sortData, useDocuments);
+    let hintPromises: ReturnType<typeof generateHintLlm> | undefined;
+    if (!tempIsCorrect) {
+      const sortData = sortScore(evaluationData);
+      hintPromises = generateHintLlm(question, sortData, useDocuments);
+    }
 
-    getHint = await getHintPromises;
+    // ヒント
+    if (hintPromises) getHint = await hintPromises;
+    // 入力分析
+    const analyzeInputResult = await analyzeInputResultPromise;
+
+    // 分類
+    const match = analyzeInputResult.match(
+      /入力意図の分類:\s*(質問|回答|冗談|その他)/
+    );
+    const category = match ? match[1] : "";
+
     console.log("質問1のヒント: \n" + getHint);
+    console.log(analyzeInputResult);
+    console.log("入力意図の分類切り出し: " + category);
+  } catch (error) {
+    console.error("match preproceeAI Error: hint or analyze");
+    throw error; // 上
   }
-
-  // 入力分析
-  const analyzeInputResult = await analyzeInputResultPromise;
-  console.log(analyzeInputResult);
-  // 分類
-  const match = analyzeInputResult.match(
-    /入力意図の分類:\s*(質問|回答|冗談|その他)/
-  );
-  const category = match ? match[1] : "";
-  console.log("入力意図の分類: " + category);
 
   pushLog("返答の生成中です...");
   return { evaluationData, clue, getHint, category };
