@@ -91,11 +91,14 @@ async function horensoWork(state: typeof StateAnnotation.State) {
   // ユーザープロファイルを取得
   const fetchUserprofile = REQ.requestUserprofile(baseUrl, sessionId);
   // メッセージ保存: フロントエンドから記憶設定を取得
-  const fetchSave = REQ.requestSave(
-    baseUrl,
-    new HumanMessage(userMessage),
-    sessionId
-  );
+  let savePromise: Promise<any> | undefined;
+  if (options.memoryOn) {
+    savePromise = REQ.requestSave(
+      baseUrl,
+      new HumanMessage(userMessage),
+      sessionId
+    );
+  }
 
   // 報連相ワークAPI呼び出し
   const contexts: string[] = [];
@@ -106,7 +109,6 @@ async function horensoWork(state: typeof StateAnnotation.State) {
   );
 
   // 並列処理
-  const savePromise = options.memoryOn ? fetchSave : undefined;
   const [memory, userprofile, horensoGraph] = await Promise.all([
     fetchMemory,
     fetchUserprofile,
@@ -167,19 +169,20 @@ async function finalization(state: typeof StateAnnotation.State) {
   const options = state.sessionFlags.options;
   const userMessage = state.userMessage;
 
-  // メッセージ保存: フロントエンドから記憶設定を取得
-  const fetchSave = REQ.requestSave(
-    baseUrl,
-    new HumanMessage(userMessage),
-    sessionId
-  );
+  let savePromise: Promise<any> | undefined;
+  if (options.memoryOn) {
+    savePromise = REQ.requestSave(
+      baseUrl,
+      new HumanMessage(userMessage),
+      sessionId
+    );
+  }
   // 過去の履歴取得（非同期）
   const fetchMemory = REQ.requestMemory(baseUrl, messages, sessionId);
   // ユーザープロファイルを取得
   const fetchUserprofile = REQ.requestUserprofile(baseUrl, sessionId);
 
   //並行処理
-  const savePromise = options.memoryOn ? fetchSave : undefined;
   const [memory, userprofile] = await Promise.all([
     fetchMemory,
     fetchUserprofile,
@@ -321,11 +324,13 @@ export async function POST(req: Request) {
       mode: "stream",
       onStreamEnd: async (response: string) => {
         // assistant メッセージ保存
-        await REQ.requestSave(
-          sessionFlags.baseUrl!,
-          new AIMessage(response),
-          sessionFlags.sessionId
-        );
+        if (options.memoryOn) {
+          await REQ.requestSave(
+            sessionFlags.baseUrl!,
+            new AIMessage(response),
+            sessionFlags.sessionId
+          );
+        }
 
         // 今回のエントリーにメッセージを追記
         if (!(clueId === "")) await updateClueChat(clueId, response);

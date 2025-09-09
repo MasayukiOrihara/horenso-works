@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useErrorStore } from "@/hooks/useErrorStore";
 import * as ERR from "@/lib/message/error";
 import { Dialog } from "../window/Dialog";
+import { LINES_GET_WARNING } from "@/lib/message/warning";
 
 export const MessageWindow = () => {
   const [lines, setLines] = useState<string[]>([]);
@@ -44,6 +45,12 @@ export const MessageWindow = () => {
             sessionFlags.sessionId
           )}`
         );
+
+        // 読み込めなかった
+        if (!res) {
+          toast.warning(LINES_GET_WARNING);
+          return;
+        }
 
         // メッセージとして使用
         const oldLines = res
