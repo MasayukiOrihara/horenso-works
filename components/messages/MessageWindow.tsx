@@ -23,28 +23,16 @@ export const MessageWindow = () => {
     }
   }, [aiMessage]);
 
-  const fetchedFor = useRef<string | null>(null);
-  const syncRef = useRef(sessionFlags.sync);
-  const syncPhase = useRef(sessionFlags.phase);
-  const sessionIdRef = useRef(sessionFlags.sessionId);
+  /** 再起動した際に、前の文章を表示する */
   useEffect(() => {
     const isActiveChat =
       chatStatus === "submitted" || chatStatus === "streaming";
     const isBefore =
       sessionFlags.sync === "idle" || sessionFlags.phase === "locked";
 
-    if (fetchedFor.current === sessionIdRef.current) return; // 同セッションで一度だけ
-    fetchedFor.current = sessionIdRef.current;
-
-    console.log("初");
-    console.log(lines);
-
     if (lines.length) return; // 文字列の表示がある
-    console.log("空");
     if (isActiveChat) return; // chatの取得中
-    console.log("前");
     if (isBefore) return; // 動作の開始前だった
-    console.log("絶");
 
     // 再起動後などでaiMessageが存在しない時
     (async () => {
@@ -53,9 +41,10 @@ export const MessageWindow = () => {
         const res: string = await requestApi(
           "",
           `${LOAD_LATEST_PATH}?sessionId=${encodeURIComponent(
-            sessionIdRef.current
+            sessionFlags.sessionId
           )}`
         );
+
         // メッセージとして使用
         const oldLines = res
           .split(/\r\n|\n|\r/)
@@ -76,9 +65,14 @@ export const MessageWindow = () => {
         });
       }
     })();
-
-    console.log("後");
-  }, [sessionFlags.sync]);
+  }, [
+    chatStatus,
+    sessionFlags.sync,
+    sessionFlags.phase,
+    sessionFlags.sessionId,
+    lines,
+    push,
+  ]);
 
   // 文章を改行で分離するための関数(最後の分は別で検知)
   const previousRef = useRef<string>("");
@@ -98,16 +92,19 @@ export const MessageWindow = () => {
     }
   }
 
+  // lines の初期化
   useEffect(() => {
-    // 最後の一行の取得
+    if (chatStatus === "submitted") {
+      setLines([]);
+      previousRef.current = "";
+    }
+  }, [chatStatus]);
+
+  // 最後の一行の取得
+  useEffect(() => {
     if (aiMessage && chatStatus === "ready") {
       const sliceChunk = aiMessage.slice(previousRef.current.length);
       setLines((prev) => [...prev, sliceChunk]);
-    }
-    // 初期化
-    if ((aiMessage || lines.length) && chatStatus === "submitted") {
-      setLines([]);
-      previousRef.current = "";
     }
   }, [chatStatus, aiMessage]);
 

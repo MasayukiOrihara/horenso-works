@@ -4,7 +4,7 @@ import { MessageProvider } from "./provider/MessageProvider";
 import { MessageInput } from "./messages/message-input";
 import { SCREEN } from "./screen";
 import { CorrectCheck } from "./debug/correctCheck";
-import { MessageWindow } from "./messages/message-window";
+import { MessageWindow } from "./messages/MessageWindow";
 import { ChatConnector } from "./messages/ChatConnector";
 import { useSessionFlags } from "./provider/SessionFlagsProvider";
 import { ScoreHeader } from "./Score/ScoreHeader";
