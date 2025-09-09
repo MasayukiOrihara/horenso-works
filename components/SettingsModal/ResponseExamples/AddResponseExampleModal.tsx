@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { FramedCard } from "@/components/ui/FramedCard";
-import { useClueId } from "@/hooks/useClueId";
 import { useErrorStore } from "@/hooks/useErrorStore";
 import { useSessionId } from "@/hooks/useSessionId";
 import { requestApi } from "@/lib/api/request";
@@ -8,6 +7,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import * as ERR from "@/lib/message/error";
 import { CLUELIST_LOAD_PATH } from "@/lib/api/path";
+import { useSessionFlags } from "@/components/provider/SessionFlagsProvider";
 
 export type ResponseExample = {
   id?: string | null;
@@ -29,17 +29,31 @@ type LatestMessages = { user: string; assistant: string };
 export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
   // 受け取った LatestMessage を管理
   const [latestMessages, setLatestMessages] = useState<LatestMessages | null>();
+  // 更新できるかどうかのフラグ
+  const [isUpdatable, setIsUpdatable] = useState(false);
   // 現在のセッション ID
   const sessionId = useSessionId();
   // clueId 取得
-  const { clueId } = useClueId();
+  const { value: sessionFlags } = useSessionFlags();
+  const clueId = sessionFlags.options.clueId;
   const { push } = useErrorStore();
 
   // 前のメッセージを取得
   useEffect(() => {
     // 設定を開いたときのみ
     if (!sessionId || !open) return;
-    console.log(clueId);
+
+    // clue がまだない
+    if (!clueId) {
+      const message: LatestMessages = {
+        user: "返答例を取得できませんでした",
+        assistant: "",
+      };
+      setLatestMessages(message); // ← ここで state 更新（非同期）
+      setIsUpdatable(false);
+      console.log(isUpdatable);
+      return;
+    }
 
     // 直前メッセージを BD から取得
     (async () => {
@@ -54,13 +68,16 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
         };
 
         setLatestMessages(message); // ← ここで state 更新（非同期）
+        setIsUpdatable(true);
       } catch (error) {
+        setIsUpdatable(false);
         toast.error(`${ERR.FATAL_ERROR}\n${ERR.RELOAD_BROWSER}`);
 
         const message =
           error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
         const stack = error instanceof Error ? error.stack : ERR.UNKNOWN_ERROR;
-        push({ message: ERR.USERPROFILE_SEND_ERROR, detail: stack || message });
+        console.error(message);
+        push({ message: ERR.ADD_RESPONSE_ERROR, detail: stack || message });
       }
     })();
   }, [sessionId, clueId, open, push]);
@@ -91,7 +108,7 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
             <span className="mb-1 block text-sm font-medium">
               前回のユーザーメッセージ
             </span>
-            <div>{latestMessages?.user}</div>
+            <p className="text-xs">{latestMessages?.user}</p>
           </label>
 
           <form onSubmit={handleSubmit} className="mt-2 space-y-3">
@@ -103,10 +120,8 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
                 rows={6}
                 required
                 defaultValue={latestMessages?.assistant}
+                disabled={!isUpdatable}
               />
-              <p className="text-xs text-zinc-500 text-right">
-                会話履歴を保存してない場合、前回メッセージは取得できません
-              </p>
             </label>
 
             {/** ボタン設定 */}
@@ -114,7 +129,11 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
               <Button onClick={onClose} className="hover:cursor-pointer">
                 キャンセル
               </Button>
-              <Button type="submit" className="hover:cursor-pointer">
+              <Button
+                type="submit"
+                className="hover:cursor-pointer"
+                disabled={!isUpdatable}
+              >
                 更新
               </Button>
             </div>

@@ -13,6 +13,7 @@ export const RECUEST_ERROR = "✖ APIリクエストエラー: ";
 export const RETRY_ERROR = "最大リトライ回数を超えました";
 export const DATA_SAVE_ERROR = "✖ データ保存に失敗しました";
 export const DATA_LOAD_ERROR = "✖ データ取得に失敗しました";
+export const ADD_RESPONSE_ERROR = "返答例の取得に失敗しました";
 
 // supabase
 export const SUPABASE_KEY_ERROR = "Expected SUPABASE_SERVICE_ROLE_KEY";
