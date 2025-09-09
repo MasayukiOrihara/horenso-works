@@ -67,7 +67,11 @@ export async function preprocessAiNode({
   /* ① 答えの分離 と ユーザーの回答を埋め込み とベクターストア作成, グレードデータを事前に作成 */
   pushLog(LOG.PROCESS_LOG_2);
   // 入力の分析
-  const analyzeInputResultPromise = analyzeInput(userMessage, question);
+  const analyzeInputResultPromise = analyzeInput(
+    userMessage,
+    question,
+    sessionFlags
+  );
   let userAnswer: string[] = []; // 入力を分離し答えに変換
   let userVector: number[] = []; // 入力のベクターデータ
   try {
@@ -169,7 +173,7 @@ export async function preprocessAiNode({
     const match = analyzeInputResult.match(
       /入力意図の分類:\s*(質問|回答|冗談|その他)/
     );
-    const category = match ? match[1] : "";
+    category = match ? match[1] : "";
 
     console.log("質問1のヒント: \n" + getHint);
     console.log(analyzeInputResult);

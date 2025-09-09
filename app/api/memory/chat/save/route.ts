@@ -14,15 +14,7 @@ import { timestamp } from "@/lib/path";
 import { measureExecution } from "@/lib/llm/graph";
 
 import * as ERR from "@/lib/message/error";
-
-// 会話履歴を保持する型
-export type MemoryTextData = {
-  id: string;
-  role: string;
-  content: string;
-  sessionId: string;
-  createdAt: string;
-};
+import { MemoryTextData } from "@/lib/type";
 
 /** メッセージをテキスト形式にフォーマットする処理 */
 async function convertTextFormat(state: typeof GraphAnnotation.State) {

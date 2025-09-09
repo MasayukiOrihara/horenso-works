@@ -7,6 +7,7 @@ export const HORENSO_PATH = "/api/horenso";
 // memory chat save api
 export const CHAT_SAVE_PATH = "/api/memory/chat/save";
 export const LOAD_LATEST_PATH = "/api/memory/chat/load/latest";
+export const LOAD_MULTIPLE_PATH = "/api/memory/chat/load/multiple";
 
 // evaluation data api
 export const EVALUATION_DATA_PATH = "/api/evaluation-data";

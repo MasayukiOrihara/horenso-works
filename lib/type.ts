@@ -14,6 +14,14 @@ export type BaseUrlInfo = {
   protocol: "http" | "https";
   baseUrl: string;
 };
+// 会話履歴を保持する型
+export type MemoryTextData = {
+  id: string;
+  role: string;
+  content: string;
+  sessionId: string;
+  createdAt: string;
+};
 
 /** 法会連想ワークグラフから返すオブジェクトの型 */
 export type HorensoWorkResponse = {
