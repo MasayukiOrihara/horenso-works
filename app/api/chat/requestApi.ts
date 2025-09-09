@@ -17,7 +17,10 @@ export const requestMemory = async (
 };
 
 // プロファイルの取り出し
-export const requestUserprofile = async (url: string, sessionId: string) => {
+export const requestUserprofile = async (
+  url: string,
+  sessionId: string
+): Promise<void> => {
   return await requestApi(url, `${PATH.USERPROFILE_LOAD_PATH}${sessionId}`, {
     method: "GET",
   });

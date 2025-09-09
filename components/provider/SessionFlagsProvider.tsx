@@ -93,8 +93,9 @@ export function SessionFlagsProvider({
   }, [storageKey, value]);
 
   // 一部の値を変更する
-  const merge = (patch: Partial<SessionFlags>) =>
+  const merge = useCallback((patch: Partial<SessionFlags>) => {
     setValue((prev) => ({ ...prev, ...patch }));
+  }, []);
 
   // オプション内の値を変更する
   const mergeOptions = (patch: Partial<SessionFlags["options"]>) =>
@@ -138,7 +139,7 @@ export function SessionFlagsProvider({
       reset,
       hydrated,
     }),
-    [value, reset, hydrated]
+    [value, merge, reset, hydrated]
   );
 
   return (

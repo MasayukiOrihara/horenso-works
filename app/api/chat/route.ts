@@ -91,7 +91,7 @@ async function horensoWork(state: typeof StateAnnotation.State) {
   // ユーザープロファイルを取得
   const fetchUserprofile = REQ.requestUserprofile(baseUrl, sessionId);
   // メッセージ保存: フロントエンドから記憶設定を取得
-  let savePromise: Promise<any> | undefined;
+  let savePromise: Promise<typeof REQ.requestSave> | undefined;
   if (options.memoryOn) {
     savePromise = REQ.requestSave(
       baseUrl,
@@ -169,7 +169,7 @@ async function finalization(state: typeof StateAnnotation.State) {
   const options = state.sessionFlags.options;
   const userMessage = state.userMessage;
 
-  let savePromise: Promise<any> | undefined;
+  let savePromise: Promise<typeof REQ.requestSave> | undefined;
   if (options.memoryOn) {
     savePromise = REQ.requestSave(
       baseUrl,

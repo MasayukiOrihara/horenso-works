@@ -83,7 +83,7 @@ export const ChatConnector = () => {
     setAiMessage(currentAiCommentMessage.content);
     // AIメッセージを受け取ったので状態をlocalに変更
     merge({ sync: "local" });
-  }, [currentAiCommentMessage, setAiMessage]);
+  }, [currentAiCommentMessage, setAiMessage, merge]);
 
   // 待機状況の送信
   useEffect(() => {

@@ -24,3 +24,6 @@ export const CLUELIST_UPDATE_PATH = "/api/cluelist/update/";
 
 // log
 export const HORENSO_LOG_PATH = "/api/horenso/lib/log";
+
+// list
+export const LIST_MOVE_PATH = "/api/horenso/lib/match/list/";

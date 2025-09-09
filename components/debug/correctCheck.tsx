@@ -5,8 +5,11 @@ import { v4 as uuidv4 } from "uuid";
 import { useUserMessages } from "../provider/MessageProvider";
 import { Button } from "../ui/button";
 import { requestApi } from "@/lib/api/request";
-import { EVALUATION_DATA_PATH } from "@/lib/api/path";
+import { EVALUATION_DATA_PATH, LIST_MOVE_PATH } from "@/lib/api/path";
 import { Evaluation } from "@/lib/type";
+import { toast } from "sonner";
+import { useErrorStore } from "@/hooks/useErrorStore";
+import * as ERR from "@/lib/message/error";
 
 /**
  * 前ターンに正解を出したユーザーの答えは正しいのか問うUI
@@ -15,6 +18,8 @@ export const CorrectCheck: React.FC = () => {
   const { chatStatus } = useUserMessages();
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [evaluationData, setEvaluationData] = useState<Evaluation[]>([]);
+
+  const { push } = useErrorStore();
 
   /**
    * ストリーミングが終わったタイミングで evaluationData を取得する
@@ -53,15 +58,22 @@ export const CorrectCheck: React.FC = () => {
     setDeletedIds((prev) => [...prev, id]);
     evaluationData.filter((item) => item.fuzzyScore?.id !== id);
 
-    // 記述を不正解リストに移動 ※※ ローカルjson版を削除
-    // const result = await requestApi("", `${SEMANTIC_MATCH_JSON_MOVE}${id}`, {
-    //   method: "POST",
-    // });
-    // if (result.success) {
-    //   await requestApi("", `${SEMANTIC_MATCH_JSON}${id}`, {
-    //     method: "DELETE",
-    //   });
-    // }
+    // 記述を不正解リストに移動
+    try {
+      await requestApi("", `${LIST_MOVE_PATH}${id}`, {
+        method: "POST",
+      });
+    } catch (error) {
+      toast.error(`${ERR.LIST_UPDATE_ERROR}\n${ERR.RELOAD_BROWSER}`);
+
+      const message =
+        error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
+      const stack = error instanceof Error ? error.stack : ERR.UNKNOWN_ERROR;
+      push({
+        message: ERR.LIST_UPDATE_ERROR,
+        detail: stack || message,
+      });
+    }
   };
 
   return (

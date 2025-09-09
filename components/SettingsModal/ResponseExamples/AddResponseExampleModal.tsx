@@ -3,7 +3,7 @@ import { FramedCard } from "@/components/ui/FramedCard";
 import { useErrorStore } from "@/hooks/useErrorStore";
 import { useSessionId } from "@/hooks/useSessionId";
 import { requestApi } from "@/lib/api/request";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import * as ERR from "@/lib/message/error";
 import { CLUELIST_LOAD_PATH } from "@/lib/api/path";
@@ -36,39 +36,59 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
   // clueId 取得
   const { value: sessionFlags } = useSessionFlags();
   const clueId = sessionFlags.options.clueId;
+
   const { push } = useErrorStore();
+  const pushRef = useRef(push);
+  useEffect(() => {
+    pushRef.current = push;
+  }, [push]);
 
   // 前のメッセージを取得
+  const lastFetchedRef = useRef<string | null>(null);
   useEffect(() => {
     // 設定を開いたときのみ
     if (!sessionId || !open) return;
 
-    // clue がまだない
+    // clueId が無いときは一度だけ既定値を入れて終了
     if (!clueId) {
-      const message: LatestMessages = {
-        user: "返答例を取得できませんでした",
-        assistant: "",
-      };
-      setLatestMessages(message); // ← ここで state 更新（非同期）
+      setLatestMessages((prev) => {
+        const next = { user: "返答例を取得できませんでした", assistant: "" };
+        return prev &&
+          prev.user === next.user &&
+          prev.assistant === next.assistant
+          ? prev
+          : next;
+      });
       setIsUpdatable(false);
-      console.log(isUpdatable);
+      lastFetchedRef.current = null;
       return;
     }
 
+    // すでに同じ clueId を取得済みなら再取得しない
+    if (lastFetchedRef.current === clueId) return;
+
     // 直前メッセージを BD から取得
+    let cancelled = false;
     (async () => {
       try {
         const res = await requestApi("", `${CLUELIST_LOAD_PATH}${clueId}`, {
           method: "GET",
         });
-        // 型チェックしてない
-        const message: LatestMessages = {
-          user: res.content,
-          assistant: res.metadata.clue.replace(/["\\n]/g, ""),
-        };
+        if (cancelled) return;
+        // 型が曖昧なら安全に取り出す
+        const user = String(res?.content ?? "");
+        const assistant = String(res?.metadata?.clue ?? "")
+          .replace(/\r?\n/g, "")
+          .replace(/"/g, "");
+        const next: LatestMessages = { user, assistant };
 
-        setLatestMessages(message); // ← ここで state 更新（非同期）
+        setLatestMessages((prev) =>
+          prev && prev.user === next.user && prev.assistant === next.assistant
+            ? prev
+            : next
+        );
         setIsUpdatable(true);
+        lastFetchedRef.current = clueId;
       } catch (error) {
         setIsUpdatable(false);
         toast.error(`${ERR.FATAL_ERROR}\n${ERR.RELOAD_BROWSER}`);
@@ -77,10 +97,17 @@ export function AddResponseExampleModal({ open, onClose, onSubmit }: Props) {
           error instanceof Error ? error.message : ERR.UNKNOWN_ERROR;
         const stack = error instanceof Error ? error.stack : ERR.UNKNOWN_ERROR;
         console.error(message);
-        push({ message: ERR.ADD_RESPONSE_ERROR, detail: stack || message });
+        pushRef.current({
+          message: ERR.ADD_RESPONSE_ERROR,
+          detail: stack || message,
+        });
       }
     })();
-  }, [sessionId, clueId, open, push]);
+
+    return () => {
+      cancelled = true; // 早閉じ/再オープンでの setState を抑止
+    };
+  }, [sessionId, clueId, open]);
 
   if (!open) return null; // ← 閉じているときは何も描画しない
 
