@@ -17,6 +17,8 @@ import { embeddings } from "@/lib/llm/embedding";
 import { EmbeddingService } from "@/lib/supabase/services/embedding.service";
 import { SessionQuestionGradeRepo } from "@/lib/supabase/repositories/sessionQuestionGrade.repo";
 import { MATCH_PATH } from "@/lib/api/path";
+import * as ERR from "@/lib/message/error";
+import * as LOG from "@/lib/message/log";
 
 type AiNode = {
   messages: BaseMessage[];
@@ -37,7 +39,7 @@ export async function preprocessAiNode({
   whyUseDocuments,
 }: AiNode) {
   /* ⓪ 使う変数の準備  */
-  pushLog("データの準備中です...");
+  pushLog(LOG.PROCESS_LOG_1);
   // ユーザーの答え
   const userMessage = messageToText(messages, messages.length - 1);
 
@@ -63,7 +65,7 @@ export async function preprocessAiNode({
   }
 
   /* ① 答えの分離 と ユーザーの回答を埋め込み とベクターストア作成, グレードデータを事前に作成 */
-  pushLog("回答の確認中です...");
+  pushLog(LOG.PROCESS_LOG_2);
   // 入力の分析
   const analyzeInputResultPromise = analyzeInput(userMessage, question);
   let userAnswer: string[] = []; // 入力を分離し答えに変換
@@ -78,14 +80,14 @@ export async function preprocessAiNode({
       ),
     ]);
   } catch (error) {
-    console.error("match preproceeAI Error: userAnswer or userVector");
+    console.error(ERR.PREPROCESS_AI_USERANSWER_ERROR);
     throw error; // 上に投げる
   }
   console.log("質問の分離した答え: ");
   console.log(userAnswer);
 
   /* ② 正解チェック(OpenAi埋め込みモデル使用) ベクトルストア準備 + 比較 */
-  pushLog("正解チェックを行っています...");
+  pushLog(LOG.PROCESS_LOG_3);
   console.log(" --- ");
   // langchain の並列処理を利用
   const steps: Record<string, () => Promise<unknown>> = {};
@@ -133,7 +135,7 @@ export async function preprocessAiNode({
     // 応答例
     clue = rawClue as [Document<TYPE.ClueMetadata>, number][];
   } catch (error) {
-    console.error("match preproceeAI Error: checkAnswer");
+    console.error(ERR.PREPROCESS_AI_CHECKANSWER_ERROR);
     throw error; // 上に投げる
   }
   const end = Date.now(); // 計測終了
@@ -141,7 +143,7 @@ export async function preprocessAiNode({
   console.log(`OpenAI Embeddings チェック完了 \n ---`);
 
   /* ③ ヒントの取得（正解していたときは飛ばす） */
-  pushLog("ヒントの準備中です...");
+  pushLog(LOG.PROCESS_LOG_4);
   let getHint: string = ""; // ヒントの取得
   let category: string = ""; // 入力カテゴリーの主塔
   try {
@@ -173,10 +175,10 @@ export async function preprocessAiNode({
     console.log(analyzeInputResult);
     console.log("入力意図の分類切り出し: " + category);
   } catch (error) {
-    console.error("match preproceeAI Error: hint or analyze");
+    console.error(ERR.PREPROCESS_AI_HINT_ERROR);
     throw error; // 上
   }
 
-  pushLog("返答の生成中です...");
+  pushLog(LOG.PROCESS_LOG_5);
   return { evaluationData, clue, getHint, category };
 }

@@ -16,6 +16,14 @@ export const DATA_LOAD_ERROR = "✖ データ取得に失敗しました";
 export const ADD_RESPONSE_ERROR = "返答例の取得に失敗しました";
 export const LIST_UPDATE_ERROR = "リストの更新に失敗しました";
 
+// preprocess ai node
+export const PREPROCESS_AI_HINT_ERROR =
+  "match preproceeAI Error: hint or analyze";
+export const PREPROCESS_AI_CHECKANSWER_ERROR =
+  "match preproceeAI Error: checkAnswer";
+export const PREPROCESS_AI_USERANSWER_ERROR =
+  "match preproceeAI Error: userAnswer or userVector";
+
 // supabase
 export const SUPABASE_KEY_ERROR = "Expected SUPABASE_SERVICE_ROLE_KEY";
 export const SUPABASE_URL_ERROR = "Expected env var SUPABASE_URL";
