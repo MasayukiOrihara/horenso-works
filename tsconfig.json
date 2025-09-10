@@ -27,7 +27,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "components/debug/CorrectCheck_.tsx"
+    "components/debug/CorrectCheck.tsx"
   ],
   "exclude": ["node_modules"]
 }
