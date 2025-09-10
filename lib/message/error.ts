@@ -3,6 +3,7 @@ export const UNKNOWN_ERROR = "Unknown error occurred";
 export const SESSIONID_ERROR = "sessionId is required";
 export const MESSAGES_ERROR = "messages is required";
 export const RECUESTBODY_ERROR = "request body is required";
+export const LISTNAME_ERROR = "listname is required.";
 export const SUMMARY_ERROR = "メッセージを要約できませんでした。";
 export const SCORE_GET_ERROR = "スコアの取得に失敗しました";
 export const WRONGMATCH_ERROR = "ハズレチェック中にエラーが発生しました。: ";
@@ -15,6 +16,7 @@ export const DATA_SAVE_ERROR = "✖ データ保存に失敗しました";
 export const DATA_LOAD_ERROR = "✖ データ取得に失敗しました";
 export const ADD_RESPONSE_ERROR = "返答例の取得に失敗しました";
 export const LIST_UPDATE_ERROR = "リストの更新に失敗しました";
+export const INPUT_ANALYZE_ERROR = "✖ 入力分析に失敗しました";
 
 // preprocess ai node
 export const PREPROCESS_AI_HINT_ERROR =

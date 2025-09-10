@@ -10,11 +10,11 @@ import fs from "fs";
 import path from "path";
 
 import { convertToOpenAIFormat, saveSupabase } from "../../utils";
-import { timestamp } from "@/lib/path";
 import { measureExecution } from "@/lib/llm/graph";
 
 import * as ERR from "@/lib/message/error";
 import { MemoryTextData } from "@/lib/type";
+import { toJSTISOString } from "@/lib/utils";
 
 /** メッセージをテキスト形式にフォーマットする処理 */
 async function convertTextFormat(state: typeof GraphAnnotation.State) {
@@ -32,7 +32,7 @@ async function convertTextFormat(state: typeof GraphAnnotation.State) {
     role: openaiFormat.role,
     content: openaiFormat.content,
     sessionId: sessionId,
-    createdAt: timestamp.slice(0, 16),
+    createdAt: toJSTISOString().slice(0, 16),
   };
 
   return { memoryTextData: memoryTextData };
@@ -53,7 +53,7 @@ async function saveTextData(state: typeof GraphAnnotation.State) {
   const memoryTextData = state.memoryTextData;
 
   // 保存先
-  const named = timestamp.slice(0, 10);
+  const named = toJSTISOString().slice(0, 10);
   const memoryFileName = `memory-${named}.txt`;
   const localPath = path.join(
     process.cwd(),

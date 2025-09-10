@@ -7,6 +7,8 @@ import * as MSG from "@/lib/contents/horenso/template";
 import { requestApi } from "@/lib/api/request";
 import { SessionFlags } from "@/lib/type";
 import { LOAD_MULTIPLE_PATH } from "@/lib/api/path";
+import { INPUT_ANALYZE_HISTORY_WARNING } from "@/lib/message/warning";
+import { INPUT_ANALYZE_ERROR } from "@/lib/message/error";
 
 /** 会話からユーザーの意図を推測する */
 export const analyzeInput = async (
@@ -34,7 +36,12 @@ export const analyzeInput = async (
         body: {},
       }
     );
-    if (res) history = res;
+
+    if (res) {
+      history = res;
+    } else {
+      console.warn(INPUT_ANALYZE_HISTORY_WARNING);
+    }
 
     const prompt = PromptTemplate.fromTemplate(template);
     const promptVariables = {
@@ -49,7 +56,7 @@ export const analyzeInput = async (
     });
     str = response.content;
   } catch (error) {
-    console.error(error);
+    console.warn(INPUT_ANALYZE_ERROR + error);
   }
 
   return str;

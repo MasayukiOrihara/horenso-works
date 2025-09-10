@@ -1,5 +1,5 @@
 import { SessionFlags, SessionOptions } from "@/lib/type";
-import * as MTC from "@/lib/contents/match";
+import { DEFAULT_SCORE } from "./threshold";
 
 const DEFAULT_SESSION_OPTIONS: SessionOptions = {
   debugOn: false,
@@ -7,12 +7,7 @@ const DEFAULT_SESSION_OPTIONS: SessionOptions = {
   questionnaireOn: false,
   aiValidateOn: { who: false, why: true },
   clueId: "",
-  threshold: {
-    maxBase: MTC.BASE_MATCH_SCORE,
-    minBase: MTC.BASE_WORST_SCORE,
-    maxWrong: MTC.WRONG_MATCH_SCORE,
-    maxFuzzy: MTC.FUZZY_MATCH_SCORE,
-  },
+  threshold: DEFAULT_SCORE,
 };
 export const DEFAULT_SESSION_FLAGS: SessionFlags = {
   sessionId: "",

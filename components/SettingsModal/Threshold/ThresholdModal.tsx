@@ -2,7 +2,8 @@ import { useSessionFlags } from "@/components/provider/SessionFlagsProvider";
 import { Button } from "@/components/ui/button";
 import { FramedCard } from "@/components/ui/FramedCard";
 import { ThresholdRow } from "@/components/ui/ThresholdRow";
-import { DEFAULT_SCORE } from "@/lib/contents/match";
+import { DEFAULT_SCORE } from "@/lib/contents/defaultValue/threshold";
+
 import { THRESHOLDS_SUCCESS } from "@/lib/message/success";
 import { THRESHOLDS_WARNING } from "@/lib/message/warning";
 import { MatchThreshold } from "@/lib/type";

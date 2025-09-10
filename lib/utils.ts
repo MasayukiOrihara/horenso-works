@@ -33,3 +33,9 @@ export const getBaseUrl = (req?: Request) => {
   };
   return cachedBaseUrl;
 };
+
+// 時間取得（JST）
+export function toJSTISOString(date = new Date()) {
+  const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000); // UTC+9
+  return jstDate.toISOString().replace("Z", "+09:00");
+}
