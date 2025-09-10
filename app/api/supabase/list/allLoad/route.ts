@@ -17,8 +17,7 @@ export async function POST(req: Request) {
     // DB から list を取得
     const { data, error } = await supabaseClient()
       .from(listName)
-      .select("id, content, metadata")
-      .order("created_at", { ascending: false });
+      .select("id, content, metadata");
 
     if (error) {
       console.error(ERR.SUPABASE_UPSERT_ERROR, error);

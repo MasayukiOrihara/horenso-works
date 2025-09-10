@@ -156,3 +156,10 @@ export type SessionFlags = {
 
 /** グレード関連 */
 export type Similarities = { expectedAnswerId: string; similarity: number };
+
+/** list を読み込んだときに使う型 */
+export type DocumentsList = {
+  id: string;
+  content: string;
+  metadata: HorensoMetadata;
+};

@@ -1,5 +1,3 @@
-import { MatchThreshold } from "../type";
-
 /** DB テーブル名とクエリ */
 export const WRONGLIST_TABLE = "wronglist";
 export const WRONGLIST_QUERY = "search_wronglist";

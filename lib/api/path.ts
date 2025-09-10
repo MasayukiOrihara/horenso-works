@@ -28,3 +28,4 @@ export const HORENSO_LOG_PATH = "/api/horenso/lib/log";
 
 // list
 export const LIST_MOVE_PATH = "/api/horenso/lib/match/list/";
+export const LIST_ALLLOAD_PATH = "/api/supabase/list/allLoad";
