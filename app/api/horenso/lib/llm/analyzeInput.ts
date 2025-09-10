@@ -53,6 +53,7 @@ export const analyzeInput = async (
       mode: "invoke",
       parser: strParser,
       label: "analyze input",
+      sessionId: sessionFlags.sessionId,
     });
     str = response.content;
   } catch (error) {

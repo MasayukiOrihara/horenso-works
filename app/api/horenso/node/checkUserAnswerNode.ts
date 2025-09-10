@@ -16,6 +16,7 @@ export async function checkUserAnswerNode({
 }: UserAnswerNode) {
   const flag: HorensoStates = { ...transition };
 
+  console.log("問題の正解状況");
   console.log(sessionFlags.currectStatus);
 
   switch (sessionFlags.step) {
@@ -43,8 +44,6 @@ export async function checkUserAnswerNode({
       }
       break;
   }
-
-  console.log(sessionFlags.currectStatus);
 
   console.log("正解判定：");
   console.log(flag);

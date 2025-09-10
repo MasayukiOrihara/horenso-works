@@ -31,6 +31,8 @@ async function convertFormat(state: typeof GraphAnnotation.State) {
   const messages = state.messages;
   const formatted = state.formatted ?? [];
 
+  const sessionId = state.sessionId;
+
   // メッセージの選択
   const len = state.messages.length;
   const previousMessage = state.messages.slice(Math.max(0, len - 2), len);
@@ -48,7 +50,12 @@ async function convertFormat(state: typeof GraphAnnotation.State) {
         const summary = await runWithFallback(
           prompt,
           { input: content },
-          { mode: "invoke", parser: strParser, label: "assistant summary" }
+          {
+            mode: "invoke",
+            parser: strParser,
+            label: "assistant summary",
+            sessionId: sessionId,
+          }
         );
         content = summary.content;
       }
@@ -81,6 +88,7 @@ async function summarizeConversation(state: typeof GraphAnnotation.State) {
   const summary = state.summary;
   const formatted = state.formatted;
   const formattedText = formatted.join("\n");
+  const sessionId = state.sessionId;
 
   // 要約の有無によって分岐
   let summaryMessage = MSG.SUMMARY_PROMPT;
@@ -104,6 +112,7 @@ async function summarizeConversation(state: typeof GraphAnnotation.State) {
       mode: "invoke",
       parser: strParser,
       label: "memory summary",
+      sessionId: sessionId,
     });
     responseSummary = response.content;
   } catch (error) {

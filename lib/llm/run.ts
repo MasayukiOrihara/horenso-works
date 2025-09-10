@@ -2,6 +2,9 @@ import { Runnable } from "@langchain/core/runnables";
 import { OpenAi4_1Mini, OpenAi4oMini } from "./models";
 import { UNKNOWN_ERROR } from "../message/error";
 import { PromptTemplate } from "@langchain/core/prompts";
+import { metadata } from "../../app/layout";
+import { saveLlmLog } from "../supabase/services/saveLlmLog.service";
+import { extractOutputText } from "../utils";
 
 // 型
 interface StreamChunk {
@@ -15,8 +18,29 @@ type RunWithFallbackOptions = {
   maxRetries?: number;
   baseDelay?: number;
   label?: string;
+  sessionId?: string;
   onStreamEnd?: (response: string) => Promise<void>;
 };
+
+type SaveData = {
+  label: string;
+  llmName: string;
+  metrics?: LatencyMetrics;
+  sessionId: string;
+  fullPrompt: string;
+  usage?: Usage;
+};
+
+/* 呼び出し時間測定用の拡張コールバック */
+type LatencyMetrics = {
+  label: string;
+  startedAt: number;
+  finishedAt?: number;
+  firstTokenMs?: number;
+  totalMs?: number;
+};
+
+type Usage = { prompt: number; completion: number; total?: number };
 
 // フォールバック可能なLLM一覧
 const fallbackLLMs: Runnable[] = [OpenAi4_1Mini, OpenAi4oMini];
@@ -34,15 +58,13 @@ export async function runWithFallback(
     maxRetries = 3,
     baseDelay = 200,
     label = "",
+    sessionId = "",
     onStreamEnd = async () => {},
   } = options || {};
 
   for (const model of fallbackLLMs) {
     for (let retry = 0; retry < maxRetries; retry++) {
       try {
-        // プロンプトの全文取得（ログ出力）
-        await getAllPrompt(runnable, input);
-
         // LLM 呼び出し
         const pipeline = runnable.pipe(model);
         if (parser) pipeline.pipe(parser);
@@ -61,8 +83,19 @@ export async function runWithFallback(
         // ✅ 成功モデルのログ
         console.log(`[LLM] Using model: ${model.lc_kwargs.model}`);
 
+        // 完成したプロンプトの取得
+        const fullPrompt = await getFullPrompt(runnable, input);
+        const saveData: SaveData = {
+          label: label,
+          llmName: model.lc_kwargs.model,
+          sessionId: sessionId,
+          fullPrompt: fullPrompt,
+        };
+
         // stream 応答時終了後に処理を行う
-        return mode === "stream" ? enhancedStream(result, onStreamEnd) : result;
+        return mode === "stream"
+          ? enhancedStream(result, saveData, callback, onStreamEnd)
+          : await enhancedInvoke(result, saveData, callback);
       } catch (err) {
         const message = err instanceof Error ? err.message : UNKNOWN_ERROR;
         const isRateLimited =
@@ -92,21 +125,52 @@ export async function runWithFallback(
 }
 
 /* プロンプト全文取得 */
-const getAllPrompt = async (
+const getFullPrompt = async (
   runnable: Runnable,
   input: Record<string, unknown>
 ) => {
   const fullPrompt = await (runnable as PromptTemplate).format(input);
+  //  ログ出力
+  // console.log("=== 送信するプロンプト全文 ===");
+  // console.log(fullPrompt);
+  // console.log("================================");
 
-  // ログ出力
-  console.log("=== 送信するプロンプト全文 ===");
-  console.log(fullPrompt);
-  console.log("================================");
+  return fullPrompt;
+};
+
+const enhancedInvoke = async (
+  result: any,
+  saveData: SaveData,
+  callback: ReturnType<typeof createLatencyCallback>
+) => {
+  const outputText = extractOutputText(result);
+
+  // invoke はここで onLLMEnd が済んでる
+  const metrics = callback.getMetrics();
+  const usage = callback.getUsage();
+
+  try {
+    await saveLlmLog({
+      sessionId: saveData.sessionId,
+      label: saveData.label,
+      llmName: saveData.llmName,
+      fullPrompt: saveData.fullPrompt,
+      fullOutput: outputText,
+      usage,
+      metrics,
+    });
+  } catch (e) {
+    console.error("[llm_logs.save invoke] insert failed:", e);
+  }
+
+  return result;
 };
 
 /* ストリーム終了後の処理 */
 const enhancedStream = (
   stream: AsyncIterable<StreamChunk>,
+  saveData: SaveData,
+  callback: ReturnType<typeof createLatencyCallback>,
   onStreamEnd?: (response: string) => Promise<void>
 ) =>
   new ReadableStream({
@@ -122,6 +186,25 @@ const enhancedStream = (
       // 終了時に外部処理を走らせる
       if (onStreamEnd) {
         await onStreamEnd(response);
+
+        // 情報を外部保存
+        const metrics = callback.getMetrics();
+        const usage = callback.getUsage();
+
+        // fullOutput は stream で溜めた response
+        try {
+          await saveLlmLog({
+            sessionId: saveData.sessionId,
+            label: saveData.label,
+            llmName: saveData.llmName,
+            fullPrompt: saveData.fullPrompt,
+            fullOutput: response,
+            usage,
+            metrics,
+          });
+        } catch (e) {
+          console.error("[llm_logs.save stream] insert failed:", e);
+        }
       }
       controller.close();
     },
@@ -131,16 +214,27 @@ const enhancedStream = (
 const createLatencyCallback = (label: string) => {
   let startTime = 0;
   let firstTokenTime: number | null = null;
+  let finishedAt: number | null = null;
+  let usage: Usage | null = null;
+
+  const metrics: LatencyMetrics = {
+    label,
+    startedAt: Date.now(),
+  };
 
   return {
     // LLM 呼び出し直後
     handleLLMStart() {
       startTime = Date.now();
+      metrics.startedAt = startTime;
     },
+
     // 最初のトークン
     handleLLMNewToken() {
       if (firstTokenTime === null) {
         firstTokenTime = Date.now() - startTime;
+        metrics.firstTokenMs = firstTokenTime;
+
         const seconds = Math.floor(firstTokenTime / 1000);
         const milliseconds = firstTokenTime % 1000;
 
@@ -151,14 +245,43 @@ const createLatencyCallback = (label: string) => {
       }
     },
     // 出力完了
-    handleLLMEnd() {
+    handleLLMEnd(payload?: any) {
       // 計測秒数を計算
-      const elapsedMs = Date.now() - startTime;
+      finishedAt = Date.now();
+      const elapsedMs = finishedAt - startTime;
+      metrics.finishedAt = finishedAt;
+      metrics.totalMs = elapsedMs;
+
       const seconds = Math.floor(elapsedMs / 1000);
       const milliseconds = elapsedMs % 1000;
 
       // ログに出力
       console.log(`[${label}] all latency: ${seconds}s ${milliseconds}ms`);
+
+      // usageを多段フォールバックで取得
+      const u =
+        payload?.llmOutput?.tokenUsage ||
+        payload?.usage ||
+        payload?.response?.usage ||
+        null;
+
+      if (u) {
+        usage = {
+          prompt: u.promptTokens ?? u.prompt_tokens ?? u.input_tokens ?? 0,
+          completion:
+            u.completionTokens ?? u.completion_tokens ?? u.output_tokens ?? 0,
+          total: u.totalTokens ?? u.total_tokens ?? undefined,
+        };
+      }
+    },
+
+    // --- 追加: 外から計測結果を取得できるように ---
+    getMetrics() {
+      return { ...metrics };
+    },
+
+    getUsage() {
+      return usage;
     },
   };
 };

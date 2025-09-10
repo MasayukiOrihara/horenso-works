@@ -322,6 +322,8 @@ export async function POST(req: Request) {
     // ストリーミング応答を取得
     const lcStream = await runWithFallback(prompt, promptVariables, {
       mode: "stream",
+      label: "chat stream",
+      sessionId: sessionFlags.sessionId,
       onStreamEnd: async (response: string) => {
         // assistant メッセージ保存
         if (options.memoryOn) {
@@ -334,6 +336,8 @@ export async function POST(req: Request) {
 
         // 今回のエントリーにメッセージを追記
         if (!(clueId === "")) await updateClueChat(clueId, response);
+
+        console.log(response);
       },
     });
 
