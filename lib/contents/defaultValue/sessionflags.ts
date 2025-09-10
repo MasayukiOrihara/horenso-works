@@ -14,5 +14,6 @@ export const DEFAULT_SESSION_FLAGS: SessionFlags = {
   phase: "locked",
   sync: "idle",
   step: 0,
+  currectStatus: [],
   options: DEFAULT_SESSION_OPTIONS,
 };

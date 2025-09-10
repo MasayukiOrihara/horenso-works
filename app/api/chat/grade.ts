@@ -17,7 +17,7 @@ type StatsRow = {
 };
 
 type DbError = { message: string; code?: string };
-type Result<T> = { ok: true; value: T } | { ok: false; error: DbError };
+export type Result<T> = { ok: true; value: T } | { ok: false; error: DbError };
 
 // -----------------------------
 // パラメータ

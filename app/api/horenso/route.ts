@@ -43,7 +43,7 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
   const messages = state.messages;
   const sessionFlags = state.sessionFlags;
 
-  const { evaluationData, clue, getHint, category } =
+  const { evaluationData, clue, getHint, category, tempSessionFlags } =
     await NODE.preprocessAiNode({
       messages: messages,
       sessionFlags: sessionFlags,
@@ -56,6 +56,7 @@ async function preprocessAI(state: typeof StateAnnotation.State) {
     clue: clue,
     aiHint: getHint,
     inputCategory: category,
+    sessionFlags: tempSessionFlags,
   };
 }
 
@@ -63,9 +64,7 @@ async function checkUserAnswer(state: typeof StateAnnotation.State) {
   console.log("👀 ユーザー回答チェックノード");
   const sessionFlags = state.sessionFlags;
 
-  const { flag, updateSessionFlags } = NODE.checkUserAnswerNode({
-    whoUseDocuments: whoUseDocuments,
-    whyUseDocuments: whyUseDocuments,
+  const { flag, updateSessionFlags } = await NODE.checkUserAnswerNode({
     transition: state.transition,
     sessionFlags: sessionFlags,
   });

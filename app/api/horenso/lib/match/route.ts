@@ -90,7 +90,7 @@ async function shouldFuzzyMatch(state: typeof StateAnnotation.State) {
 
   // ひとつでもがあった場合不正解
   const hasIncorrect = evaluationRecords.some(
-    (item) => item.answerCorrect === "incorrect"
+    (item) => item.WrongScore?.correct === "incorrect"
   );
   // ログ出力
   const answer = evaluationRecords[0].input.userAnswer;
@@ -247,7 +247,8 @@ export async function POST(req: Request) {
     // 出力
     // 回答評価データ
     const evaluationData = result.evaluationData;
-    return Response.json({ evaluationData }, { status: 200 });
+    const currectStatus = result.matchAnswerArgs.sessionFlags.currectStatus;
+    return Response.json({ evaluationData, currectStatus }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : UNKNOWN_ERROR;
 

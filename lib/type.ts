@@ -149,6 +149,7 @@ export type SessionFlags = {
   phase: ProgressPhase; // 進行状況
   sync: SyncState; // フロントとバックの同期状態
   step: number; // 問題のステップ数
+  currectStatus: string[]; // 問題の正解状況
   baseUrl?: string; // ベースURL
   options: SessionOptions; // 設定できるオプション
   data?: SendData; // フラグにくっつけてデータを送る

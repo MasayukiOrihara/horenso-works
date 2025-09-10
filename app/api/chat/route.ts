@@ -345,13 +345,14 @@ export async function POST(req: Request) {
     };
     const sendData: TYPE.SendData = {
       ...sessionFlags.data,
-      grade: result.grade,
+      grade: result.grade ?? sessionFlags.data?.grade,
     };
     const sendFlags: TYPE.SessionFlags = {
       sessionId: sessionId,
       phase: result.sessionFlags.phase,
       sync: "confirmed", // サーバ側で 確定済み
       step: result.sessionFlags.step,
+      currectStatus: result.sessionFlags.currectStatus,
       baseUrl: result.sessionFlags.baseUrl,
       options: sendOptions,
       data: sendData,

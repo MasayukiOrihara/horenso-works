@@ -134,6 +134,11 @@ export async function preprocessAiNode({
     // 評価データ
     const matchResults = Object.values(matchResultsMap);
     evaluationData = matchResults.map((r) => r.evaluationData).flat();
+    // 正解データ
+    const currectStatusArr = matchResults.map((r) => r.currectStatus).flat();
+    const currectStatus = [...new Set(currectStatusArr)];
+    sessionFlags.currectStatus = currectStatus;
+
     // document 更新
     evaluatedResults(evaluationData, useDocuments);
     // 応答例
@@ -184,5 +189,11 @@ export async function preprocessAiNode({
   }
 
   pushLog(LOG.PROCESS_LOG_5);
-  return { evaluationData, clue, getHint, category };
+  return {
+    evaluationData,
+    clue,
+    getHint,
+    category,
+    tempSessionFlags: sessionFlags,
+  };
 }

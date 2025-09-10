@@ -40,6 +40,9 @@ export async function updateFuzzyMatchFlagsNode({
         );
         if (!r.ok) throw r.error;
         console.log("✅ session_answer_status テーブルを更新しました");
+
+        matchAnswerArgs.sessionFlags.currectStatus.push(expectedAnswerId);
+        console.log(expectedAnswerId);
       }
 
       doc.metadata.isMatched = true; // matchAnswerArgs の document

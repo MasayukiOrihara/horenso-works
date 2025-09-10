@@ -61,6 +61,9 @@ export async function checkDocumentScoreNode({
         if (!r.ok) throw r.error;
         console.log("✅ session_answer_status テーブルを更新しました");
 
+        matchAnswerArgs.sessionFlags.currectStatus.push(bestExpectedAnswerId);
+        console.log(bestExpectedAnswerId);
+
         // matchAnswerArgs 内の document
         doc.metadata.isMatched = true;
         // ベクターデータの更新
