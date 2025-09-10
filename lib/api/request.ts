@@ -42,6 +42,14 @@ export const requestApi = async (
       let isRetryable = true;
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
+        const code = error.code;
+        const errBody = error.response?.data;
+
+        switch (status) {
+          case 401:
+            console.error(`${status} | ${code} | ${errBody}`);
+            break;
+        }
 
         isRetryable =
           !status || // ネットワーク系 (タイムアウトなど)
