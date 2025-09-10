@@ -45,9 +45,15 @@ export const requestApi = async (
         const code = error.code;
         const errBody = error.response?.data;
 
+        console.error(`${status} | ${code}`);
         switch (status) {
           case 401:
-            console.error(`${status} | ${code} | ${errBody}`);
+            if (
+              typeof errBody === "string" &&
+              errBody.includes("<title>Authentication Required</title>")
+            ) {
+              throw new Error(ERR.AUTHENTICATION_REQUIRED_ERROR);
+            }
             break;
         }
 
