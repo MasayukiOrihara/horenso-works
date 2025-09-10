@@ -6,7 +6,7 @@ import { LOAD_LATEST_PATH } from "@/lib/api/path";
 import { toast } from "sonner";
 import { useErrorStore } from "@/hooks/useErrorStore";
 import * as ERR from "@/lib/message/error";
-import { Dialog } from "../window/Dialog";
+import { Dialog } from "../window/Dialog_";
 import { LINES_GET_WARNING } from "@/lib/message/warning";
 
 export const MessageWindow = () => {

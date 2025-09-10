@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { LoaderCircleIcon } from "lucide-react";
 import { ChevronsLeft } from "lucide-react";
 import { useUserMessages } from "../provider/MessageProvider";
-import { LogViewer } from "./LogViewer";
+import { LogViewer } from "./LogViewer_";
 import { Typewriter } from "./typewriter";
 
 export const Dialog = ({ lines }: { lines: string[] }) => {
