@@ -209,7 +209,7 @@ async function contextMerger(state: typeof StateAnnotation.State) {
   // ユーザー情報を整形
   const excludeValues = ["", "none", "other"]; // 除外条件
   const userprofileFiltered = Object.entries(userprofile)
-    .filter(([_, v]) => !excludeValues.includes(v)) // key は使わないので _
+    .filter(([, v]) => !excludeValues.includes(v)) // key は使わないので _
     .map(([k, v]) => `${k}: ${v}`);
 
   const chatGraphResult: TYPE.ChatGraphResult = {

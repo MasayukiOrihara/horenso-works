@@ -25,7 +25,7 @@ type HintNode = {
   category: string;
 };
 
-const oldCorrecteaId: string[] = [];
+// const oldCorrecteaId: string[] = [];
 
 const userAnswerTemplate = (userAnswer: string, correct: string) =>
   `ユーザー回答: ${userAnswer}\n質問の正解: ${correct}`;

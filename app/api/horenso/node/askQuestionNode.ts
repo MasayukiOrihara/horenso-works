@@ -1,6 +1,4 @@
-import { Document } from "langchain/document";
-
-import { HorensoMetadata, SessionFlags } from "@/lib/type";
+import { SessionFlags } from "@/lib/type";
 import * as MSG from "@/lib/contents/horenso/template";
 
 type QuestionNode = {
