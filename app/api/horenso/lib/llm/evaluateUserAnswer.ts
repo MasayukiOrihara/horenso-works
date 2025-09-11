@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { StructuredOutputParser } from "langchain/output_parsers";
 
 import { HorensoMetadata, PhrasesMetadata } from "@/lib/type";
-import { runWithFallback } from "@/lib/llm/run";
+import { LLMResult, runWithFallback } from "@/lib/llm/run";
 import { documentsSchema } from "@/lib/schema";
 import { JSON_PARSE_ERROR } from "@/lib/message/error";
 import { JUDGE_ANSWER_FUZZY_MATCH_PROMPT } from "@/lib/contents/horenso/template";
@@ -40,12 +40,16 @@ export const evaluateUserAnswer = async (
   const phreases: Document<PhrasesMetadata>[] = [];
   try {
     // LLM応答
-    const response = await runWithFallback(prompt, promptVariables, {
+    const response = (await runWithFallback(prompt, promptVariables, {
       mode: "invoke",
       parser: parser,
       label: "evaluate user answer",
-    });
-    const docs = await parser.parse(response.content);
+    })) as LLMResult;
+
+    let docs: Document<PhrasesMetadata>[] = [];
+    if (response.content) {
+      docs = await parser.parse(response.content);
+    }
 
     // 型変換
     for (const doc of docs) {

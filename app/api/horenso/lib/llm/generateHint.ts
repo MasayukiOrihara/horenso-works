@@ -3,7 +3,7 @@ import { Document } from "langchain/document";
 
 import { strParser } from "@/lib/llm/models";
 import { Evaluation, HorensoMetadata } from "@/lib/type";
-import { runWithFallback } from "@/lib/llm/run";
+import { LLMResult, runWithFallback } from "@/lib/llm/run";
 import { GUIDED_ANSWER_PROMPT } from "@/lib/contents/horenso/template";
 
 /** LLMを利用して答えを導くヒントを生成する */
@@ -38,14 +38,14 @@ export const generateHintLlm = async (
     };
 
     // LLM応答（配列のパサーを使っているがうまくいってない？）
-    const response = await runWithFallback(prompt, promptVariables, {
+    const response = (await runWithFallback(prompt, promptVariables, {
       mode: "invoke",
       parser: strParser,
       label: "generate hint",
-    });
+    })) as LLMResult;
 
     // 型変換
-    hint = response.content;
+    hint = response.content ?? "";
   } catch (error) {
     console.warn(`ヒントを取得できませんでした: ${error}`);
   }

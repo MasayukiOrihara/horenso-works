@@ -156,7 +156,7 @@ const enhancedInvoke = async (
 
 /* ストリーム終了後の処理 */
 const enhancedStream = (
-  stream: unknown,
+  stream: AsyncIterable<StreamChunk>,
   payload: TYPE.LLMPayload,
   callback: ReturnType<typeof createLatencyCallback>,
   onStreamEnd?: (response: string) => Promise<void>

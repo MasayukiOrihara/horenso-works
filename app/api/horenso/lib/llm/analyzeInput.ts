@@ -1,7 +1,7 @@
 import { PromptTemplate } from "@langchain/core/prompts";
 
 import { strParser } from "@/lib/llm/models";
-import { runWithFallback } from "@/lib/llm/run";
+import { LLMResult, runWithFallback } from "@/lib/llm/run";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import { requestApi } from "@/lib/api/request";
@@ -49,13 +49,14 @@ export const analyzeInput = async (
       input: input,
     };
     // LLM応答
-    const response = await runWithFallback(prompt, promptVariables, {
+    const response = (await runWithFallback(prompt, promptVariables, {
       mode: "invoke",
       parser: strParser,
       label: "analyze input",
       sessionId: sessionFlags.sessionId,
-    });
-    str = response.content;
+    })) as LLMResult;
+
+    str = response.content ?? "";
   } catch (error) {
     console.warn(INPUT_ANALYZE_ERROR + error);
   }

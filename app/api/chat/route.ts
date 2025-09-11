@@ -339,6 +339,21 @@ export async function POST(req: Request) {
       },
     })) as ReadableStream<StreamChunk>;
 
+    // StreamChunk -> string へ変換（content がなければスキップor空文字）
+    const textStream = lcStream.pipeThrough(
+      new TransformStream<StreamChunk, string>({
+        transform(chunk, controller) {
+          if (typeof chunk.content === "string") {
+            controller.enqueue(chunk.content);
+          } else if (chunk.additional_kwargs) {
+            // 必要ならフォールバック
+            controller.enqueue(JSON.stringify(chunk.additional_kwargs));
+          }
+          // 何もなければ enqueue しない（無音）
+        },
+      })
+    );
+
     // 送るデータ
     const options = sessionFlags.options;
     const sendOptions: TYPE.SessionOptions = {
@@ -369,7 +384,7 @@ export async function POST(req: Request) {
       "x-send-flags": Buffer.from(JSON.stringify(sendFlags)).toString("base64"),
     });
 
-    const baseResponse = LangChainAdapter.toDataStreamResponse(lcStream);
+    const baseResponse = LangChainAdapter.toDataStreamResponse(textStream);
 
     return new Response(baseResponse.body, {
       headers,
