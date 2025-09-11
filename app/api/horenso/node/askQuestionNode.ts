@@ -11,9 +11,9 @@ type QuestionNode = {
 export function askQuestionNode({ step, whyUseDocuments }: QuestionNode) {
   const contexts = [];
 
-  // プロンプトに追加
-  contexts.push(MSG.BULLET + MSG.STUDENT_FEEDBACK_QUESTION_PROMPT + "\n");
+  contexts.push(MSG.FINAL_QUESTION_PROMPT);
 
+  // プロンプトに追加
   switch (step) {
     case 0:
       contexts.push(MSG.FOR_REPORT_COMMUNICATION);
@@ -25,7 +25,7 @@ export function askQuestionNode({ step, whyUseDocuments }: QuestionNode) {
         (val) => val.metadata.isMatched === false
       ).length;
       if (count < 3) {
-        contexts.push(`答えは残り ${count} つです。\n\n`);
+        contexts.push(`答えは残り ${count} つです。`);
       } else {
         contexts.push(MSG.THREE_ANSWER);
       }

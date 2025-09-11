@@ -16,11 +16,12 @@ export const analyzeInput = async (
   question: string,
   sessionFlags: SessionFlags
 ) => {
-  const template =
-    MSG.INSTRUCTOR_INTRO_MESSAGE_PROMPT +
-    MSG.USER_QUESTION_LABEL_PROMPT +
-    question +
-    MSG.USER_INTENT_PROMPT;
+  const template: string[] = [];
+
+  template.push(MSG.INSTRUCTOR_INTRO_MESSAGE_PROMPT);
+  template.push(MSG.ASSISTANT_TASK_CLASSIFICATION_PROMPT);
+  template.push(MSG.ASSISTANT_TASK_CLASSIFICATION_PROMPT);
+  template.push(MSG.USER_INTENT_PROMPT);
 
   // 過去履歴を参照させて文脈で判断させる
   let str: string = "";
@@ -37,14 +38,17 @@ export const analyzeInput = async (
       }
     );
 
+    // 会話履歴の取得チェック
     if (res) {
       history = res;
     } else {
       console.warn(INPUT_ANALYZE_HISTORY_WARNING);
     }
 
-    const prompt = PromptTemplate.fromTemplate(template);
+    // プロンプトの準備
+    const prompt = PromptTemplate.fromTemplate(template.join("\n"));
     const promptVariables = {
+      question: question,
       chat_history: history,
       input: input,
     };

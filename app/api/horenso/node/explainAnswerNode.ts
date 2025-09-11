@@ -17,9 +17,10 @@ type ExplainNode = {
 export async function explainAnswerNode({ adjustedClue }: ExplainNode) {
   const contexts = [];
 
-  contexts.push("# 返答作成の手順\n\n");
-  contexts.push(MSG.BULLET + MSG.SUCCESS_MESSAGE_PROMPT);
-  contexts.push(MSG.BULLET + MSG.SUMMARY_REQUEST_PROMPT);
+  contexts.push(MSG.ANSWER_STEP);
+  contexts.push(MSG.SUCCESS_MESSAGE_PROMPT);
+  contexts.push(MSG.SUMMARY_REQUEST_PROMPT);
+  contexts.push("\n");
 
   /** ここで使用した前回 clue の重みを変更 */
   if ((adjustedClue ?? []).length != 0) {
