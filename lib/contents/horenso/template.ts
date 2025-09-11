@@ -50,8 +50,7 @@ export const GUIDED_ANSWER_PROMPT = `あなたはソフトウェア開発者向�
   
   ヒント: `;
 export const ANSWER_STEP = "## RESPONSE_STEPS\n";
-export const ANSWER_INSTRUCTION_PROMPT =
-  "1. ユーザーの質問に回答すること。ただし現在講師として投げかけた質問の答えに関しては回答せず、ヒントを参考に回答すること\n";
+export const ANSWER_INSTRUCTION_PROMPT = "1. ユーザーの質問に回答すること。\n";
 export const JOKE_RESPONSE_INSTRUCTION = "1. ユーザーの冗談にまず乗ること\n";
 export const PARTIAL_CORRECT_FEEDBACK_PROMPT =
   "1. ユーザー回答は部分的に正解になので、正解だったことを伝え、解説をすること\n";
@@ -128,4 +127,9 @@ export const USER_INTENT_PROMPT = `
 {chat_history}
     
 ### USER_INPUT
-{input}`;
+{input}
+
+### OUTPUT
+以下の形式に従って出力してください
+入力意図の分類: [分類]
+理由: [選択した理由]`;
