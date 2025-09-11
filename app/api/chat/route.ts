@@ -6,7 +6,7 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 
-import { runWithFallback, StreamChunk } from "@/lib/llm/run";
+import { runWithFallback } from "@/lib/llm/run";
 import { updateClueChat } from "../horenso/lib/match/lib/entry";
 import { measureExecution } from "@/lib/llm/graph";
 

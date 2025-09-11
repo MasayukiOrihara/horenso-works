@@ -67,20 +67,39 @@ export function extractOutputText(result: unknown): string {
 
   // 3) ChatResult / LLMResult / generations[]
   //    e.g. { generations: [{ text, message }], ...}
-  if (
-    typeof result === "object" &&
-    result !== null &&
-    Array.isArray((result as any).generations) &&
-    (result as any).generations.length > 0
-  ) {
-    const generations = (result as any).generations as Array<any>;
+  // LangChainの世代オブジェクトの型定義
+  interface LangChainGeneration {
+    text?: string;
+    message?: {
+      content: unknown;
+    };
+  }
+  interface LangChainResult {
+    generations: LangChainGeneration[] | LangChainGeneration[][];
+  }
+  // 型ガード関数
+  function isLangChainResult(result: unknown): result is LangChainResult {
+    return (
+      typeof result === "object" &&
+      result !== null &&
+      "generations" in result &&
+      Array.isArray((result as Record<string, unknown>).generations)
+    );
+  }
+  function isLangChainGeneration(gen: unknown): gen is LangChainGeneration {
+    return typeof gen === "object" && gen !== null;
+  }
+  if (isLangChainResult(result) && result.generations.length > 0) {
+    const generations = result.generations;
     const gen0 = Array.isArray(generations[0])
       ? generations[0][0]
       : generations[0];
-    // LangChainの世代は text または message を持つ
-    if (typeof gen0?.text === "string") return gen0.text;
-    if (gen0?.message?.content !== undefined) {
-      return normalizeMessageContent(gen0.message.content);
+
+    if (isLangChainGeneration(gen0)) {
+      if (typeof gen0.text === "string") return gen0.text;
+      if (gen0.message?.content !== undefined) {
+        return normalizeMessageContent(gen0.message.content);
+      }
     }
   }
 
