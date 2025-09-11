@@ -320,7 +320,7 @@ export async function POST(req: Request) {
     const clueId = result.sessionFlags.options.clueId ?? "";
 
     // ストリーミング応答を取得
-    const lcStream = await runWithFallback(prompt, promptVariables, {
+    const lcStream = (await runWithFallback(prompt, promptVariables, {
       mode: "stream",
       label: "chat stream",
       sessionId: sessionFlags.sessionId,
@@ -337,7 +337,22 @@ export async function POST(req: Request) {
         // 今回のエントリーにメッセージを追記
         if (!(clueId === "")) await updateClueChat(clueId, response);
       },
-    });
+    })) as AsyncIterable<TYPE.StreamChunk>;
+    // StreamChunk -> string へ変換（content がなければスキップor空文字）
+
+    const textStream = lcStream.pipeThrough(
+      new TransformStream<StreamChunk, string>({
+        transform(chunk, controller) {
+          if (typeof chunk.content === "string") {
+            controller.enqueue(chunk.content);
+          } else if (chunk.additional_kwargs) {
+            // 必要ならフォールバック
+            controller.enqueue(JSON.stringify(chunk.additional_kwargs));
+          }
+          // 何もなければ enqueue しない（無音）
+        },
+      })
+    );
 
     // 送るデータ
     const options = sessionFlags.options;

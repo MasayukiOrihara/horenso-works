@@ -104,7 +104,7 @@ const getFullPrompt = async (
 };
 
 const enhancedInvoke = async (
-  result: any,
+  result: Object,
   saveData: TYPE.LLMPayload,
   callback: ReturnType<typeof createLatencyCallback>
 ) => {
