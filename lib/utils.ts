@@ -40,7 +40,6 @@ export function toJSTISOString(date = new Date()) {
   return jstDate.toISOString().replace("Z", "+09:00");
 }
 
-// src/lib/llm/extractOutputText.ts
 type MessageContentPart =
   | { type: "text"; text: string }
   | { type: "image_url"; image_url: string | { url: string } }
@@ -49,25 +48,35 @@ type MessageContentPart =
   | Record<string, unknown>; // その他将来拡張
 
 /** LangChainの result から「人間が読むテキスト」を安全に取り出す */
-export function extractOutputText(result: any): string {
+export function extractOutputText(result: unknown): string {
   // 1) すでに string
   if (typeof result === "string") return result;
 
   // 2) LangChain BaseMessage / AIMessage っぽい（今回のケース）
   //    {"lc":1,"type":"constructor","id":["langchain_core","messages","AIMessage"],"kwargs":{...}}
-  if (result?.kwargs?.content !== undefined) {
-    return normalizeMessageContent(result.kwargs.content);
-  }
-  if (result?.content !== undefined) {
-    return normalizeMessageContent(result.content);
+  if (typeof result === "object" && result !== null) {
+    const r = result as { kwargs?: { content?: unknown }; content?: unknown };
+
+    if (r?.kwargs?.content !== undefined) {
+      return normalizeMessageContent(r.kwargs.content);
+    }
+    if (r?.content !== undefined) {
+      return normalizeMessageContent(r.content);
+    }
   }
 
   // 3) ChatResult / LLMResult / generations[]
   //    e.g. { generations: [{ text, message }], ...}
-  if (Array.isArray(result?.generations) && result.generations.length > 0) {
-    const gen0 = Array.isArray(result.generations[0])
-      ? result.generations[0][0]
-      : result.generations[0];
+  if (
+    typeof result === "object" &&
+    result !== null &&
+    Array.isArray((result as any).generations) &&
+    (result as any).generations.length > 0
+  ) {
+    const generations = (result as any).generations as Array<any>;
+    const gen0 = Array.isArray(generations[0])
+      ? generations[0][0]
+      : generations[0];
     // LangChainの世代は text または message を持つ
     if (typeof gen0?.text === "string") return gen0.text;
     if (gen0?.message?.content !== undefined) {
@@ -77,10 +86,11 @@ export function extractOutputText(result: any): string {
 
   // 4) OutputParser でオブジェクトにされた場合
   //    よくある key: "output" / "answer" / "content" などを試す
-  if (result && typeof result === "object") {
-    if (typeof result.output === "string") return result.output;
-    if (typeof result.answer === "string") return result.answer;
-    if (typeof result.content === "string") return result.content;
+  if (typeof result === "object" && result !== null) {
+    const r = result as { output?: string; answer?: string; content?: string };
+    if (r.output) return r.output;
+    if (r.answer) return r.answer;
+    if (r.content) return r.content;
   }
 
   // 5) 最後の手段：JSON
@@ -92,7 +102,7 @@ export function extractOutputText(result: any): string {
 }
 
 /** Message.content が string / MessageContent[] どちらでも受け取れるよう正規化 */
-export function normalizeMessageContent(content: any): string {
+export function normalizeMessageContent(content: unknown): string {
   // string ならそのまま
   if (typeof content === "string") return content;
 

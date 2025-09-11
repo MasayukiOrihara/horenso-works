@@ -24,7 +24,6 @@ async function convertTextFormat(state: typeof GraphAnnotation.State) {
 
   // message を整形
   const openaiFormat = convertToOpenAIFormat(message);
-  // const cleanFormatContent = openaiFormat.content.replace(/[\r\n]+/g, "");
 
   // メタ情報の付与してオブジェクト作成
   const memoryTextData: MemoryTextData = {

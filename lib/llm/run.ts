@@ -2,45 +2,14 @@ import { Runnable } from "@langchain/core/runnables";
 import { OpenAi4_1Mini, OpenAi4oMini } from "./models";
 import { UNKNOWN_ERROR } from "../message/error";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { metadata } from "../../app/layout";
 import { saveLlmLog } from "../supabase/services/saveLlmLog.service";
 import { extractOutputText } from "../utils";
+import * as TYPE from "../type";
 
-// 型
-interface StreamChunk {
-  content?: string;
-  additional_kwargs?: Record<string, unknown>;
+// 型ガード関数
+function isLLMEndPayload(x: unknown): x is TYPE.LLMEndPayload {
+  return typeof x === "object" && x !== null;
 }
-
-type RunWithFallbackOptions = {
-  mode?: "invoke" | "stream";
-  parser?: Runnable;
-  maxRetries?: number;
-  baseDelay?: number;
-  label?: string;
-  sessionId?: string;
-  onStreamEnd?: (response: string) => Promise<void>;
-};
-
-type SaveData = {
-  label: string;
-  llmName: string;
-  metrics?: LatencyMetrics;
-  sessionId: string;
-  fullPrompt: string;
-  usage?: Usage;
-};
-
-/* 呼び出し時間測定用の拡張コールバック */
-type LatencyMetrics = {
-  label: string;
-  startedAt: number;
-  finishedAt?: number;
-  firstTokenMs?: number;
-  totalMs?: number;
-};
-
-type Usage = { prompt: number; completion: number; total?: number };
 
 // フォールバック可能なLLM一覧
 const fallbackLLMs: Runnable[] = [OpenAi4_1Mini, OpenAi4oMini];
@@ -49,7 +18,7 @@ const fallbackLLMs: Runnable[] = [OpenAi4_1Mini, OpenAi4oMini];
 export async function runWithFallback(
   runnable: Runnable,
   input: Record<string, unknown>,
-  options?: RunWithFallbackOptions
+  options?: TYPE.RunWithFallbackOptions
 ) {
   // デフォルト値を設定
   const {
@@ -85,7 +54,7 @@ export async function runWithFallback(
 
         // 完成したプロンプトの取得
         const fullPrompt = await getFullPrompt(runnable, input);
-        const saveData: SaveData = {
+        const saveData: TYPE.LLMPayload = {
           label: label,
           llmName: model.lc_kwargs.model,
           sessionId: sessionId,
@@ -130,17 +99,13 @@ const getFullPrompt = async (
   input: Record<string, unknown>
 ) => {
   const fullPrompt = await (runnable as PromptTemplate).format(input);
-  //  ログ出力
-  // console.log("=== 送信するプロンプト全文 ===");
-  // console.log(fullPrompt);
-  // console.log("================================");
 
   return fullPrompt;
 };
 
 const enhancedInvoke = async (
   result: any,
-  saveData: SaveData,
+  saveData: TYPE.LLMPayload,
   callback: ReturnType<typeof createLatencyCallback>
 ) => {
   const outputText = extractOutputText(result);
@@ -168,8 +133,8 @@ const enhancedInvoke = async (
 
 /* ストリーム終了後の処理 */
 const enhancedStream = (
-  stream: AsyncIterable<StreamChunk>,
-  saveData: SaveData,
+  stream: AsyncIterable<TYPE.StreamChunk>,
+  saveData: TYPE.LLMPayload,
   callback: ReturnType<typeof createLatencyCallback>,
   onStreamEnd?: (response: string) => Promise<void>
 ) =>
@@ -215,9 +180,9 @@ const createLatencyCallback = (label: string) => {
   let startTime = 0;
   let firstTokenTime: number | null = null;
   let finishedAt: number | null = null;
-  let usage: Usage | null = null;
+  let usage: TYPE.Usage | null = null;
 
-  const metrics: LatencyMetrics = {
+  const metrics: TYPE.LatencyMetrics = {
     label,
     startedAt: Date.now(),
   };
@@ -245,7 +210,7 @@ const createLatencyCallback = (label: string) => {
       }
     },
     // 出力完了
-    handleLLMEnd(payload?: any) {
+    handleLLMEnd(payload?: unknown) {
       // 計測秒数を計算
       finishedAt = Date.now();
       const elapsedMs = finishedAt - startTime;
@@ -259,19 +224,21 @@ const createLatencyCallback = (label: string) => {
       console.log(`[${label}] all latency: ${seconds}s ${milliseconds}ms`);
 
       // usageを多段フォールバックで取得
-      const u =
-        payload?.llmOutput?.tokenUsage ||
-        payload?.usage ||
-        payload?.response?.usage ||
-        null;
+      if (isLLMEndPayload(payload)) {
+        const u =
+          payload.llmOutput?.tokenUsage ||
+          payload.usage ||
+          payload.response?.usage ||
+          null;
 
-      if (u) {
-        usage = {
-          prompt: u.promptTokens ?? u.prompt_tokens ?? u.input_tokens ?? 0,
-          completion:
-            u.completionTokens ?? u.completion_tokens ?? u.output_tokens ?? 0,
-          total: u.totalTokens ?? u.total_tokens ?? undefined,
-        };
+        if (u) {
+          usage = {
+            prompt: u.promptTokens ?? u.prompt_tokens ?? u.input_tokens ?? 0,
+            completion:
+              u.completionTokens ?? u.completion_tokens ?? u.output_tokens ?? 0,
+            total: u.totalTokens ?? u.total_tokens ?? undefined,
+          };
+        }
       }
     },
 

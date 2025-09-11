@@ -336,8 +336,6 @@ export async function POST(req: Request) {
 
         // 今回のエントリーにメッセージを追記
         if (!(clueId === "")) await updateClueChat(clueId, response);
-
-        console.log(response);
       },
     });
 

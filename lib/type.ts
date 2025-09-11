@@ -1,4 +1,5 @@
 import { Document } from "langchain/document";
+import { Runnable } from "@langchain/core/runnables";
 
 /** フラグ管理用 */
 export type HorensoStates = {
@@ -14,7 +15,9 @@ export type BaseUrlInfo = {
   protocol: "http" | "https";
   baseUrl: string;
 };
-// 会話履歴を保持する型
+/**
+ * 会話履歴を保持する型
+ */
 export type MemoryTextData = {
   id: string;
   role: string;
@@ -163,4 +166,59 @@ export type DocumentsList = {
   id: string;
   content: string;
   metadata: HorensoMetadata;
+};
+
+/**
+ * runWithFallback で使われる型
+ */
+// ストリームのチャンクを扱うインターフェース
+export interface StreamChunk {
+  content?: string;
+  additional_kwargs?: Record<string, unknown>;
+}
+// runWithFallback のオプション引数型
+export type RunWithFallbackOptions = {
+  mode?: "invoke" | "stream";
+  parser?: Runnable;
+  maxRetries?: number;
+  baseDelay?: number;
+  label?: string;
+  sessionId?: string;
+  onStreamEnd?: (response: string) => Promise<void>;
+};
+//
+export type Usage = { prompt: number; completion: number; total?: number };
+// DB に保存するデータをまとめた型
+export type LLMPayload = {
+  label: string;
+  llmName: string;
+  metrics?: LatencyMetrics;
+  sessionId: string;
+  fullPrompt: string;
+  usage?: Usage;
+};
+// 呼び出し時間測定用の拡張コールバック
+export type LatencyMetrics = {
+  label: string;
+  startedAt: number;
+  finishedAt?: number;
+  firstTokenMs?: number;
+  totalMs?: number;
+};
+// トークンに関する情報をまとめた型
+type TokenUsage = {
+  promptTokens?: number;
+  prompt_tokens?: number;
+  input_tokens?: number;
+  completionTokens?: number;
+  completion_tokens?: number;
+  output_tokens?: number;
+  totalTokens?: number;
+  total_tokens?: number;
+};
+// LLM の呼び出し終了時呼ぶ型
+export type LLMEndPayload = {
+  llmOutput?: { tokenUsage?: TokenUsage };
+  usage?: TokenUsage;
+  response?: { usage?: TokenUsage };
 };

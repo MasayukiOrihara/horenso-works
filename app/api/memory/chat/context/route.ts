@@ -1,4 +1,4 @@
-import { RemoveMessage } from "@langchain/core/messages";
+import { BaseMessage, RemoveMessage } from "@langchain/core/messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 import {
   Annotation,
@@ -7,7 +7,7 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 
-import { strParser } from "@/lib/llm/models";
+import { OpenAi4oMini, strParser } from "@/lib/llm/models";
 import { convertToOpenAIFormat } from "../../utils";
 import { runWithFallback } from "@/lib/llm/run";
 import { measureExecution } from "@/lib/llm/graph";
