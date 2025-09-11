@@ -337,11 +337,11 @@ export async function POST(req: Request) {
         // 今回のエントリーにメッセージを追記
         if (!(clueId === "")) await updateClueChat(clueId, response);
       },
-    })) as AsyncIterable<TYPE.StreamChunk>;
-    // StreamChunk -> string へ変換（content がなければスキップor空文字）
+    })) as ReadableStream<TYPE.StreamChunk>;
 
+    // StreamChunk -> string へ変換（content がなければスキップor空文字）
     const textStream = lcStream.pipeThrough(
-      new TransformStream<StreamChunk, string>({
+      new TransformStream<TYPE.StreamChunk, string>({
         transform(chunk, controller) {
           if (typeof chunk.content === "string") {
             controller.enqueue(chunk.content);
@@ -384,7 +384,7 @@ export async function POST(req: Request) {
       "x-send-flags": Buffer.from(JSON.stringify(sendFlags)).toString("base64"),
     });
 
-    const baseResponse = LangChainAdapter.toDataStreamResponse(lcStream);
+    const baseResponse = LangChainAdapter.toDataStreamResponse(textStream);
 
     return new Response(baseResponse.body, {
       headers,

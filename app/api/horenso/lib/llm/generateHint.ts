@@ -37,7 +37,7 @@ export const generateHintLlm = async (
       user_answer: userAnswer,
     };
 
-    // LLM応答（配列のパサーを使っているがうまくいってない？）
+    // LLM応答
     const response = await runWithFallback(prompt, promptVariables, {
       mode: "invoke",
       parser: strParser,
