@@ -1,7 +1,7 @@
 import { PromptTemplate } from "@langchain/core/prompts";
 
 import { strParser } from "@/lib/llm/models";
-import { LLMResult, runWithFallback } from "@/lib/llm/run";
+import { LLMParserResult, runWithFallback } from "@/lib/llm/run";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import { requestApi } from "@/lib/api/request";
@@ -54,9 +54,9 @@ export const analyzeInput = async (
       parser: strParser,
       label: "analyze input",
       sessionId: sessionFlags.sessionId,
-    })) as LLMResult;
+    })) as LLMParserResult;
 
-    str = response.content ?? "";
+    str = response as string;
   } catch (error) {
     console.warn(INPUT_ANALYZE_ERROR + error);
   }

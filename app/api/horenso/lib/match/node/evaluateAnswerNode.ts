@@ -39,37 +39,38 @@ export async function evaluateAnswerNode({
   if (evaluate) {
     evaluationRecords.map(async (record) => {
       const bestDocument = record.document as Document<TYPE.HorensoMetadata>;
+      const beaId = bestDocument.metadata.expectedAnswerId;
 
       // 比較対象回答と一致しているかの確認
       for (const data of evaluate) {
-        const evaluateExpectedAnswerId = String(data.metadata.expectedAnswerId);
-        const checkIdMatch =
-          evaluateExpectedAnswerId === bestDocument.metadata.expectedAnswerId;
-        // 判定OK
-        if (evaluateExpectedAnswerId && checkIdMatch) {
-          // 合格判定
-          goodEvaluations.push(data);
+        const deaId = data.metadata.expectedAnswerId;
+        if (!deaId) continue;
 
-          // オブジェクトの更新
-          const fuzzyScore: TYPE.FuzzyScore = {
-            id: data.metadata.id ?? uuidv4(),
-            expectedAnswerId: evaluateExpectedAnswerId,
-            score: 1,
-            reason: data.metadata.rationale,
-            correct: "correct",
-          };
-          record.fuzzyScore = fuzzyScore;
-          record.answerCorrect = "correct";
-        }
+        const checkIdMatch = deaId === beaId;
+        if (!checkIdMatch) continue;
+
+        // 合格判定
+        goodEvaluations.push(data);
+
+        // オブジェクトの更新
+        const fuzzyScore: TYPE.FuzzyScore = {
+          id: data.metadata.id ?? uuidv4(),
+          expectedAnswerId: deaId,
+          score: 1,
+          reason: data.metadata.rationale,
+          correct: "correct",
+        };
+        record.fuzzyScore = fuzzyScore;
+        record.answerCorrect = "correct";
       }
     });
   }
 
   // DB の更新
-  if (goodEvaluations) {
+  if (goodEvaluations && goodEvaluations.length) {
     const r = await EmbeddingService.save(
       embeddings,
-      evaluate,
+      goodEvaluations,
       FUZZYLIST_TABLE
     );
     if (!r.ok) {

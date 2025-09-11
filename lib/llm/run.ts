@@ -1,4 +1,5 @@
 import { Runnable } from "@langchain/core/runnables";
+import { Document } from "langchain/document";
 import { OpenAi4_1Mini, OpenAi4oMini } from "./models";
 import { UNKNOWN_ERROR } from "../message/error";
 import { PromptTemplate } from "@langchain/core/prompts";
@@ -12,11 +13,10 @@ function isLLMEndPayload(x: unknown): x is TYPE.LLMEndPayload {
 }
 
 // LLM結果の基本型を定義
-export interface LLMResult {
-  content?: string;
-  text?: string;
-  // その他の可能性のあるプロパティを必要に応じて追加
-}
+export type LLMParserResult =
+  | string
+  | string[]
+  | Document<TYPE.PhrasesMetadata>[];
 // ストリームのチャンクを扱うインターフェース
 export interface StreamChunk {
   content?: string;
@@ -24,7 +24,7 @@ export interface StreamChunk {
 }
 
 // Stream結果とInvoke結果のユニオン型
-type LLMResponse = LLMResult | AsyncIterable<StreamChunk>;
+type LLMResponse = LLMParserResult | AsyncIterable<StreamChunk>;
 
 // フォールバック可能なLLM一覧
 const fallbackLLMs: Runnable[] = [OpenAi4_1Mini, OpenAi4oMini];
@@ -80,6 +80,11 @@ export async function runWithFallback(
           fullPrompt: fullPrompt,
         };
 
+        console.log("🐶");
+        console.log(result);
+        console.log(typeof result);
+        console.log("🐈");
+
         // stream 応答時終了後に処理を行う
         return mode === "stream"
           ? enhancedStream(
@@ -88,7 +93,7 @@ export async function runWithFallback(
               callback,
               onStreamEnd
             )
-          : await enhancedInvoke(result as LLMResult, payload, callback);
+          : await enhancedInvoke(result as LLMParserResult, payload, callback);
       } catch (err) {
         const message = err instanceof Error ? err.message : UNKNOWN_ERROR;
         const isRateLimited =
@@ -127,10 +132,10 @@ const getFullPrompt = async (
 };
 
 const enhancedInvoke = async (
-  result: LLMResult,
+  result: LLMParserResult,
   payload: TYPE.LLMPayload,
   callback: ReturnType<typeof createLatencyCallback>
-): Promise<LLMResult> => {
+): Promise<LLMParserResult> => {
   const outputText = extractOutputText(result);
 
   // invoke はここで onLLMEnd が済んでる
@@ -160,15 +165,20 @@ const enhancedStream = (
   payload: TYPE.LLMPayload,
   callback: ReturnType<typeof createLatencyCallback>,
   onStreamEnd?: (response: string) => Promise<void>
-): ReadableStream<StreamChunk> =>
+) =>
   new ReadableStream({
     async start(controller) {
       let response = "";
 
       for await (const chunk of stream) {
         response += chunk.content || "";
-        // ストリームにはそのまま流す
-        controller.enqueue(chunk);
+        if (typeof chunk.content === "string") {
+          controller.enqueue(chunk.content);
+        } else if (chunk.additional_kwargs) {
+          // 必要ならフォールバック
+          controller.enqueue(JSON.stringify(chunk.additional_kwargs));
+        }
+        // 何もなければ enqueue しない（無音）
       }
 
       // 終了時に外部処理を走らせる

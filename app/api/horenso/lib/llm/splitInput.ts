@@ -1,7 +1,7 @@
 import { PromptTemplate } from "@langchain/core/prompts";
 
 import { listParser } from "@/lib/llm/models";
-import { LLMResult, runWithFallback } from "@/lib/llm/run";
+import { LLMParserResult, runWithFallback } from "@/lib/llm/run";
 
 /** LLMを利用して答えを切り分ける(haiku3.5使用) */
 export const splitInputLlm = async (promptText: string, input: string) => {
@@ -17,11 +17,10 @@ export const splitInputLlm = async (promptText: string, input: string) => {
     mode: "invoke",
     parser: listParser,
     label: "split input",
-  })) as LLMResult;
+  })) as LLMParserResult;
 
   // 型変換
-  const str: string = splitUserAnswer.content ?? "";
-  const arr: string[] = str.split(",").map((s) => s.trim());
+  const arr: string[] = splitUserAnswer as string[];
 
   return arr;
 };

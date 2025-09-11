@@ -3,7 +3,7 @@ import { Document } from "langchain/document";
 
 import { strParser } from "@/lib/llm/models";
 import { Evaluation, HorensoMetadata } from "@/lib/type";
-import { LLMResult, runWithFallback } from "@/lib/llm/run";
+import { LLMParserResult, runWithFallback } from "@/lib/llm/run";
 import { GUIDED_ANSWER_PROMPT } from "@/lib/contents/horenso/template";
 
 /** LLMを利用して答えを導くヒントを生成する */
@@ -42,10 +42,10 @@ export const generateHintLlm = async (
       mode: "invoke",
       parser: strParser,
       label: "generate hint",
-    })) as LLMResult;
+    })) as LLMParserResult;
 
     // 型変換
-    hint = response.content ?? "";
+    hint = response as string;
   } catch (error) {
     console.warn(`ヒントを取得できませんでした: ${error}`);
   }

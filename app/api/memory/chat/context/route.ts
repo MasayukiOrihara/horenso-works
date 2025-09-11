@@ -1,4 +1,4 @@
-import { BaseMessage, RemoveMessage } from "@langchain/core/messages";
+import { RemoveMessage } from "@langchain/core/messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 import {
   Annotation,
@@ -7,9 +7,9 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 
-import { OpenAi4oMini, strParser } from "@/lib/llm/models";
+import { strParser } from "@/lib/llm/models";
 import { convertToOpenAIFormat } from "../../utils";
-import { LLMResult, runWithFallback } from "@/lib/llm/run";
+import { LLMParserResult, runWithFallback } from "@/lib/llm/run";
 import { measureExecution } from "@/lib/llm/graph";
 import * as MSG from "@/lib/contents/memory/template";
 import * as ERR from "@/lib/message/error";
@@ -56,8 +56,8 @@ async function convertFormat(state: typeof GraphAnnotation.State) {
             label: "assistant summary",
             sessionId: sessionId,
           }
-        )) as LLMResult;
-        content = summary.content ?? "";
+        )) as LLMParserResult;
+        content = summary as string;
       }
     } catch (error) {
       console.warn(`${ERR.SUMMARY_ERROR}: ${error} `);
@@ -113,9 +113,9 @@ async function summarizeConversation(state: typeof GraphAnnotation.State) {
       parser: strParser,
       label: "memory summary",
       sessionId: sessionId,
-    })) as LLMResult;
+    })) as LLMParserResult;
 
-    responseSummary = response.content ?? "";
+    responseSummary = response as string;
   } catch (error) {
     console.warn(`${ERR.SUMMARY_ERROR}: ${error}`);
     empty = [...formatted];

@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { StructuredOutputParser } from "langchain/output_parsers";
 
 import { HorensoMetadata, PhrasesMetadata } from "@/lib/type";
-import { LLMResult, runWithFallback } from "@/lib/llm/run";
+import { LLMParserResult, runWithFallback } from "@/lib/llm/run";
 import { documentsSchema } from "@/lib/schema";
 import { JSON_PARSE_ERROR } from "@/lib/message/error";
 import { JUDGE_ANSWER_FUZZY_MATCH_PROMPT } from "@/lib/contents/horenso/template";
@@ -44,12 +44,8 @@ export const evaluateUserAnswer = async (
       mode: "invoke",
       parser: parser,
       label: "evaluate user answer",
-    })) as LLMResult;
-
-    let docs: Document<PhrasesMetadata>[] = [];
-    if (response.content) {
-      docs = await parser.parse(response.content);
-    }
+    })) as LLMParserResult;
+    const docs = response as Document<PhrasesMetadata>[];
 
     // 型変換
     for (const doc of docs) {

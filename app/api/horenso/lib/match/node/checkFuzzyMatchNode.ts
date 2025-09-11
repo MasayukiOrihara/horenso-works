@@ -64,7 +64,7 @@ export async function checkFuzzyMatchNode({
     // 5) 閾値判定（map(async..) は使わない。非同期が無いなら普通の for/for..of で）
     const exceeds = score > maxThreshold;
     const tempEvaluationRecords = evaluationRecords.map((record) => {
-      // 既存のまま
+      // expectedAnswerId のチェックも含む、なければ正答のミス入力
       if (
         record.document.metadata.expectedAnswerId != baseFuzzy.expectedAnswerId
       )
