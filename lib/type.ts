@@ -171,11 +171,6 @@ export type DocumentsList = {
 /**
  * runWithFallback で使われる型
  */
-// ストリームのチャンクを扱うインターフェース
-export interface StreamChunk {
-  content?: string;
-  additional_kwargs?: Record<string, unknown>;
-}
 // runWithFallback のオプション引数型
 export type RunWithFallbackOptions = {
   mode?: "invoke" | "stream";

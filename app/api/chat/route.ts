@@ -6,7 +6,7 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 
-import { runWithFallback } from "@/lib/llm/run";
+import { runWithFallback, StreamChunk } from "@/lib/llm/run";
 import { updateClueChat } from "../horenso/lib/match/lib/entry";
 import { measureExecution } from "@/lib/llm/graph";
 
@@ -320,7 +320,7 @@ export async function POST(req: Request) {
     const clueId = result.sessionFlags.options.clueId ?? "";
 
     // ストリーミング応答を取得
-    const lcStream = await runWithFallback(prompt, promptVariables, {
+    const lcStream = (await runWithFallback(prompt, promptVariables, {
       mode: "stream",
       label: "chat stream",
       sessionId: sessionFlags.sessionId,
@@ -337,7 +337,7 @@ export async function POST(req: Request) {
         // 今回のエントリーにメッセージを追記
         if (!(clueId === "")) await updateClueChat(clueId, response);
       },
-    });
+    })) as ReadableStream<StreamChunk>;
 
     // 送るデータ
     const options = sessionFlags.options;

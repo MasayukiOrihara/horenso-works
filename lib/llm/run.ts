@@ -11,6 +11,21 @@ function isLLMEndPayload(x: unknown): x is TYPE.LLMEndPayload {
   return typeof x === "object" && x !== null;
 }
 
+// LLM結果の基本型を定義
+export interface LLMResult {
+  content?: string;
+  text?: string;
+  // その他の可能性のあるプロパティを必要に応じて追加
+}
+// ストリームのチャンクを扱うインターフェース
+export interface StreamChunk {
+  content?: string;
+  additional_kwargs?: Record<string, unknown>;
+}
+
+// Stream結果とInvoke結果のユニオン型
+type LLMResponse = LLMResult | AsyncIterable<StreamChunk>;
+
 // フォールバック可能なLLM一覧
 const fallbackLLMs: Runnable[] = [OpenAi4_1Mini, OpenAi4oMini];
 
@@ -19,7 +34,7 @@ export async function runWithFallback(
   runnable: Runnable,
   input: Record<string, unknown>,
   options?: TYPE.RunWithFallbackOptions
-) {
+): Promise<LLMResponse | ReadableStream<StreamChunk>> {
   // デフォルト値を設定
   const {
     mode = "invoke",
@@ -35,12 +50,16 @@ export async function runWithFallback(
     for (let retry = 0; retry < maxRetries; retry++) {
       try {
         // LLM 呼び出し
-        const pipeline = runnable.pipe(model);
-        if (parser) pipeline.pipe(parser);
+        let pipeline = runnable.pipe(model);
+        if (parser) {
+          pipeline = pipeline.pipe(parser);
+        }
+
         const callback = createLatencyCallback(
           label ? label : model.lc_kwargs.model
         );
-        const result =
+
+        const result: LLMResponse =
           mode === "stream"
             ? await pipeline.stream(input, {
                 callbacks: [callback],
@@ -54,7 +73,7 @@ export async function runWithFallback(
 
         // 完成したプロンプトの取得
         const fullPrompt = await getFullPrompt(runnable, input);
-        const saveData: TYPE.LLMPayload = {
+        const payload: TYPE.LLMPayload = {
           label: label,
           llmName: model.lc_kwargs.model,
           sessionId: sessionId,
@@ -63,8 +82,13 @@ export async function runWithFallback(
 
         // stream 応答時終了後に処理を行う
         return mode === "stream"
-          ? enhancedStream(result, saveData, callback, onStreamEnd)
-          : await enhancedInvoke(result, saveData, callback);
+          ? enhancedStream(
+              result as AsyncIterable<StreamChunk>,
+              payload,
+              callback,
+              onStreamEnd
+            )
+          : await enhancedInvoke(result as LLMResult, payload, callback);
       } catch (err) {
         const message = err instanceof Error ? err.message : UNKNOWN_ERROR;
         const isRateLimited =
@@ -97,17 +121,16 @@ export async function runWithFallback(
 const getFullPrompt = async (
   runnable: Runnable,
   input: Record<string, unknown>
-) => {
+): Promise<string> => {
   const fullPrompt = await (runnable as PromptTemplate).format(input);
-
   return fullPrompt;
 };
 
 const enhancedInvoke = async (
-  result: any,
-  saveData: TYPE.LLMPayload,
+  result: LLMResult,
+  payload: TYPE.LLMPayload,
   callback: ReturnType<typeof createLatencyCallback>
-) => {
+): Promise<LLMResult> => {
   const outputText = extractOutputText(result);
 
   // invoke はここで onLLMEnd が済んでる
@@ -116,10 +139,10 @@ const enhancedInvoke = async (
 
   try {
     await saveLlmLog({
-      sessionId: saveData.sessionId,
-      label: saveData.label,
-      llmName: saveData.llmName,
-      fullPrompt: saveData.fullPrompt,
+      sessionId: payload.sessionId,
+      label: payload.label,
+      llmName: payload.llmName,
+      fullPrompt: payload.fullPrompt,
       fullOutput: outputText,
       usage,
       metrics,
@@ -133,11 +156,11 @@ const enhancedInvoke = async (
 
 /* ストリーム終了後の処理 */
 const enhancedStream = (
-  stream: AsyncIterable<TYPE.StreamChunk>,
-  saveData: TYPE.LLMPayload,
+  stream: unknown,
+  payload: TYPE.LLMPayload,
   callback: ReturnType<typeof createLatencyCallback>,
   onStreamEnd?: (response: string) => Promise<void>
-) =>
+): ReadableStream<StreamChunk> =>
   new ReadableStream({
     async start(controller) {
       let response = "";
@@ -159,10 +182,10 @@ const enhancedStream = (
         // fullOutput は stream で溜めた response
         try {
           await saveLlmLog({
-            sessionId: saveData.sessionId,
-            label: saveData.label,
-            llmName: saveData.llmName,
-            fullPrompt: saveData.fullPrompt,
+            sessionId: payload.sessionId,
+            label: payload.label,
+            llmName: payload.llmName,
+            fullPrompt: payload.fullPrompt,
             fullOutput: response,
             usage,
             metrics,
@@ -189,13 +212,13 @@ const createLatencyCallback = (label: string) => {
 
   return {
     // LLM 呼び出し直後
-    handleLLMStart() {
+    handleLLMStart(): void {
       startTime = Date.now();
       metrics.startedAt = startTime;
     },
 
     // 最初のトークン
-    handleLLMNewToken() {
+    handleLLMNewToken(): void {
       if (firstTokenTime === null) {
         firstTokenTime = Date.now() - startTime;
         metrics.firstTokenMs = firstTokenTime;
@@ -209,8 +232,9 @@ const createLatencyCallback = (label: string) => {
         );
       }
     },
+
     // 出力完了
-    handleLLMEnd(payload?: unknown) {
+    handleLLMEnd(payload?: unknown): void {
       // 計測秒数を計算
       finishedAt = Date.now();
       const elapsedMs = finishedAt - startTime;
@@ -243,11 +267,11 @@ const createLatencyCallback = (label: string) => {
     },
 
     // --- 追加: 外から計測結果を取得できるように ---
-    getMetrics() {
+    getMetrics(): TYPE.LatencyMetrics {
       return { ...metrics };
     },
 
-    getUsage() {
+    getUsage(): TYPE.Usage | null {
       return usage;
     },
   };

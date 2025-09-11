@@ -9,7 +9,7 @@ import {
 
 import { OpenAi4oMini, strParser } from "@/lib/llm/models";
 import { convertToOpenAIFormat } from "../../utils";
-import { runWithFallback } from "@/lib/llm/run";
+import { LLMResult, runWithFallback } from "@/lib/llm/run";
 import { measureExecution } from "@/lib/llm/graph";
 import * as MSG from "@/lib/contents/memory/template";
 import * as ERR from "@/lib/message/error";
@@ -47,7 +47,7 @@ async function convertFormat(state: typeof GraphAnnotation.State) {
     try {
       if (role === "assistant" && content.length > MAX_CHAR_LENGTH) {
         const prompt = PromptTemplate.fromTemplate(MSG.SUMMARY_PROMPT);
-        const summary = await runWithFallback(
+        const summary = (await runWithFallback(
           prompt,
           { input: content },
           {
@@ -56,8 +56,8 @@ async function convertFormat(state: typeof GraphAnnotation.State) {
             label: "assistant summary",
             sessionId: sessionId,
           }
-        );
-        content = summary.content;
+        )) as LLMResult;
+        content = summary.content ?? "";
       }
     } catch (error) {
       console.warn(`${ERR.SUMMARY_ERROR}: ${error} `);
@@ -108,13 +108,14 @@ async function summarizeConversation(state: typeof GraphAnnotation.State) {
   let empty: string[] = [];
   try {
     const prompt = PromptTemplate.fromTemplate(summaryMessage);
-    const response = await runWithFallback(prompt, promptVariables, {
-      mode: "invoke",
+    const response = (await runWithFallback(prompt, promptVariables, {
+      mode: "invoke" as const,
       parser: strParser,
       label: "memory summary",
       sessionId: sessionId,
-    });
-    responseSummary = response.content;
+    })) as LLMResult;
+
+    responseSummary = response.content ?? "";
   } catch (error) {
     console.warn(`${ERR.SUMMARY_ERROR}: ${error}`);
     empty = [...formatted];
