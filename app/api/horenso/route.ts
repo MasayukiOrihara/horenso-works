@@ -10,6 +10,7 @@ import * as DOC from "@/lib/contents/horenso/documents";
 import * as NODE from "./node";
 import * as TYPE from "@/lib/type";
 import * as ERR from "@/lib/message/error";
+import { SessionFlags } from "../../../lib/type";
 
 // 使用ドキュメントの初期状態準備
 const whoUseDocuments = DOC.whoDocuments.map((doc) => ({
@@ -108,11 +109,10 @@ async function generateHint(state: typeof StateAnnotation.State) {
 
 async function askQuestion(state: typeof StateAnnotation.State) {
   console.log("❓ 問題出題ノード");
-  const step = state.sessionFlags.step;
+  const sessionFlags = state.sessionFlags;
 
   const { contexts } = NODE.askQuestionNode({
-    step: step,
-    whyUseDocuments: whyUseDocuments,
+    sessionFlags: sessionFlags,
   });
   return { contexts: [...state.contexts, ...contexts] };
 }

@@ -1,16 +1,20 @@
 import { Document } from "langchain/document";
 
-import { HorensoMetadata } from "@/lib/type";
+import { HorensoMetadata, SessionFlags } from "@/lib/type";
 import * as MSG from "@/lib/contents/horenso/template";
 
 type QuestionNode = {
-  step: number;
-  whyUseDocuments: Document<HorensoMetadata>[];
+  sessionFlags: SessionFlags;
 };
 
-export function askQuestionNode({ step, whyUseDocuments }: QuestionNode) {
+export function askQuestionNode({ sessionFlags }: QuestionNode) {
+  const step = sessionFlags.step;
+  const currectStatus = sessionFlags.currectStatus;
   const contexts = [];
 
+  const q2MaxLength = 3;
+
+  // 最終質問
   contexts.push(MSG.FINAL_QUESTION_PROMPT);
 
   // プロンプトに追加
@@ -21,10 +25,8 @@ export function askQuestionNode({ step, whyUseDocuments }: QuestionNode) {
     case 1:
       contexts.push(MSG.REPORT_REASON_FOR_LEADER);
       // 残り問題数の出力
-      const count = Object.values(whyUseDocuments).filter(
-        (val) => val.metadata.isMatched === false
-      ).length;
-      if (count < 3) {
+      const count = q2MaxLength - currectStatus.length;
+      if (count < q2MaxLength) {
         contexts.push(`答えは残り ${count} つです。`);
       } else {
         contexts.push(MSG.THREE_ANSWER);
