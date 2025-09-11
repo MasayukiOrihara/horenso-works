@@ -73,11 +73,6 @@ export async function rerankNode({
   }
 
   /** 回答に一貫性を持たせるために、ユーザーの入力に対する過去回答コンテキスト作成 */
-  const contexts = [];
-  contexts.push(MSG.BULLET + MSG.PAST_REPLY_HINT_PROMPT);
-  contexts.push(MSG.ANSWER_EXAMPLE_PREFIX_PROMPT);
-
-  // データ取得
   const rankedResults: AdjustedClue[] = getRankedResults(clue);
 
   // rankscore の高い順に並べて、上位2件を取得
@@ -86,13 +81,18 @@ export async function rerankNode({
     .slice(0, 2);
 
   // コンテキストに追加
-  for (const clue of selectedClue) {
-    console.log("エントリートップ2: " + clue.id);
+  const contexts = [];
+  if (selectedClue && selectedClue.length) {
+    contexts.push(MSG.PAST_REPLY_HINT_PROMPT);
+    contexts.push(MSG.ANSWER_EXAMPLE_PREFIX_PROMPT);
+    for (const clue of selectedClue) {
+      console.log("エントリートップ2: " + clue.id);
 
-    const response = clue.clue.replace(/(\r\n|\n|\r)/g, "");
-    contexts.push(`${response}\n --- \n`);
+      const response = clue.clue.replace(/\\n/g, "");
+      contexts.push(`${response}\n`);
+    }
+    contexts.push("\n");
   }
-  contexts.push("\n");
 
   return { updateSessionFlags: sessionFlags, selectedClue, contexts };
 }

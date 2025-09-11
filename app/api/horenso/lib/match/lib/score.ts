@@ -12,7 +12,10 @@ export const getRankedResults = (
     if (score < 0.7) break;
 
     // 重みづけと選出
-    const qual = bestMatch.metadata.quality ?? 0.5;
+    const rawQuality = bestMatch?.metadata?.quality;
+    const quality = toNumberOrUndefined(rawQuality);
+
+    const qual = quality ?? 0.5;
     let weight = 0.8;
     switch (bestMatch.metadata.source) {
       case "bot":
@@ -28,6 +31,7 @@ export const getRankedResults = (
 
     // 総合スコア計算（調整式は適宜チューニング）
     const rankScore = score * 0.6 + qual * 0.3 + weight * 0.1;
+    console.log(rankScore);
 
     // データ作成
     const adjustedClue: TYPE.AdjustedClue = {
@@ -54,4 +58,12 @@ export const sortScore = (data: TYPE.Evaluation[]) => {
       const scoreB = b.documentScore?.score ?? -Infinity;
       return scoreB - scoreA; // 降順
     });
+};
+
+//  文字列 "null" / "undefined" / "" などを除去して数値へ
+const toNumberOrUndefined = (v: unknown): number | undefined => {
+  if (v === null || v === undefined) return undefined;
+  if (v === "" || v === "null" || v === "undefined") return undefined;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : undefined;
 };

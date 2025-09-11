@@ -57,9 +57,8 @@ async function init(state: typeof StateAnnotation.State) {
     MSG.REPHRASE_WITH_LOGIC_PRESERVED.replace(
       "{sentence}",
       MSG.INTRO_TO_DEV_WORK
-    )
+    ).replace("{question}", MSG.QUESTION_WHO_ASKING)
   );
-  contexts.push(MSG.QUESTION_WHO_ASKING);
 
   //並行処理
   const [memory, userprofile] = await Promise.all([
@@ -210,7 +209,7 @@ async function contextMerger(state: typeof StateAnnotation.State) {
   // ユーザー情報を整形
   const excludeValues = ["", "none", "other"]; // 除外条件
   const userprofileFiltered = Object.entries(userprofile)
-    .filter(([v]) => !excludeValues.includes(v))
+    .filter(([_, v]) => !excludeValues.includes(v)) // key は使わないので _
     .map(([k, v]) => `${k}: ${v}`);
 
   const chatGraphResult: TYPE.ChatGraphResult = {

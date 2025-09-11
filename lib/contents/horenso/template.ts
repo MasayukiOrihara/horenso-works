@@ -4,16 +4,27 @@ export const END_TAG = "--終了--";
 
 /** question message */
 export const FOR_REPORT_COMMUNICATION =
-  "質問: 報連相は誰のためのものか唯一誰か一人を上げてください。\n\n";
+  "報連相は誰のためのものか唯一誰か一人を上げてください。";
 export const REPORT_REASON_FOR_LEADER =
   "質問: 報連相はなぜリーダーのためのものなのか。";
 export const THREE_ANSWER = "答えを3つ上げてください。\n\n";
 
 /* prompt message */
-export const INSTRUCTOR_INTRO_MESSAGE_PROMPT =
-  "あなたはソフトウェア開発者向けのコミュニケーション研修における講師です。\n";
+export const INSTRUCTOR_INTRO_MESSAGE_PROMPT = `
+## ROLE
+- あなたはソフトウェア開発者向けコミュニケーション研修の講師である
+- 現在生徒に以下の質問を投げかけている
+
+### QUESTION
+- {question}
+\n`;
+export const ASSISTANT_TASK_PROMPT = `## TASK
+- ユーザーの回答に対して返答を作成する
+\n`;
+// 削除予定
 export const USER_QUESTION_LABEL_PROMPT =
   "ユーザーに以下の質問を投げかけています。\n";
+
 export const KEYWORD_EXTRACTION_PROMPT =
   "以下の入力に含まれる単語のうち、重要なキーワードを入力から抜き出しリストアップしてください。新たな言葉は追加しないでください。\n： {input}\n\n{format_instructions}";
 export const CLAIM_EXTRACTION_PROMPT = `以下の入力に含まれる文章のうち、主張や回答、理由ごとに区切って抜き出してください。
@@ -23,10 +34,13 @@ export const CLAIM_EXTRACTION_PROMPT = `以下の入力に含まれる文章の�
 入力: {input}
 
 {format_instructions}`;
-export const PAST_REPLY_HINT_PROMPT =
-  "以下の文章は今回のユーザーの発言に近い過去の発言の、過去のAIの返答例です。今回の返答で同じような説明や解説をする場合、この返答例から言い回しや説明の仕方を参考にしてください。\n\n";
-export const ANSWER_EXAMPLE_PREFIX_PROMPT =
-  "今回の回答に近い過去の回答に対する過去の返答例: --- \n";
+export const PAST_REPLY_HINT_PROMPT = `## CONTEXT_EXAMPLES
+- 以下は今回のユーザー回答に近い過去回答に対する過去のAI返答例である
+- 今回の返答で同様の説明や解説をする場合、言い回しや説明方法を参考にしてよい
+- ただし今回の回答内容に応じて適切に調整すること
+\n`;
+
+export const ANSWER_EXAMPLE_PREFIX_PROMPT = `### EXAMPLES\n`;
 export const GUIDED_ANSWER_PROMPT = `あなたはソフトウェア開発者向けのコミュニケーション研修における回答評価の専門家です。
   以下の質問対して、ユーザーの回答から模範解答にたどり着くようなヒントを端的かつ具体的に出力してください。
   ユーザー回答が空欄の場合、問題とその模範解答からヒントを出力してください。

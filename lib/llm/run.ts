@@ -80,11 +80,6 @@ export async function runWithFallback(
           fullPrompt: fullPrompt,
         };
 
-        console.log("🐶");
-        console.log(result);
-        console.log(typeof result);
-        console.log("🐈");
-
         // stream 応答時終了後に処理を行う
         return mode === "stream"
           ? enhancedStream(

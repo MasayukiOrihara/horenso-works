@@ -28,18 +28,23 @@ export async function setupInitialNode({ sessionFlags }: InitialNode) {
 
   // 前提・背景・状況
   const contexts = [];
-  contexts.push(MSG.BULLET + MSG.INSTRUCTOR_INTRO_MESSAGE_PROMPT);
-  contexts.push(MSG.BULLET + MSG.USER_QUESTION_LABEL_PROMPT + "\n");
-
   // 問題分岐
+  let question: string = "";
   switch (sessionFlags.step) {
     case 0:
-      contexts.push(MSG.FOR_REPORT_COMMUNICATION);
+      question = MSG.FOR_REPORT_COMMUNICATION;
       break;
     case 1:
-      contexts.push(MSG.REPORT_REASON_FOR_LEADER + MSG.THREE_ANSWER);
+      question = MSG.REPORT_REASON_FOR_LEADER + MSG.THREE_ANSWER;
       break;
   }
+  // 前提
+  contexts.push(
+    MSG.INSTRUCTOR_INTRO_MESSAGE_PROMPT.replace("{question}", question)
+  );
+
+  // タスク
+  contexts.push(MSG.ASSISTANT_TASK_PROMPT);
 
   return { contexts, transition };
 }
