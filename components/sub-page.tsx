@@ -14,7 +14,7 @@ export const SubPage: React.FC = () => {
 
   return (
     <MessageProvider>
-      <div className="w-full max-w-2xl h-full flex flex-col m-auto mt-30 px-4 py-2 overflow-hidden">
+      <div className="w-full max-w-2xl h-full flex flex-col justify-center  m-auto px-4 py-2 overflow-hidden">
         {sessionFlags.phase === "cleared" && <ScoreHeader />}
         <div>
           <SCREEN />

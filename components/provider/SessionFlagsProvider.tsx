@@ -49,6 +49,7 @@ export function SessionFlagsProvider({
         setValue((prev) => ({ ...prev, ...next })); // 既定値とマージ
       } else {
         // まだ何も無ければ initial を保存しておく
+        initial.sync = "idle";
         sessionStorage.setItem(storageKey, JSON.stringify(initial));
       }
     } catch {

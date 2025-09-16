@@ -5,7 +5,7 @@ export const SCREEN: React.FC = () => {
   const { value: sessionFlags } = useSessionFlags();
 
   // 動作開始前
-  const isIdle = sessionFlags.sync === "idle";
+  const isIdle = sessionFlags.sync === "idle" || sessionFlags.sync === "init";
   const isDebug = sessionFlags.options.debugOn;
 
   return (

@@ -60,7 +60,9 @@ export const ChatConnector = () => {
 
   // 初回の実行処理
   const hasRun =
-    sessionFlags.sync !== "idle" && sessionFlags.phase === "locked";
+    sessionFlags.sync !== "idle" &&
+    sessionFlags.sync !== "init" &&
+    sessionFlags.phase === "locked";
   const isDebugOnRef = useRef(sessionFlags.options.debugOn);
   useEffect(() => {
     if (hasRun && !isDebugOnRef.current) {

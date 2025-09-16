@@ -14,7 +14,6 @@ export const Navi: React.FC = () => {
 
   // .envで切り替え
   const isDebugMode = process.env.NEXT_PUBLIC_DEBUG_MODE === "true";
-  console.log(isDebugMode);
   if (isDebugMode && !debugMode) {
     setDebugMode(true);
   }

@@ -125,7 +125,7 @@ export type AdjustedClue = {
 
 /** session strage で管理するフラグ */
 type ProgressPhase = "locked" | "in_progress" | "cleared";
-type SyncState = "idle" | "local" | "pending" | "confirmed" | "error";
+type SyncState = "init" | "idle" | "local" | "pending" | "confirmed" | "error";
 export type ShouldValidate = {
   who: boolean;
   why: boolean;

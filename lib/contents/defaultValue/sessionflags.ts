@@ -12,7 +12,7 @@ const DEFAULT_SESSION_OPTIONS: SessionOptions = {
 export const DEFAULT_SESSION_FLAGS: SessionFlags = {
   sessionId: "",
   phase: "locked",
-  sync: "idle",
+  sync: "init",
   step: 0,
   currectStatus: [],
   options: DEFAULT_SESSION_OPTIONS,

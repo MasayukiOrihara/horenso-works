@@ -12,7 +12,7 @@ import { LINES_GET_WARNING } from "@/lib/message/warning";
 export const MessageWindow = () => {
   const [lines, setLines] = useState<string[]>([]);
   const { aiMessage, chatStatus } = useUserMessages();
-  const { value: sessionFlags } = useSessionFlags();
+  const { value: sessionFlags, merge } = useSessionFlags();
   const { push } = useErrorStore();
 
   /* メッセージ関係 */
@@ -72,6 +72,8 @@ export const MessageWindow = () => {
         });
       }
     })();
+    // 画面遷移を行う
+    merge({ sync: "local" });
   }, [
     chatStatus,
     sessionFlags.sync,

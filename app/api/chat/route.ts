@@ -280,8 +280,8 @@ export async function POST(req: Request) {
     // フロントからフラグを受け取る
     const sessionFlags: TYPE.SessionFlags = body.sessionFlags;
     if (!sessionFlags) {
-      console.error("💬 chat API POST error: " + ERR.SESSIONID_ERROR);
-      return Response.json({ error: ERR.SESSIONID_ERROR }, { status: 400 });
+      console.error("💬 chat API POST error: " + ERR.SESSION_FLAGS_ERROR);
+      return Response.json({ error: ERR.SESSION_FLAGS_ERROR }, { status: 400 });
     }
 
     // フラグ内のsessionIdだけ更新
