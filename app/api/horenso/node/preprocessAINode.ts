@@ -178,7 +178,7 @@ export async function preprocessAiNode({
     const match = analyzeInputResult.match(
       /入力意図の分類:\s*(質問|回答|冗談|その他)/
     );
-    category = match ? match[1] : "";
+    category = match ? match[1] : "その他";
 
     console.log("質問1のヒント: \n" + getHint);
     console.log(analyzeInputResult);

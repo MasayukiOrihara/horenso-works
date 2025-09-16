@@ -37,8 +37,7 @@ export const EmbeddingService = {
         k,
         filter
       );
-      if (!res?.length) throw new DbError("No result");
-      return res;
+      return res ?? [];
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "search error";
       throw new DbError(message);
