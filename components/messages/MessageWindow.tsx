@@ -85,6 +85,7 @@ export const MessageWindow = () => {
 
   // 文章を改行で分離するための関数(最後の分は別で検知)
   const previousRef = useRef<string>("");
+  const lastLineRef = useRef<string>(""); // 直前に保存した行を記録
   function onStreamData(chunk: string) {
     let parts: string[] = [];
     // 用済みの文章を切断
@@ -92,12 +93,25 @@ export const MessageWindow = () => {
 
     // 新たに改行があったら保存 + 空白は除去
     if (sliceChunk.includes("\n")) {
-      parts = chunk.split("\n").filter(Boolean);
-      previousRef.current = chunk;
+      if (sliceChunk.endsWith("\n")) {
+        parts = chunk.split("\n").filter(Boolean);
+        previousRef.current = chunk;
+      }
+
+      const lastBreak = chunk.lastIndexOf("\n"); // 最後の改行位置
+      if (lastBreak !== -1) {
+        const before = chunk.slice(0, lastBreak + 1); // 最後の改行より前
+        previousRef.current = before;
+      }
     }
 
     if (parts.length > 0) {
-      setLines((prev) => [...prev, parts[parts.length - 1]]);
+      const newLine = parts[parts.length - 1];
+      // 直前の保存内容と違うときだけ追加
+      if (newLine !== lastLineRef.current) {
+        setLines((prev) => [...prev, newLine]);
+        lastLineRef.current = newLine;
+      }
     }
   }
 

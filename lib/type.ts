@@ -179,7 +179,7 @@ export type RunWithFallbackOptions = {
   baseDelay?: number;
   label?: string;
   sessionId?: string;
-  onStreamEnd?: (response: string) => Promise<void>;
+  onStreamEnd?: (response: string, cleaned: string) => Promise<void>;
 };
 //
 export type Usage = { prompt: number; completion: number; total?: number };

@@ -323,18 +323,20 @@ export async function POST(req: Request) {
       mode: "stream",
       label: "chat stream",
       sessionId: sessionFlags.sessionId,
-      onStreamEnd: async (response: string) => {
+      onStreamEnd: async (response: string, cleaned: string) => {
         // assistant メッセージ保存
         if (options.memoryOn) {
           await REQ.requestSave(
             sessionFlags.baseUrl!,
-            new AIMessage(response),
+            new AIMessage(cleaned),
             sessionFlags.sessionId
           );
         }
 
         // 今回のエントリーにメッセージを追記
-        if (!(clueId === "")) await updateClueChat(clueId, response);
+        const splitHint = response.match(/<HINT>([\s\S]*?)<\/HINT>/);
+        const clue = splitHint ? splitHint[1].trim() : "";
+        if (!(clueId === "")) await updateClueChat(clueId, clue);
       },
     })) as ReadableStream<string>;
 

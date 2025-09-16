@@ -159,26 +159,49 @@ const enhancedStream = (
   stream: AsyncIterable<StreamChunk>,
   payload: TYPE.LLMPayload,
   callback: ReturnType<typeof createLatencyCallback>,
-  onStreamEnd?: (response: string) => Promise<void>
+  onStreamEnd?: (response: string, cleaned: string) => Promise<void>
 ) =>
   new ReadableStream({
     async start(controller) {
       let response = "";
+      let resCleaned = "";
+      let buf = ""; // 出力用の作業バッファ（raw）
+      const TAG_MAX = 8; // "<HINT>" or "</HINT>" の最長
+      const TAG_RE = /<\/?HINT>/g;
 
       for await (const chunk of stream) {
-        response += chunk.content || "";
-        if (typeof chunk.content === "string") {
-          controller.enqueue(chunk.content);
+        const text = chunk.content || "";
+        response += text; // ログ用にはタグ付きで保持
+        buf += text; // ← 出力用：まずは raw を貯める
+
+        if (typeof text === "string") {
+          // 1) 完全タグを除去
+          buf = buf.replace(TAG_RE, "");
+
+          // 2) 末尾にタグ断片用の余白を残し、それ以外を吐き出す
+          const safeLen = Math.max(0, buf.length - (TAG_MAX - 1));
+          let send = "";
+          if (safeLen > 0 && !send) {
+            send = buf.slice(0, safeLen);
+            controller.enqueue(buf.slice(0, safeLen));
+            buf = buf.slice(safeLen); // 末尾の断片だけ残す
+          }
+          resCleaned += send;
         } else if (chunk.additional_kwargs) {
           // 必要ならフォールバック
           controller.enqueue(JSON.stringify(chunk.additional_kwargs));
         }
-        // 何もなければ enqueue しない（無音）
+      }
+      // 最後に残った分をタグ除去して出力
+      if (buf.length) {
+        const remainder = buf.replace(TAG_RE, "");
+        controller.enqueue(remainder);
+        resCleaned += remainder;
       }
 
       // 終了時に外部処理を走らせる
       if (onStreamEnd) {
-        await onStreamEnd(response);
+        await onStreamEnd(response, resCleaned);
 
         // 情報を外部保存
         const metrics = callback.getMetrics();

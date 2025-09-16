@@ -19,6 +19,7 @@ export const DATA_LOAD_ERROR = "✖ データ取得に失敗しました";
 export const ADD_RESPONSE_ERROR = "返答例の取得に失敗しました";
 export const LIST_UPDATE_ERROR = "リストの更新に失敗しました";
 export const INPUT_ANALYZE_ERROR = "✖ 入力分析に失敗しました";
+export const SPLIT_INPUT_ERROR = "✖ 入力の切り分けに失敗しました";
 
 // API error
 export const RECUEST_ERROR = "✖ APIリクエストエラー: ";
