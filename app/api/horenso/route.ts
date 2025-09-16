@@ -10,7 +10,6 @@ import * as DOC from "@/lib/contents/horenso/documents";
 import * as NODE from "./node";
 import * as TYPE from "@/lib/type";
 import * as ERR from "@/lib/message/error";
-import { SessionFlags } from "../../../lib/type";
 
 // 使用ドキュメントの初期状態準備
 const whoUseDocuments = DOC.whoDocuments.map((doc) => ({

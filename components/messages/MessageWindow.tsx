@@ -80,6 +80,7 @@ export const MessageWindow = () => {
     sessionFlags.phase,
     sessionFlags.sessionId,
     lines,
+    merge,
     push,
   ]);
 
