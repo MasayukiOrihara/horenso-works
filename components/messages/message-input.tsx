@@ -31,7 +31,7 @@ export const MessageInput = () => {
       <div className="w-full h-12 flex overflow-hidden">
         {/* テキストエリア */}
         <Input
-          className="w-full h-full mr-2 rounded shadow-xl text-zinc-400 placeholder:text-neutral-400 bg-white"
+          className="w-full h-full mr-2 rounded shadow-xl text-zinc-600 placeholder:text-neutral-400 bg-white"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="[ENTER で 送信...]"

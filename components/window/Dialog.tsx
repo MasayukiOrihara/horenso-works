@@ -137,6 +137,9 @@ export const Dialog = ({ lines }: { lines: string[] }) => {
           )}
         </button>
       </div>
+      <p className="text-xs text-center text-zinc-500">
+        ▶ を押して次の文章を読む
+      </p>
       <LogViewer onSend={onSend} />
     </div>
   );
