@@ -95,7 +95,6 @@ export const MessageWindow = () => {
     // 新たに改行があったら保存 + 空白は除去
     if (sliceChunk.includes("\n")) {
       if (sliceChunk.endsWith("\n")) {
-        console.log("end: " + sliceChunk);
         parts = chunk.split("\n").filter(Boolean);
         previousRef.current = chunk;
       }
