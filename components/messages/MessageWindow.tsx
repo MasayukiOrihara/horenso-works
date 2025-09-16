@@ -95,12 +95,14 @@ export const MessageWindow = () => {
     // 新たに改行があったら保存 + 空白は除去
     if (sliceChunk.includes("\n")) {
       if (sliceChunk.endsWith("\n")) {
+        console.log("end: " + sliceChunk);
         parts = chunk.split("\n").filter(Boolean);
         previousRef.current = chunk;
       }
 
       const lastBreak = chunk.lastIndexOf("\n"); // 最後の改行位置
       if (lastBreak !== -1) {
+        console.log(chunk.slice(previousRef.current.length, lastBreak));
         const before = chunk.slice(0, lastBreak + 1); // 最後の改行より前
         previousRef.current = before;
       }
