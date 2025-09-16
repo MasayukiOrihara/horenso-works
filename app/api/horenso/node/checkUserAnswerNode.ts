@@ -26,7 +26,6 @@ export async function checkUserAnswerNode({
       // 1つでも正解でok
       const isCorrectWho = sessionFlags.currectStatus.length >= 1;
       if (isCorrectWho) {
-        sessionFlags.step = 1;
         flag.isAnswerCorrect = true;
         // 正解判定をリセット
         sessionFlags.currectStatus.length = 0;

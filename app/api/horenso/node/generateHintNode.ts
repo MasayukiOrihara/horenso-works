@@ -1,31 +1,17 @@
 import { Document } from "langchain/document";
 
-import { Evaluation, HorensoMetadata, SessionFlags } from "@/lib/type";
-import { findMatchStatusChanges } from "../lib/match/lib/utils";
+import * as TYPE from "@/lib/type";
 
 import * as MSG from "@/lib/contents/horenso/template";
 import * as DOC from "@/lib/contents/horenso/documents";
 import { QuestionStatsRepo } from "@/lib/supabase/repositories/questionStats.repo";
 
-let oldWhoUseDocuments = DOC.whoDocuments.map((doc) => ({
-  pageContent: doc.pageContent,
-  metadata: { ...doc.metadata },
-}));
-let oldWhyUseDocuments = DOC.whyDocuments.map((doc) => ({
-  pageContent: doc.pageContent,
-  metadata: { ...doc.metadata },
-}));
-
 type HintNode = {
-  whoUseDocuments: Document<HorensoMetadata>[];
-  whyUseDocuments: Document<HorensoMetadata>[];
-  evaluationData: Evaluation[];
-  sessionFlags: SessionFlags;
+  evaluationData: TYPE.Evaluation[];
+  sessionFlags: TYPE.SessionFlags;
   aiHint: string;
   category: string;
 };
-
-// const oldCorrecteaId: string[] = [];
 
 const userAnswerTemplate = (userAnswer: string, correct: string) =>
   `ユーザー回答: ${userAnswer}\n質問の正解: ${correct}`;
@@ -44,8 +30,6 @@ const matchedSummaryMessage = (
  * @returns
  */
 export async function generateHintNode({
-  whoUseDocuments,
-  whyUseDocuments,
   evaluationData,
   sessionFlags,
   aiHint,
@@ -54,36 +38,28 @@ export async function generateHintNode({
   const contexts = [];
   contexts.push(MSG.ANSWER_STEP);
 
+  let currectStatus = sessionFlags.currectStatus;
+
   // どっちのドキュメントを参照するか
-  let documents: Document<HorensoMetadata>[] = [];
-  let oldDocuments: Document<HorensoMetadata>[] = [];
+  let documents: Document<TYPE.HorensoMetadata>[] = [];
   switch (sessionFlags.step) {
     case 0:
-      documents = whoUseDocuments; // 今回は使わないけど一応
-      oldDocuments = oldWhoUseDocuments;
+      documents = DOC.whoDocuments; // 今回は使わないけど一応
       break;
     case 1:
-      documents = whyUseDocuments;
-      oldDocuments = oldWhyUseDocuments;
+      documents = DOC.whyDocuments;
       break;
   }
 
   // 部分的に正解だった場合、今回正解した差分を見つけ出す
-  const changed = findMatchStatusChanges(oldDocuments, documents);
-
-  // ローカルドキュメントにコピー
-  const copiedDocuments = documents.map((doc) => ({
-    pageContent: doc.pageContent,
-    metadata: { ...doc.metadata },
+  const diffs = currectStatus.filter((item) => item.new);
+  console.log("差分: ");
+  console.log(diffs);
+  // 新規フラフを下す
+  currectStatus = currectStatus.map((s) => ({
+    ...s,
+    new: false,
   }));
-  switch (sessionFlags.step) {
-    case 0:
-      oldWhoUseDocuments = copiedDocuments;
-      break;
-    case 1:
-      oldWhyUseDocuments = copiedDocuments;
-      break;
-  }
 
   // 会話の種類次第で反応を変える
   let correctPoint: string = "";
@@ -92,7 +68,7 @@ export async function generateHintNode({
       // ヒント回数を記録
       const r = await QuestionStatsRepo.incHint(
         sessionFlags.sessionId,
-        documents[0].metadata.questionId
+        String(sessionFlags.step + 1)
       );
       if (!r.ok) throw r.error;
       console.log("✅ inc_retry_count テーブル を 更新しました。");
@@ -103,29 +79,32 @@ export async function generateHintNode({
       break;
     case "回答":
     default:
-      const haveChanged = Object.keys(changed).length > 0;
+      const haveChanged = Object.keys(diffs).length > 0;
       const hasAnyMatch = evaluationData.some(
         (data) => data.answerCorrect === "correct"
       );
       if (haveChanged) {
         // 部分的に正解だったところを解説
         contexts.push(MSG.PARTIAL_CORRECT_FEEDBACK_PROMPT);
-        for (const data of evaluationData) {
-          if (data.answerCorrect === "correct") {
-            correctPoint = userAnswerTemplate(
-              data.input.userAnswer,
-              data.document.pageContent
-            );
+        for (const diff of diffs) {
+          for (const data of evaluationData) {
+            const isCorrect = data.answerCorrect === "correct"; // 正解判定
+            const hasExpectedAnswerId =
+              data.document.metadata.expectedAnswerId === diff.expectedAnswerId;
+            if (isCorrect && hasExpectedAnswerId) {
+              correctPoint = userAnswerTemplate(
+                data.input.userAnswer,
+                data.document.pageContent
+              );
+            }
           }
         }
       } else if (!haveChanged && hasAnyMatch) {
         // 部分的に正解だが、すでに正解だった場合
         contexts.push(MSG.ALREADY_ANSWERED_NOTICE);
         for (const data of evaluationData) {
-          if (
-            data.document.metadata.isMatched &&
-            data.answerCorrect === "correct"
-          ) {
+          const isCorrect = data.answerCorrect === "correct"; // 正解判定
+          if (data.document.metadata.isMatched && isCorrect) {
             correctPoint = userAnswerTemplate(
               data.input.userAnswer,
               data.document.pageContent
@@ -143,16 +122,19 @@ export async function generateHintNode({
 
   // 現在の正解を報告
   let alreadyCorrectText: string = "";
-  const count = Object.values(documents).filter(
-    (val) => val.metadata.isMatched === true
-  ).length;
+  const count = currectStatus.length;
   if (count > 0) {
     contexts.push(MSG.CORRECT_PARTS_LABEL_PROMPT);
 
-    const matchedPages = documents.filter((page) => page.metadata.isMatched);
-    const matchedContents = matchedPages.map((page) => page.pageContent);
+    const filtered = documents.filter((doc) =>
+      currectStatus.some(
+        (status) => status.expectedAnswerId === doc.metadata.expectedAnswerId
+      )
+    );
+
+    const matchedContents = filtered.map((page) => page.pageContent);
     alreadyCorrectText = matchedSummaryMessage(
-      matchedPages.length,
+      filtered.length,
       documents.length,
       matchedContents
     );
@@ -186,5 +168,7 @@ export async function generateHintNode({
   const formattedHint = aiHint.replace(/(\r\n|\n|\r|\*)/g, "");
   contexts.push(MSG.HINT_REFERENCE_PROMPT.replace("{hint}", formattedHint));
 
-  return { contexts };
+  const tempSessionFlags = { ...sessionFlags, currectStatus: currectStatus };
+
+  return { contexts, tempSessionFlags };
 }

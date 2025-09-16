@@ -60,8 +60,12 @@ export async function checkDocumentScoreNode({
         );
         if (!r.ok) throw r.error;
         console.log("✅ session_answer_status テーブルを更新しました");
+        const CurrectStatusFlag: TYPE.CurrectStatusFlag = {
+          expectedAnswerId: bestExpectedAnswerId,
+          new: true,
+        };
 
-        matchAnswerArgs.sessionFlags.currectStatus.push(bestExpectedAnswerId);
+        matchAnswerArgs.sessionFlags.currectStatus.push(CurrectStatusFlag);
         console.log(bestExpectedAnswerId);
 
         // matchAnswerArgs 内の document

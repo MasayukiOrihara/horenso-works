@@ -137,7 +137,17 @@ export async function preprocessAiNode({
     // 正解データ
     const currectStatusArr = matchResults.map((r) => r.currectStatus).flat();
     const currectStatus = [...new Set(currectStatusArr)];
-    sessionFlags.currectStatus = currectStatus;
+
+    const existingIds = new Set(
+      sessionFlags.currectStatus.map((s) => s.expectedAnswerId)
+    );
+    const newOnes = currectStatus.filter(
+      (s) => !existingIds.has(s.expectedAnswerId)
+    );
+    // 追加
+    sessionFlags.currectStatus = [...sessionFlags.currectStatus, ...newOnes];
+
+    console.log(sessionFlags.currectStatus);
 
     // document 更新
     evaluatedResults(evaluationData, useDocuments);

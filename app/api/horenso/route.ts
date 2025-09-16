@@ -10,6 +10,7 @@ import * as DOC from "@/lib/contents/horenso/documents";
 import * as NODE from "./node";
 import * as TYPE from "@/lib/type";
 import * as ERR from "@/lib/message/error";
+import { SessionFlags } from "../../../lib/type";
 
 // 使用ドキュメントの初期状態準備
 const whoUseDocuments = DOC.whoDocuments.map((doc) => ({
@@ -94,16 +95,17 @@ async function generateHint(state: typeof StateAnnotation.State) {
   console.log("🛎 ヒント生成ノード");
   const sessionFlags = state.sessionFlags;
 
-  const { contexts } = await NODE.generateHintNode({
-    whoUseDocuments: whoUseDocuments,
-    whyUseDocuments: whyUseDocuments,
+  const { contexts, tempSessionFlags } = await NODE.generateHintNode({
     evaluationData: state.evaluationData,
     sessionFlags: sessionFlags,
     aiHint: state.aiHint,
     category: state.inputCategory,
   });
 
-  return { contexts: [...state.contexts, ...contexts] };
+  return {
+    contexts: [...state.contexts, ...contexts],
+    sessionFlags: tempSessionFlags,
+  };
 }
 
 async function askQuestion(state: typeof StateAnnotation.State) {
@@ -119,11 +121,16 @@ async function askQuestion(state: typeof StateAnnotation.State) {
 async function explainAnswer(state: typeof StateAnnotation.State) {
   console.log("📢 解答解説ノード");
   const adjustedClue = state.adjustedClue;
+  const sessionFlags = state.sessionFlags;
 
-  const { contexts } = await NODE.explainAnswerNode({
+  const { contexts, updateSessionFlags } = await NODE.explainAnswerNode({
     adjustedClue: adjustedClue,
+    sessionFlags: sessionFlags,
   });
-  return { contexts: [...state.contexts, ...contexts] };
+  return {
+    contexts: [...state.contexts, ...contexts],
+    sessionFlags: updateSessionFlags,
+  };
 }
 
 /**

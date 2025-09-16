@@ -80,8 +80,10 @@ export const HINT_ROLES_PROMPT = `## HINT_RULES
 
 export const SUCCESS_MESSAGE_PROMPT =
   "1. ユーザーが問題に正解したので褒めてること\n";
-export const SUMMARY_REQUEST_PROMPT =
-  "2. 今までの会話をまとめ、ユーザーの記憶に残るような質問の解説をすること\n";
+export const SUMMARY_REQUEST_PROMPT = `2. 今までの会話をまとめ、ユーザーの記憶に残るような質問の解説をすること
+  以下のquestion & answerは今回の質問内容である\n`;
+export const NEXT_QUESTION_PROMPT = `3. 最後に次の質問を提示すること\n`;
+export const QUESTION_AND_ANSWER_PROMPT = "### QUESTION & ANSWER\n";
 
 export const FINAL_QUESTION_PROMPT = "## FINAL_QUESTION\n";
 export const HINT_REFERENCE_PROMPT = `## HINT_REFERENCE (INTERNAL)
