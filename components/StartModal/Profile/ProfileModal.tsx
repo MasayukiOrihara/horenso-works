@@ -10,13 +10,13 @@ import { FramedCard } from "@/components/ui/FramedCard";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import * as S from "@/components/ui/select";
 
 import { requestApi } from "@/lib/api/request";
 import { USERPROFILE_SAVE_PATH } from "@/lib/api/path";
 import { userprofileFormValues, userprofileSchema } from "@/lib/schema";
 import * as ERR from "@/lib/message/error";
 import { useSessionFlags } from "../../provider/SessionFlagsProvider";
+import { useState } from "react";
 
 /**
  * スタートボタンとプロフィール入力
@@ -25,6 +25,7 @@ import { useSessionFlags } from "../../provider/SessionFlagsProvider";
 export const ProfileModal = () => {
   const { push } = useErrorStore();
   const { value: sessionFlags, merge, mergeOptions } = useSessionFlags();
+  const [debugMode, setDebugMode] = useState<boolean>(false);
 
   // 現在のセッション ID
   const sessionId = useSessionId();
@@ -75,11 +76,18 @@ export const ProfileModal = () => {
   // 開始中なら何もしない
   if (sessionFlags.sync !== "idle" || sessionFlags.options.debugOn) return null;
 
+  // .envで切り替え
+  const isDebugMode = process.env.NEXT_PUBLIC_DEBUG_MODE === "true";
+  console.log(isDebugMode);
+  if (isDebugMode && !debugMode) {
+    setDebugMode(true);
+  }
+
   return (
     <div>
       {sessionFlags.sync === "idle" && (
         <div className="absolute [width:calc(100%-3.5rem)] [height:calc(100%-2.75rem)] bg-zinc-600/60 z-30 overflow-hidden">
-          <div className="flex flex-col items-center justify-start pt-44 h-screen ">
+          <div className="flex flex-col items-center justify-center h-full">
             <FramedCard title="プロフィールを入力(任意)" align="center">
               <h2 className="text-zinc-500 text-sm  text-center">
                 あなたの情報を入力すると、その情報に沿った回答を返します。
@@ -132,114 +140,51 @@ export const ProfileModal = () => {
                   />
                 </fieldset>
 
-                {/** 国籍 */}
-                <div className="mb-4 space-y-2">
-                  <Label htmlFor="country">🌍 出身地</Label>
-                  <Controller
-                    control={control}
-                    name="country"
-                    render={({ field }) => (
-                      <S.Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <S.SelectTrigger id="country">
-                          <S.SelectValue placeholder="国を選択" />
-                        </S.SelectTrigger>
-                        <S.SelectContent>
-                          <S.SelectItem value="japan">日本</S.SelectItem>
-                          <S.SelectItem value="usa">アメリカ</S.SelectItem>
-                          <S.SelectItem value="other">その他</S.SelectItem>
-                        </S.SelectContent>
-                      </S.Select>
-                    )}
-                  />
-                </div>
-
-                {/** 会社入力 */}
-                <div className="mb-4 space-y-2">
-                  <Label htmlFor="company">🏢 会社</Label>
-                  <Controller
-                    control={control}
-                    name="company"
-                    render={({ field }) => (
-                      <Input
-                        id="company"
-                        placeholder="例）株式会社フリースタイル"
-                        autoComplete="company"
-                        {...field}
-                      />
-                    )}
-                  />
-                </div>
-
-                <div className="mb-4 space-y-2">
-                  <Label htmlFor="organization">所属</Label>
-                  <Controller
-                    control={control}
-                    name="organization"
-                    render={({ field }) => (
-                      <S.Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <S.SelectTrigger id="organization">
-                          <S.SelectValue placeholder="所属を選択" />
-                        </S.SelectTrigger>
-                        <S.SelectContent>
-                          <S.SelectItem value="dev">開発</S.SelectItem>
-                          <S.SelectItem value="sales">営業</S.SelectItem>
-                          <S.SelectItem value="hr">人事</S.SelectItem>
-                          <S.SelectItem value="other">その他</S.SelectItem>
-                        </S.SelectContent>
-                      </S.Select>
-                    )}
-                  />
-                </div>
-
                 <Button type="submit" className="w-full hover:cursor-pointer">
                   スタート
                 </Button>
-                <h2 className="text-zinc-500 text-sm text-center">
+                <h2 className="text-zinc-500 text-xs text-center">
                   入力した情報は本アプリ内でのみ使用されます。
                 </h2>
               </form>
 
               {/** デバックボタン */}
-              <div className="flex items-center justify-center">
-                <Button
-                  onClick={() => mergeOptions({ debugOn: true })}
-                  variant={"ghost"}
-                  size={"md"}
-                  className="mb-1 h-7"
-                >
-                  デバッグ
-                </Button>
-                {/** この辺にデバック用のステッパー */}
-                <div className="flex items-center gap-2 text-xs">
+              {debugMode && (
+                <div className="flex items-center justify-center">
                   <Button
-                    onClick={() =>
-                      merge({ step: Math.max(0, sessionFlags.step - 1) })
-                    }
+                    onClick={() => mergeOptions({ debugOn: true })}
                     variant={"ghost"}
-                    className="px-2 py-1 bg-gray-200/20"
+                    size={"md"}
+                    className="mb-1 h-7"
                   >
-                    -
+                    デバッグ
                   </Button>
-                  <span className="w-2 text-center">{sessionFlags.step}</span>
-                  <Button
-                    onClick={() =>
-                      merge({
-                        step: Math.max(0, Math.min(1, sessionFlags.step + 1)),
-                      })
-                    }
-                    variant={"ghost"}
-                    className="px-2 py-1 bg-gray-200/20"
-                  >
-                    +
-                  </Button>
+                  {/** この辺にデバック用のステッパー */}
+                  <div className="flex items-center gap-2 text-xs">
+                    <Button
+                      onClick={() =>
+                        merge({ step: Math.max(0, sessionFlags.step - 1) })
+                      }
+                      variant={"ghost"}
+                      className="px-2 py-1 bg-gray-200/20"
+                    >
+                      -
+                    </Button>
+                    <span className="w-2 text-center">{sessionFlags.step}</span>
+                    <Button
+                      onClick={() =>
+                        merge({
+                          step: Math.max(0, Math.min(1, sessionFlags.step + 1)),
+                        })
+                      }
+                      variant={"ghost"}
+                      className="px-2 py-1 bg-gray-200/20"
+                    >
+                      +
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </FramedCard>
           </div>
         </div>
