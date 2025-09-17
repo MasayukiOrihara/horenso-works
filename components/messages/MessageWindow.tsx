@@ -101,7 +101,9 @@ export const MessageWindow = () => {
 
       const lastBreak = chunk.lastIndexOf("\n"); // 最後の改行位置
       if (lastBreak !== -1) {
-        console.log(chunk.slice(previousRef.current.length, lastBreak));
+        console.log(
+          JSON.stringify(chunk.slice(previousRef.current.length, lastBreak))
+        );
         const before = chunk.slice(0, lastBreak + 1); // 最後の改行より前
         previousRef.current = before;
       }
