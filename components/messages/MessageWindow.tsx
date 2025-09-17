@@ -101,9 +101,14 @@ export const MessageWindow = () => {
 
       const lastBreak = chunk.lastIndexOf("\n"); // 最後の改行位置
       if (lastBreak !== -1) {
-        console.log(
-          JSON.stringify(chunk.slice(previousRef.current.length, lastBreak))
-        );
+        // 改行が1つの時は対応しきれてないっぽい？
+        const lostMessage = chunk.slice(previousRef.current.length, lastBreak);
+        if (lostMessage.length > 3) {
+          // 3文字以上の時（勘）
+          parts.push(lostMessage);
+          console.log(JSON.stringify(lostMessage));
+        }
+
         const before = chunk.slice(0, lastBreak + 1); // 最後の改行より前
         previousRef.current = before;
       }
